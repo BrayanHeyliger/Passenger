@@ -4,6 +4,7 @@
  */
 import { useRef, useEffect, useState } from "react";
 import { MessageCircle, MapPin, CheckCircle, Car, Star, BarChart3 } from "lucide-react";
+import BotDemoAnimation from "./BotDemoAnimation";
 
 const steps = [
   {
@@ -280,6 +281,32 @@ export default function HowItWorksSection() {
           {steps.map((step, i) => (
             <StepCard key={i} step={step} index={i} />
           ))}
+        </div>
+
+        {/* Interactive bot demo section */}
+        <div className="mt-20 lg:mt-28 pt-16 lg:pt-20 border-t" style={{ borderColor: "oklch(0.90 0.005 100)" }}>
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <div
+              className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-4"
+              style={{ background: "oklch(0.76 0.18 148 / 0.1)", color: "oklch(0.52 0.12 148)" }}
+            >
+              <MessageCircle size={12} />
+              Demostración en vivo
+            </div>
+            <h3
+              className="text-2xl lg:text-3xl font-extrabold text-[oklch(0.14_0.01_250)] mb-4"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              Mira el bot en acción
+            </h3>
+            <p className="text-[oklch(0.55_0.01_80)] text-lg">
+              Aquí puedes ver el flujo completo: desde el primer mensaje hasta el viaje completado y calificado.
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            <BotDemoAnimation />
+          </div>
         </div>
       </div>
     </section>
