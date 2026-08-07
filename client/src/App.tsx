@@ -11,6 +11,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import FleetDashboard from "./pages/FleetDashboard";
+import Payments from "./pages/Payments";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -23,6 +24,7 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/fleet-dashboard"} component={FleetDashboard} />
+      <Route path={"/payments"} component={Payments} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
