@@ -13,7 +13,7 @@ import {
   BarChart2, TrendingUp, MapPin, AlertTriangle, Star, Send,
   Shield, Edit3, Save, Globe, Palette, Layers, Sliders,
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
-  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon
+  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -168,7 +168,7 @@ export default function AdminDashboard() {
   const handleSaveConfig = () => {
     saveGlobalConfig(siteConfig as any);
     setPreviewKey(k => k + 1);
-    toast.success("Configuración guardada ✅");
+    toast.success("Guardando en base de datos...");
   };
 
   const handleResetConfig = () => {
@@ -559,13 +559,20 @@ export default function AdminDashboard() {
                     <RotateCcw size={14} /> Restablecer
                   </Button>
                   <Button size="sm" onClick={handleSaveConfig} className="gap-2 text-sm bg-green-500 hover:bg-green-600 text-white">
-                    <Save size={14} /> Guardar cambios
+                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    {isSaving ? "Guardando..." : "Guardar cambios"}
                   </Button>
                   <a href="/" target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm" className="gap-2 text-sm">
                       <ExternalLink size={14} /> Ver sitio
                     </Button>
                   </a>
+                  {lastSaved && (
+                    <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
+                      <Database size={12} />
+                      Guardado en BD · {lastSaved.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -854,3 +861,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+  const { isSaving, lastSaved } = useSiteConfig();

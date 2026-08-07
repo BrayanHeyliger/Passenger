@@ -78,16 +78,38 @@ interface SiteConfigContextValue {
   config: SiteConfig;
   updateConfig: (partial: Partial<SiteConfig>) => void;
   saveConfig: (cfg: SiteConfig) => void;
+  isSaving: boolean;
+  lastSaved: Date | null;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextValue>({
   config: DEFAULT_SITE_CONFIG,
   updateConfig: () => {},
   saveConfig: () => {},
+  isSaving: false,
+  lastSaved: null,
 });
 
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SiteConfig>(loadConfig);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Load from DB on mount
+  const { data: dbConfig } = trpc.siteSettings.getConfig.useQuery(undefined, {
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (dbConfig) {
+      const merged = { ...DEFAULT_SITE_CONFIG, ...dbConfig };
+      setConfig(merged);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    }
+  }, [dbConfig]);
+
+  const saveMutation = trpc.siteSettings.saveConfig.useMutation();
 
   // Listen for storage changes from other tabs (e.g. admin panel saving)
   useEffect(() => {
@@ -141,10 +163,25 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const saveConfig = (cfg: SiteConfig) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
     setConfig(cfg);
+    // Also persist to DB
+    setIsSaving(true);
+    saveMutation.mutate(
+      { config: JSON.stringify(cfg) },
+      {
+        onSuccess: () => {
+          setLastSaved(new Date());
+          setIsSaving(false);
+        },
+        onError: (err) => {
+          console.error("[SiteConfig] Failed to save to DB:", err);
+          setIsSaving(false);
+        },
+      }
+    );
   };
 
   return (
-    <SiteConfigContext.Provider value={{ config, updateConfig, saveConfig }}>
+    <SiteConfigContext.Provider value={{ config, updateConfig, saveConfig, isSaving, lastSaved }}>
       {children}
     </SiteConfigContext.Provider>
   );
@@ -153,3 +190,4 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
 export function useSiteConfig() {
   return useContext(SiteConfigContext);
 }
+import { trpc } from "@/lib/trpc";

@@ -218,3 +218,14 @@ export const companySubscriptions = mysqlTable("companySubscriptions", {
 
 export type CompanySubscription = typeof companySubscriptions.$inferSelect;
 export type InsertCompanySubscription = typeof companySubscriptions.$inferInsert;
+
+// ===== SITE SETTINGS (Admin Editor Config) =====
+export const siteSettings = mysqlTable("siteSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = typeof siteSettings.$inferInsert;
