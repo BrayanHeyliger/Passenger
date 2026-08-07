@@ -263,12 +263,12 @@ export default function AdminDashboard() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
               <div className="lg:col-span-3">
-                <Card className="overflow-hidden" style={{ height: "520px" }}>
+                <Card className="overflow-hidden" style={{ height: "500px", position: "relative" }}>
                   <MapView
                     initialCenter={{ lat: 19.4326, lng: -99.1332 }}
                     initialZoom={13}
                     onMapReady={handleMapReady}
-                    className="w-full h-full"
+                    className="absolute inset-0 w-full h-full"
                   />
                 </Card>
               </div>
