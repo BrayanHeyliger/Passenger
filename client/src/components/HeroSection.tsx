@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Play, CheckCircle2, MessageCircle, MapPin, Star } from "lucide-react";
 import { useLocation } from "wouter";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 const stats = [
   { value: "2,400+", label: "Empresas activas" },
@@ -26,6 +27,7 @@ const chatMessages = [
 export default function HeroSection() {
   const [visibleMessages, setVisibleMessages] = useState(0);
   const [, navigate] = useLocation();
+  const { config } = useSiteConfig();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -42,7 +44,7 @@ export default function HeroSection() {
     <section
       className="relative min-h-screen flex items-center overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, oklch(0.10 0.01 250) 0%, oklch(0.14 0.02 200) 50%, oklch(0.13 0.01 250) 100%)",
+        background: `linear-gradient(135deg, ${config.secondaryColor}f0 0%, ${config.secondaryColor}cc 50%, ${config.secondaryColor}f0 100%)`,
       }}
     >
       {/* Background image overlay */}
@@ -94,25 +96,25 @@ export default function HeroSection() {
 
             <h1
               className="text-4xl lg:text-5xl xl:text-6xl font-extrabold text-white leading-[1.1] tracking-tight"
-              style={{ fontFamily: "'Sora', sans-serif" }}
+              style={{ fontFamily: `'${config.fontFamily}', sans-serif` }}
             >
-              Gestiona tu flota{" "}
+              {config.heroTitle.split(".")[0]}{" "}
               <span
                 className="relative"
                 style={{
-                  background: "linear-gradient(90deg, oklch(0.76 0.18 148), oklch(0.85 0.15 155))",
+                  background: `linear-gradient(90deg, ${config.primaryColor}, ${config.accentColor})`,
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                desde WhatsApp
+                {config.heroTitle.split(".")[1] || "desde WhatsApp"}
               </span>
               <br />
-              <span className="text-white/80">Sin apps. Sin complicaciones.</span>
+              <span className="text-white/80">{config.heroTitle.split(".")[2] || "Sin apps. Sin complicaciones."}</span>
             </h1>
 
             <p className="text-white/60 text-lg leading-relaxed max-w-lg">
-              La plataforma SaaS que convierte WhatsApp en tu central de taxis. Recibe pedidos, asigna conductores y gestiona tarifas — todo desde un bot inteligente.
+              {config.heroDesc}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -120,12 +122,12 @@ export default function HeroSection() {
                 size="lg"
                 className="text-base font-bold px-8 h-12 shadow-xl shadow-green-500/30 active:scale-[0.97] transition-all"
                 style={{
-                  background: "linear-gradient(135deg, oklch(0.76 0.18 148), oklch(0.68 0.16 148))",
-                  color: "oklch(0.08 0.02 148)",
+                  background: `linear-gradient(135deg, ${config.primaryColor}, ${config.accentColor})`,
+                  color: "#0d1117",
                 }}
                 onClick={() => navigate("/register")}
               >
-                Empezar gratis
+                {config.ctaText}
                 <ArrowRight size={18} className="ml-2" />
               </Button>
               <Button

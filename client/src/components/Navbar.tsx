@@ -10,6 +10,7 @@ import { Menu, X, User, Car, LogOut, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useI18n } from "@/contexts/I18nContext";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 const navLinks = [
   { label: "Características", href: "#features" },
@@ -31,6 +32,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { t } = useI18n();
+  const { config } = useSiteConfig();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -64,15 +66,15 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                 src="/manus-storage/logo-icon_34950e08.png"
                 alt="WhatsApp Taxi Logo"
                 className="w-full h-full object-cover"
-                style={{ background: "oklch(0.76 0.18 148)" }}
+                style={{ background: config.primaryColor }}
               />
             </div>
             <div className="flex flex-col leading-none">
               <span
                 className="text-white font-bold text-base tracking-tight"
-                style={{ fontFamily: "'Sora', sans-serif" }}
+                style={{ fontFamily: `'${config.fontFamily}', sans-serif` }}
               >
-                WhatsApp<span className="text-[oklch(0.76_0.18_148)]">Taxi</span>
+                {config.siteTitle.split(" ")[0]}<span style={{ color: config.primaryColor }}>{config.siteTitle.split(" ").slice(1).join(" ")}</span>
               </span>
               <span className="text-white/50 text-[10px] font-medium tracking-widest uppercase">
                 SaaS Platform

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { LanguageSelectorLight } from "@/components/LanguageSelector";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MapView } from "@/components/Map";
@@ -96,7 +97,14 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [drivers, setDrivers] = useState<Driver[]>(MOCK_DRIVERS);
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
+  const { config: globalConfig, saveConfig: saveGlobalConfig } = useSiteConfig();
   const [siteConfig, setSiteConfig] = useState(defaultSiteConfig);
+
+  // Sync local editor state from global config on mount
+  useEffect(() => {
+    setSiteConfig(prev => ({ ...prev, ...globalConfig }));
+  }, []);
+
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [messageForm, setMessageForm] = useState({ to: "all_clients", subject: "", body: "", channel: "push" });
   const [sentMessages, setSentMessages] = useState<SentMessage[]>([
@@ -154,7 +162,7 @@ export default function AdminDashboard() {
   };
 
   const handleSaveConfig = () => {
-    localStorage.setItem("wataxi_site_config", JSON.stringify(siteConfig));
+    saveGlobalConfig(siteConfig as any);
     toast.success("Configuración guardada ✅");
   };
 
