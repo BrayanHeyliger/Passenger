@@ -8,6 +8,9 @@ import Home from "./pages/Home";
 import ClientDashboard from "./pages/ClientDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
 import Register from "./pages/Register";
+import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
+import FleetDashboard from "./pages/FleetDashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -17,6 +20,9 @@ function Router() {
       <Route path={"/client-dashboard"} component={ClientDashboard} />
       <Route path={"/driver-dashboard"} component={DriverDashboard} />
       <Route path={"/register"} component={Register} />
+      <Route path={"/login"} component={Login} />
+      <Route path={"/admin"} component={AdminDashboard} />
+      <Route path={"/fleet-dashboard"} component={FleetDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

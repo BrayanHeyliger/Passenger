@@ -118,7 +118,13 @@ export default function BotDemoAnimation() {
   }, [demoState.isPlaying]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll only within the chat container, not the whole page
+    if (messagesEndRef.current) {
+      const container = messagesEndRef.current.parentElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
   }, [demoState.messages]);
 
   return (

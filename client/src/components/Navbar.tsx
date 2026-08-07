@@ -172,7 +172,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                 <Button
                   variant="ghost"
                   className="text-white/80 hover:text-white hover:bg-white/10 text-sm"
-                  onClick={() => onLogin?.()}
+                  onClick={() => window.location.href = "/login"}
                 >
                   Iniciar sesión
                 </Button>
@@ -252,7 +252,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                   <Button
                     variant="ghost"
                     className="text-white/80 hover:text-white w-full justify-center"
-                    onClick={() => { setMobileOpen(false); onLogin?.(); }}
+                    onClick={() => { setMobileOpen(false); window.location.href = "/login"; }}
                   >
                     Iniciar sesión
                   </Button>

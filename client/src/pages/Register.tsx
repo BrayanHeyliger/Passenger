@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { User, Car, ArrowLeft, Mail, Lock, Phone, FileText } from "lucide-react";
-import { startLogin } from "@/const";
+import { User, Car, ArrowLeft, Mail, Lock, Phone, FileText, Building2 } from "lucide-react";
 
-type RegisterType = "select" | "client" | "driver";
+type RegisterType = "select" | "client" | "driver" | "fleet";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -72,7 +71,7 @@ export default function Register() {
               <p className="text-white/60">Selecciona cómo quieres registrarte</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Opción Cliente */}
               <Card
                 className="p-6 cursor-pointer border-2 border-transparent hover:border-green-500/50 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] group"
@@ -110,15 +109,34 @@ export default function Register() {
                   </Button>
                 </div>
               </Card>
+
+              {/* Opción Flotilla */}
+              <Card
+                className="p-6 cursor-pointer border-2 border-transparent hover:border-indigo-500/50 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] group"
+                onClick={() => setRegisterType("fleet")}
+              >
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <Building2 size={28} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-lg">Soy Empresa</h3>
+                    <p className="text-white/50 text-sm mt-1">Quiero gestionar mi propia flotilla</p>
+                  </div>
+                  <Button className="w-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border border-indigo-500/30">
+                    Registrar Flotilla
+                  </Button>
+                </div>
+              </Card>
             </div>
 
             {/* Link a login */}
             <div className="text-center pt-4">
               <p className="text-white/50 text-sm">
                 ¿Ya tienes cuenta?{" "}
-                <button onClick={() => startLogin()} className="text-[oklch(0.76_0.18_148)] hover:underline font-medium">
+                <a href="/login" className="text-[oklch(0.76_0.18_148)] hover:underline font-medium">
                   Iniciar Sesión
-                </button>
+                </a>
               </p>
             </div>
 
