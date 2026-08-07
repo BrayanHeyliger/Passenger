@@ -229,3 +229,21 @@ export const siteSettings = mysqlTable("siteSettings", {
 
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = typeof siteSettings.$inferInsert;
+
+// ===== CONTACT MESSAGES (Landing Page Form) =====
+export const contactMessages = mysqlTable("contactMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  company: varchar("company", { length: 200 }),
+  message: text("message").notNull(),
+  status: mysqlEnum("status", ["unread", "read", "replied", "archived"]).default("unread").notNull(),
+  adminNotes: text("adminNotes"),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: varchar("userAgent", { length: 500 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = typeof contactMessages.$inferInsert;

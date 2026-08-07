@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
+import MessagesInbox from "@/components/MessagesInbox";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { LanguageSelectorLight } from "@/components/LanguageSelector";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
@@ -450,62 +451,9 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ── MENSAJES ── */}
+          {/* ── MENSAJES RECIBIDOS ── */}
           {activeTab === "messages" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="p-5">
-                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Send size={16} className="text-green-500" /> Enviar Mensaje</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Destinatarios</label>
-                    <select value={messageForm.to} onChange={e => setMessageForm(f => ({ ...f, to: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none">
-                      <option value="all_clients">👥 Todos los clientes ({clients.filter(c => c.status === "active").length} activos)</option>
-                      <option value="all_drivers">🚗 Todos los conductores ({drivers.filter(d => d.status === "active").length} activos)</option>
-                      <option value="specific">📧 Usuario específico</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Canal</label>
-                    <div className="flex gap-2">
-                      {[{ value: "push", label: "Push", icon: Bell }, { value: "email", label: "Email", icon: Mail }, { value: "sms", label: "SMS", icon: Smartphone }].map(ch => (
-                        <button key={ch.value} onClick={() => setMessageForm(f => ({ ...f, channel: ch.value }))} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium border transition-colors ${messageForm.channel === ch.value ? "bg-green-500 text-white border-green-500" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-                          <ch.icon size={14} />{ch.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Asunto</label>
-                    <input type="text" value={messageForm.subject} onChange={e => setMessageForm(f => ({ ...f, subject: e.target.value }))} placeholder="Ej: Actualización importante" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Mensaje</label>
-                    <textarea value={messageForm.body} onChange={e => setMessageForm(f => ({ ...f, body: e.target.value }))} placeholder="Escribe tu mensaje..." rows={4} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none" />
-                  </div>
-                  <Button onClick={handleSendMessage} className="w-full bg-green-500 hover:bg-green-600 text-white gap-2"><Send size={15} /> Enviar mensaje</Button>
-                </div>
-              </Card>
-              <Card className="p-5">
-                <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><FileText size={16} className="text-slate-500" /> Mensajes Enviados</h3>
-                <div className="space-y-3">
-                  {sentMessages.map(m => (
-                    <div key={m.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1"><p className="font-semibold text-slate-900 text-sm">{m.subject}</p><p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{m.body}</p></div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.channel === "push" ? "bg-purple-100 text-purple-700" : m.channel === "email" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>{m.channel.toUpperCase()}</span>
-                          <span className="text-xs text-slate-400">{m.date}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-slate-500">Para: {m.to === "all_clients" ? "Todos los clientes" : m.to === "all_drivers" ? "Todos los conductores" : "Específico"}</span>
-                        <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle size={11} /> Enviado</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
+            <MessagesInbox />
           )}
 
           {/* ── PERMISOS ── */}

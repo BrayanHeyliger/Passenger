@@ -19,7 +19,7 @@ export default function ContactSection() {
   const [sentTo, setSentTo] = useState<string>("");
   const { config } = useSiteConfig();
   const [sending, setSending] = useState(false);
-  const sendEmailMutation = trpc.siteSettings.sendContactEmail.useMutation();
+  const sendEmailMutation = trpc.siteSettings.saveAndSendContact.useMutation();
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
