@@ -22,7 +22,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "settings";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "settings";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email";
 type EditorView = "form" | "preview";
 
@@ -215,6 +215,7 @@ export default function AdminDashboard() {
     { id: "permissions", label: "Permisos", icon: Shield },
     { id: "editor", label: "Editor Web", icon: Edit3 },
     { id: "analytics", label: "Analytics", icon: BarChart2 },
+    { id: "payments", label: "Pagos / API", icon: DollarSign },
     { id: "settings", label: "Configuración", icon: Settings },
   ];
 
@@ -839,6 +840,161 @@ export default function AdminDashboard() {
                   ))}
                 </Card>
               </div>
+            </div>
+          )}
+
+          {/* ── PAYMENTS / API ── */}
+          {activeTab === "payments" && (
+            <div className="space-y-6 max-w-3xl">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center"><DollarSign size={20} className="text-white" /></div>
+                <div><h2 className="text-xl font-bold text-slate-900">Configuración de Pagos</h2><p className="text-sm text-slate-500">Configura tus claves API para procesar pagos reales</p></div>
+              </div>
+
+              {/* STRIPE */}
+              <Card className="p-6 border-2 border-violet-100">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-white font-bold text-sm">S</div>
+                  <div>
+                    <h3 className="font-bold text-slate-900">Stripe</h3>
+                    <p className="text-xs text-slate-500">Pagos con tarjeta de crédito/débito</p>
+                  </div>
+                  <div className="ml-auto">
+                    <button
+                      onClick={() => setSiteConfig(c => ({ ...c, stripeEnabled: !(c as any).stripeEnabled } as any))}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${(siteConfig as any).stripeEnabled ? "bg-violet-500" : "bg-slate-300"}`}>
+                      <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${(siteConfig as any).stripeEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modo Test/Live */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Modo de operación</label>
+                  <div className="flex gap-2">
+                    {["test", "live"].map(mode => (
+                      <button key={mode} onClick={() => setSiteConfig(c => ({ ...c, stripeMode: mode } as any))}
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${(siteConfig as any).stripeMode === mode || (!((siteConfig as any).stripeMode) && mode === "test") ? "border-violet-500 bg-violet-50 text-violet-700" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}>
+                        {mode === "test" ? "🧪 Modo Prueba" : "🚀 Modo Live"}
+                      </button>
+                    ))}
+                  </div>
+                  {(!(siteConfig as any).stripeMode || (siteConfig as any).stripeMode === "test") && (
+                    <p className="text-xs text-amber-600 mt-1.5 bg-amber-50 px-3 py-1.5 rounded-lg">Tarjeta de prueba: <strong>4242 4242 4242 4242</strong> — cualquier fecha futura y CVC</p>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { key: "stripePublishableKey", label: "Publishable Key (pk_...)", placeholder: "pk_test_... o pk_live_...", type: "text" },
+                    { key: "stripeSecretKey", label: "Secret Key (sk_...)", placeholder: "sk_test_... o sk_live_...", type: "password" },
+                    { key: "stripeWebhookSecret", label: "Webhook Secret (whsec_...)", placeholder: "whsec_...", type: "password" },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">{f.label}</label>
+                      <input type={f.type} value={(siteConfig as any)[f.key] || ""} onChange={e => setSiteConfig(c => ({ ...c, [f.key]: e.target.value } as any))}
+                        placeholder={f.placeholder}
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-violet-500 outline-none" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="text-xs text-slate-600 font-semibold mb-1">¿Dónde obtengo mis claves?</p>
+                  <ol className="text-xs text-slate-500 space-y-0.5 list-decimal list-inside">
+                    <li>Ve a <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener" className="text-violet-600 underline">dashboard.stripe.com/apikeys</a></li>
+                    <li>Copia tu Publishable Key y Secret Key</li>
+                    <li>Para el Webhook: Developers → Webhooks → Add endpoint</li>
+                    <li>URL del webhook: <code className="bg-slate-200 px-1 rounded text-xs">{window.location.origin}/api/stripe/webhook</code></li>
+                  </ol>
+                </div>
+              </Card>
+
+              {/* PAYPAL */}
+              <Card className="p-6 border-2 border-blue-100">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-sm">P</div>
+                  <div>
+                    <h3 className="font-bold text-slate-900">PayPal</h3>
+                    <p className="text-xs text-slate-500">Pagos con cuenta PayPal y tarjeta</p>
+                  </div>
+                  <div className="ml-auto">
+                    <button
+                      onClick={() => setSiteConfig(c => ({ ...c, paypalEnabled: !(c as any).paypalEnabled } as any))}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${(siteConfig as any).paypalEnabled ? "bg-blue-500" : "bg-slate-300"}`}>
+                      <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${(siteConfig as any).paypalEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modo Sandbox/Live */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Modo de operación</label>
+                  <div className="flex gap-2">
+                    {["sandbox", "live"].map(mode => (
+                      <button key={mode} onClick={() => setSiteConfig(c => ({ ...c, paypalMode: mode } as any))}
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${(siteConfig as any).paypalMode === mode || (!((siteConfig as any).paypalMode) && mode === "sandbox") ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}>
+                        {mode === "sandbox" ? "🧪 Sandbox" : "🚀 Producción"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { key: "paypalClientId", label: "Client ID", placeholder: "AYour-PayPal-Client-ID...", type: "text" },
+                    { key: "paypalClientSecret", label: "Client Secret", placeholder: "EYour-PayPal-Secret...", type: "password" },
+                    { key: "paypalWebhookId", label: "Webhook ID (opcional)", placeholder: "ID del webhook en PayPal", type: "text" },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">{f.label}</label>
+                      <input type={f.type} value={(siteConfig as any)[f.key] || ""} onChange={e => setSiteConfig(c => ({ ...c, [f.key]: e.target.value } as any))}
+                        placeholder={f.placeholder}
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="text-xs text-slate-600 font-semibold mb-1">¿Dónde obtengo mis credenciales?</p>
+                  <ol className="text-xs text-slate-500 space-y-0.5 list-decimal list-inside">
+                    <li>Ve a <a href="https://developer.paypal.com/dashboard/applications" target="_blank" rel="noopener" className="text-blue-600 underline">developer.paypal.com</a></li>
+                    <li>Crea una nueva app en "My Apps & Credentials"</li>
+                    <li>Copia el Client ID y el Secret</li>
+                    <li>Para producción, activa tu cuenta de negocio verificada</li>
+                  </ol>
+                </div>
+              </Card>
+
+              {/* Comisiones */}
+              <Card className="p-6 border-2 border-green-100">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center"><TrendingUp size={18} className="text-white" /></div>
+                  <div><h3 className="font-bold text-slate-900">Comisiones de la Plataforma</h3><p className="text-xs text-slate-500">Porcentaje que retiene la plataforma por cada viaje</p></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { key: "commissionRate", label: "Comisión estándar (%)", placeholder: "15" },
+                    { key: "commissionPremium", label: "Comisión Premium (%)", placeholder: "20" },
+                    { key: "minFare", label: "Tarifa mínima ($)", placeholder: "5.00" },
+                    { key: "baseFare", label: "Tarifa base ($)", placeholder: "2.50" },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">{f.label}</label>
+                      <input type="number" value={(siteConfig as any)[f.key] || ""} onChange={e => setSiteConfig(c => ({ ...c, [f.key]: e.target.value } as any))}
+                        placeholder={f.placeholder}
+                        className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-200">
+                  <p className="text-xs text-green-700">💡 <strong>Ejemplo:</strong> Con 15% de comisión y 100 viajes/día de $15 promedio, generas <strong>$225/día</strong> ($6,750/mes) solo de comisiones.</p>
+                </div>
+              </Card>
+
+              <Button onClick={handleSaveConfig} className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-bold gap-2 text-base">
+                <Save size={18} /> Guardar configuración de pagos
+              </Button>
             </div>
           )}
 
