@@ -134,8 +134,27 @@ export default function DriverDashboard() {
   };
 
   const handleNavigate = (destination: string) => {
+    if (!destination) { toast.error("No hay destino activo"); return; }
     const encoded = encodeURIComponent(destination);
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`, "_blank");
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    if (isIOS) {
+      // Try Apple Maps first, fallback to Google Maps
+      window.location.href = `maps://maps.apple.com/?daddr=${encoded}&dirflg=d`;
+      setTimeout(() => {
+        window.open(`https://maps.google.com/maps?daddr=${encoded}&dirflg=d`, "_blank");
+      }, 500);
+    } else if (isAndroid) {
+      // Try Google Maps app first
+      window.location.href = `google.navigation:q=${encoded}&mode=d`;
+      setTimeout(() => {
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`, "_blank");
+      }, 500);
+    } else {
+      // Desktop: open Google Maps in new tab
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`, "_blank");
+    }
+    toast.success(`Abriendo navegación hacia: ${destination}`);
   };
 
   if (!isAuthenticated) return null;
@@ -289,7 +308,7 @@ export default function DriverDashboard() {
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleNavigate(currentTrip.pickup)} className="gap-1 text-xs">
-                          <Navigation size={12} /> GPS
+                          <Navigation size={12} /> Ir a recoger
                         </Button>
                         <Button variant="outline" size="sm" onClick={handleSOS} className="gap-1 text-xs text-red-500 border-red-200">
                           <AlertTriangle size={12} /> SOS
@@ -306,12 +325,26 @@ export default function DriverDashboard() {
 
                   {tripPhase === "in_progress" && (
                     <div className="space-y-3">
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+                        <p className="font-semibold mb-1">📍 Destino del pasajero:</p>
+                        <p className="text-blue-800">{currentTrip.dropoff}</p>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         <Button onClick={() => handleNavigate(currentTrip.dropoff)} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                          <Navigation size={15} /> Navegar
+                          <Navigation size={15} /> 🗺️ Navegar GPS
                         </Button>
                         <Button onClick={handleSOS} variant="outline" className="text-red-500 border-red-200 gap-2">
                           <AlertTriangle size={15} /> SOS
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 gap-1 text-xs text-green-600 border-green-200"
+                          onClick={() => { const phone = currentTrip.clientName; window.open(`tel:${phone}`, "_self"); }}>
+                          <Phone size={12} /> Llamar cliente
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 gap-1 text-xs text-green-600 border-green-200"
+                          onClick={() => window.open(`https://wa.me/?text=Hola ${currentTrip.clientName}, soy tu conductor. Ya voy en camino.`, "_blank")}>
+                          <MessageCircle size={12} /> WhatsApp
                         </Button>
                       </div>
                       <Button onClick={handleCompleteTrip} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 font-bold gap-2">

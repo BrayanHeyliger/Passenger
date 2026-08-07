@@ -238,4 +238,53 @@ export const siteSettingsRouter = router({
       return { count: 0 };
     }
   }),
+
+  // Test SMTP connection
+  testSmtp: publicProcedure
+    .input(z.object({
+      smtpHost: z.string().min(1),
+      smtpPort: z.string().default("587"),
+      smtpUser: z.string().email(),
+      smtpPass: z.string().min(1),
+      smtpFrom: z.string().optional(),
+      testEmail: z.string().email(),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: input.smtpHost,
+          port: parseInt(input.smtpPort),
+          secure: parseInt(input.smtpPort) === 465,
+          auth: { user: input.smtpUser, pass: input.smtpPass },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+        });
+        // Verify connection
+        await transporter.verify();
+        // Send test email
+        await transporter.sendMail({
+          from: input.smtpFrom || input.smtpUser,
+          to: input.testEmail,
+          subject: "✅ Prueba de conexión SMTP — WhatsApp Taxi SaaS",
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+              <div style="background:#25D366;padding:16px;border-radius:8px 8px 0 0;">
+                <h2 style="color:white;margin:0;">✅ Conexión SMTP exitosa</h2>
+              </div>
+              <div style="background:#f9fafb;padding:20px;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;">
+                <p style="color:#374151;">Tu configuración SMTP está funcionando correctamente.</p>
+                <table style="width:100%;border-collapse:collapse;margin-top:12px;">
+                  <tr><td style="padding:6px 0;color:#6b7280;font-size:13px;">Servidor:</td><td style="padding:6px 0;font-weight:600;">${input.smtpHost}:${input.smtpPort}</td></tr>
+                  <tr><td style="padding:6px 0;color:#6b7280;font-size:13px;">Usuario:</td><td style="padding:6px 0;font-weight:600;">${input.smtpUser}</td></tr>
+                </table>
+                <p style="color:#9ca3af;font-size:12px;margin-top:16px;">WhatsApp Taxi SaaS — Panel de Administración</p>
+              </div>
+            </div>`,
+        });
+        return { success: true, message: `Email de prueba enviado a ${input.testEmail}` };
+      } catch (err: any) {
+        console.error("[SMTP Test] Error:", err);
+        throw new Error(`Error de conexión SMTP: ${err.message || "Verifica host, puerto y credenciales"}`);
+      }
+    }),
 });

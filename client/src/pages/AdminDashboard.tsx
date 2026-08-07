@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import MessagesInbox from "@/components/MessagesInbox";
+import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { LanguageSelectorLight } from "@/components/LanguageSelector";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
@@ -112,6 +113,31 @@ export default function AdminDashboard() {
   }, []);
 
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [testingSmtp, setTestingSmtp] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const testSmtpMutation = trpc.siteSettings.testSmtp.useMutation();
+
+  const handleTestSmtp = async () => {
+    const cfg = siteConfig as any;
+    if (!cfg.smtpHost || !cfg.smtpUser || !cfg.smtpPass) {
+      setSmtpTestResult({ ok: false, msg: "Completa servidor, usuario y contraseña SMTP antes de probar." });
+      return;
+    }
+    if (!cfg.notificationEmail) {
+      setSmtpTestResult({ ok: false, msg: "Ingresa el email de notificaciones para recibir el correo de prueba." });
+      return;
+    }
+    setTestingSmtp(true);
+    setSmtpTestResult(null);
+    testSmtpMutation.mutate(
+      { smtpHost: cfg.smtpHost, smtpPort: cfg.smtpPort || "587", smtpUser: cfg.smtpUser, smtpPass: cfg.smtpPass, smtpFrom: cfg.smtpFrom, testEmail: cfg.notificationEmail },
+      {
+        onSuccess: (data) => { setTestingSmtp(false); setSmtpTestResult({ ok: true, msg: data.message }); },
+        onError: (err) => { setTestingSmtp(false); setSmtpTestResult({ ok: false, msg: err.message }); },
+      }
+    );
+  };
+
   const [messageForm, setMessageForm] = useState({ to: "all_clients", subject: "", body: "", channel: "push" });
   const [sentMessages, setSentMessages] = useState<SentMessage[]>([
     { id: "m1", to: "all_clients", subject: "¡Bienvenido a WhatsApp Taxi!", body: "Gracias por registrarte.", channel: "push", date: "Hoy 09:00" },
@@ -744,6 +770,27 @@ export default function AdminDashboard() {
                       <div className="mb-3"><label className="block text-xs font-medium text-slate-600 mb-1">Contraseña SMTP</label><input type="password" value={(siteConfig as any).smtpPass || ""} onChange={e => setSiteConfig(c => ({ ...c, smtpPass: e.target.value } as any))} placeholder="••••••••" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
                     </div>
                     <div className="p-4 bg-amber-50 rounded-xl border border-amber-200"><p className="text-xs text-amber-700"><strong>Gmail:</strong> Usa "Contraseña de aplicación". Ve a Google Account → Seguridad → Contraseñas de aplicación.</p></div>
+                    {/* Test SMTP button */}
+                    <div className="border-t border-slate-200 pt-4 space-y-3">
+                      <button
+                        onClick={handleTestSmtp}
+                        disabled={testingSmtp}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 text-white"
+                        style={{ background: testingSmtp ? "#94a3b8" : "#3B82F6" }}
+                      >
+                        {testingSmtp ? (
+                          <><Loader2 size={15} className="animate-spin" /> Probando conexión...</>
+                        ) : (
+                          <><Mail size={15} /> Enviar email de prueba al correo configurado</>
+                        )}
+                      </button>
+                      {smtpTestResult && (
+                        <div className={`p-3 rounded-xl text-sm flex items-start gap-2 ${smtpTestResult.ok ? "bg-green-50 border border-green-200 text-green-800" : "bg-red-50 border border-red-200 text-red-800"}`}>
+                          {smtpTestResult.ok ? <CheckCircle size={16} className="text-green-600 flex-shrink-0 mt-0.5" /> : <XCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />}
+                          <p>{smtpTestResult.msg}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
             </div>
