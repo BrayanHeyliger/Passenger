@@ -5,6 +5,7 @@
 import { useRef, useEffect, useState } from "react";
 import { MessageCircle, MapPin, CheckCircle, Car, Star, BarChart3 } from "lucide-react";
 import BotDemoAnimation from "./BotDemoAnimation";
+import { useI18n } from "@/contexts/I18nContext";
 
 const steps = [
   {
@@ -158,7 +159,8 @@ const steps = [
   },
 ];
 
-function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
+type StepData = { number: string; icon: React.ElementType; title: string; description: string; artifact: React.ReactNode };
+function StepCard({ step, index }: { step: StepData; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -206,7 +208,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
               className="text-xs font-bold tracking-widest mb-2 block"
               style={{ color: "oklch(0.76 0.18 148)", fontFamily: "'JetBrains Mono', monospace" }}
             >
-              PASO {step.number}
+              {step.number}
             </span>
             <h3
               className="text-xl font-bold text-[oklch(0.14_0.01_250)] mb-3"
@@ -254,6 +256,15 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
 }
 
 export default function HowItWorksSection() {
+  const { t } = useI18n();
+  const icons = [MessageCircle, MapPin, CheckCircle, Car, Star, BarChart3];
+  const translatedSteps: StepData[] = t.howItWorks.steps.map((s, i) => ({
+    number: `${t.howItWorks.step} ${String(i + 1).padStart(2, "0")}`,
+    icon: icons[i],
+    title: s.title,
+    description: s.desc,
+    artifact: steps[i]?.artifact,
+  }));
   return (
     <section id="how-it-works" className="py-20 lg:py-28 bg-white">
       <div className="container">
@@ -263,22 +274,21 @@ export default function HowItWorksSection() {
             style={{ background: "oklch(0.76 0.18 148 / 0.1)", color: "oklch(0.52 0.12 148)" }}
           >
             <MessageCircle size={12} />
-            Flujo del cliente — de principio a fin
+            {t.howItWorks.badge}
           </div>
           <h2
             className="text-3xl lg:text-4xl font-extrabold text-[oklch(0.14_0.01_250)] mb-4"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Del primer mensaje al{" "}
-            <span style={{ color: "oklch(0.52 0.12 148)" }}>viaje completado</span>
+            {t.howItWorks.title}
           </h2>
           <p className="text-[oklch(0.55_0.01_80)] text-lg">
-            El bot gestiona cada paso automáticamente. El cliente solo escribe por WhatsApp.
+            {t.howItWorks.sub}
           </p>
         </div>
 
         <div className="flex flex-col gap-10 lg:gap-14">
-          {steps.map((step, i) => (
+          {translatedSteps.map((step, i) => (
             <StepCard key={i} step={step} index={i} />
           ))}
         </div>
@@ -291,16 +301,16 @@ export default function HowItWorksSection() {
               style={{ background: "oklch(0.76 0.18 148 / 0.1)", color: "oklch(0.52 0.12 148)" }}
             >
               <MessageCircle size={12} />
-              Demostración en vivo
+              {t.howItWorks.demoBadge}
             </div>
             <h3
               className="text-2xl lg:text-3xl font-extrabold text-[oklch(0.14_0.01_250)] mb-4"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
-              Mira el bot en acción
+            {t.howItWorks.demoTitle}
             </h3>
             <p className="text-[oklch(0.55_0.01_80)] text-lg">
-              Aquí puedes ver el flujo completo: desde el primer mensaje hasta el viaje completado y calificado.
+            {t.howItWorks.demoSub}
             </p>
           </div>
 
