@@ -10,6 +10,7 @@ import {
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { MapView } from "@/components/Map";
 import { PlacesAutocomplete } from "@/components/PlacesAutocomplete";
+import { TripChat } from "@/components/TripChat";
 import { toast } from "sonner";
 
 type TripStatus = "idle" | "searching" | "accepted" | "in_progress" | "completed" | "rating";
@@ -468,6 +469,16 @@ export default function ClientDashboard() {
             onMapReady={handleMapReady}
             className="absolute inset-0 w-full h-full"
           />
+          {/* Chat flotante — visible cuando hay viaje activo */}
+          {(tripStatus === "accepted" || tripStatus === "in_progress") && currentTrip && (
+            <TripChat
+              tripId={currentTrip.id}
+              userId={user?.id != null ? String(user.id) : "client"}
+              userName={user?.name || "Cliente"}
+              role="client"
+              otherPartyName={currentTrip.driver?.name || "Conductor"}
+            />
+          )}
           {/* Status overlay en el mapa */}
           {tripStatus === "searching" && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white rounded-full px-4 py-2 shadow-lg flex items-center gap-2 z-10">
