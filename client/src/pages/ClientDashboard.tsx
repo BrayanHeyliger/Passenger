@@ -459,15 +459,17 @@ export default function ClientDashboard() {
       </header>
 
       {/* Main content — fills remaining height */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0" style={{ height: 'calc(100vh - 65px)' }}>
 
         {/* MAPA — altura explícita garantizada */}
-        <div className="relative flex-1 min-h-[300px] lg:min-h-0">
+        <div className="relative lg:flex-1" style={{ height: '45vw', minHeight: '220px', maxHeight: '320px' }}>
+          {/* En desktop, ocupa todo el espacio restante */}
+          <style>{`@media (min-width: 1024px) { .map-container { height: 100% !important; max-height: none !important; } }`}</style>
           <MapView
             initialCenter={{ lat: 19.4326, lng: -99.1332 }}
             initialZoom={13}
             onMapReady={handleMapReady}
-            className="absolute inset-0 w-full h-full"
+            className="map-container absolute inset-0 w-full h-full"
           />
           {/* Chat flotante — visible cuando hay viaje activo */}
           {(tripStatus === "accepted" || tripStatus === "in_progress") && currentTrip && (
@@ -495,7 +497,7 @@ export default function ClientDashboard() {
         </div>
 
         {/* Panel lateral derecho */}
-        <div className="w-full lg:w-[400px] bg-white shadow-xl flex flex-col overflow-hidden flex-shrink-0">
+        <div className="w-full lg:w-[400px] bg-white shadow-xl flex flex-col flex-shrink-0" style={{ flex: '1 1 auto', minHeight: 0, maxHeight: '100%' }}>
 
           {/* Tabs — solo en idle */}
           {tripStatus === "idle" && (
@@ -516,7 +518,7 @@ export default function ClientDashboard() {
           )}
 
           {/* Contenido scrollable */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto pb-24 lg:pb-0">
 
             {/* SOLICITAR VIAJE */}
             {tripStatus === "idle" && activePanel === "request" && (
@@ -665,11 +667,6 @@ export default function ClientDashboard() {
                     )}
                  </div>
                )}
-
-                <Button onClick={handleRequestTrip} className="w-full py-3 font-bold text-sm rounded-xl shadow-lg shadow-green-500/25"
-                  style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
-                  {showBidMode ? "Enviar Oferta" : "Solicitar Viaje"} <ChevronRight size={16} className="ml-1" />
-                </Button>
 
                 {/* Lealtad */}
                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200">
@@ -836,6 +833,15 @@ export default function ClientDashboard() {
           </div>
         </div>
       </div>
+      {/* Botón fijo en la parte inferior — solo visible en móvil cuando el panel de solicitud está activo */}
+      {tripStatus === "idle" && activePanel === "request" && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 p-4 shadow-2xl">
+          <Button onClick={handleRequestTrip} className="w-full py-4 font-bold text-base rounded-xl shadow-lg"
+            style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
+            {showBidMode ? "Enviar Oferta" : "🚕 Solicitar Viaje"} <ChevronRight size={18} className="ml-1" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
