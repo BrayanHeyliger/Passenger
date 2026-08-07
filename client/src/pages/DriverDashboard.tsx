@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { toast } from "sonner";
+import { MapView } from "@/components/Map";
 
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
@@ -371,6 +372,66 @@ export default function DriverDashboard() {
                 <h3 className="font-semibold text-green-900 mb-2">Ganancias de Hoy</h3>
                 <p className="text-3xl font-bold text-green-600">${earnings.toFixed(2)}</p>
                 <p className="text-sm text-green-700 mt-1">{completedCount} viajes completados</p>
+              </Card>
+              {/* Mapa de ubicación */}
+              <Card className="overflow-hidden p-0">
+                <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900 text-sm">Mi Ubicación</h3>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOnline ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                    {isOnline ? "● En línea" : "○ Desconectado"}
+                  </span>
+                </div>
+                <div className="relative w-full" style={{ height: "240px" }}>
+                  <MapView
+                    className="absolute inset-0 w-full h-full"
+                    onMapReady={(map) => {
+                      // Center on user location
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                            map.setCenter(loc);
+                            map.setZoom(15);
+                            new google.maps.Marker({
+                              position: loc, map,
+                              title: "Mi ubicación",
+                              icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 10,
+                                fillColor: "#3B82F6",
+                                fillOpacity: 1,
+                                strokeColor: "white",
+                                strokeWeight: 3,
+                              }
+                            });
+                          },
+                          () => {
+                            // Default to Mexico City if geolocation fails
+                            map.setCenter({ lat: 19.4326, lng: -99.1332 });
+                            map.setZoom(12);
+                          }
+                        );
+                      }
+                      // Show current trip route if active
+                      if (currentTrip && (tripPhase === "accepted" || tripPhase === "in_progress")) {
+                        const directionsService = new google.maps.DirectionsService();
+                        const directionsRenderer = new google.maps.DirectionsRenderer({ map, suppressMarkers: false });
+                        directionsService.route({
+                          origin: currentTrip.pickup,
+                          destination: currentTrip.dropoff,
+                          travelMode: google.maps.TravelMode.DRIVING,
+                        }, (result, status) => {
+                          if (status === "OK" && result) directionsRenderer.setDirections(result);
+                        });
+                      }
+                    }}
+                  />
+                </div>
+                {currentTrip && (tripPhase === "accepted" || tripPhase === "in_progress") && (
+                  <div className="px-4 py-3 bg-blue-50 border-t border-blue-100">
+                    <p className="text-xs text-blue-700 font-medium">Ruta activa: {currentTrip.pickup} → {currentTrip.dropoff}</p>
+                  </div>
+                )}
               </Card>
               <Card className="p-4">
                 <h3 className="font-semibold text-slate-900 mb-3">Mi Perfil</h3>

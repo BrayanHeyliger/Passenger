@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import {
   Phone, Star, Clock, DollarSign, LogOut, CheckCircle, Bell,
   Car, X, ChevronRight, AlertTriangle, Share2, Tag, Calendar,
-  History, Home, Briefcase, MessageCircle, MapPin
+  History, Home, Briefcase, MessageCircle, MapPin, Navigation
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { MapView } from "@/components/Map";
@@ -609,52 +609,62 @@ export default function ClientDashboard() {
                 )}
 
                {/* Estimación */}
-                {isCalculatingRoute && (
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full border-2 border-green-500 border-t-transparent animate-spin flex-shrink-0" />
-                    <span className="text-sm text-slate-500">Calculando ruta y tarifa...</span>
-                  </div>
-                )}
-                {!isCalculatingRoute && estimatedFare && (
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl overflow-hidden">
-                    <div className="px-4 py-3 flex justify-between items-center border-b border-green-200">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <Car size={16} className="text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs text-green-700 font-medium">{vehicles.find(v => v.id === selectedVehicle)?.label}</p>
-                          <p className="text-xs text-green-600">{estimatedDistance} · {estimatedTime}</p>
-                        </div>
+               {isCalculatingRoute && (
+                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2">
+                   <div className="w-4 h-4 rounded-full border-2 border-green-500 border-t-transparent animate-spin flex-shrink-0" />
+                   <span className="text-sm text-slate-500">Calculando ruta y tarifa...</span>
+                 </div>
+               )}
+                {/* Tarifa estimada — se muestra siempre con valores base o calculados */}
+                {!isCalculatingRoute && (
+                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl overflow-hidden">
+                   <div className="px-4 py-3 flex justify-between items-center border-b border-green-200">
+                     <div className="flex items-center gap-2">
+                       <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                         <Car size={16} className="text-green-600" />
+                       </div>
+                       <div>
+                         <p className="text-xs text-green-700 font-medium">{vehicles.find(v => v.id === selectedVehicle)?.label}</p>
+                          <p className="text-xs text-green-600">{estimatedDistance ? `${estimatedDistance} · ${estimatedTime}` : "Selecciona destino para calcular"}</p>
+                       </div>
+                     </div>
+                     <div className="text-right">
+                       {promoApplied && <span className="text-xs text-green-600 font-medium bg-green-200 px-1.5 py-0.5 rounded-full block mb-0.5">-15% PROMO</span>}
+                        <span className="text-2xl font-black text-green-800">{estimatedFare || "~$8.00"}</span>
+                        {!estimatedFare && <span className="text-xs text-green-600 block">estimado base</span>}
+                     </div>
+                   </div>
+                   <div className="px-4 py-2 space-y-1">
+                     <div className="flex justify-between text-xs text-green-700">
+                       <span>Tarifa base</span><span>$2.50</span>
+                     </div>
+                     <div className="flex justify-between text-xs text-green-700">
+                        <span>Distancia {estimatedDistance ? `(${estimatedDistance})` : "(por calcular)"}</span>
+                        <span>{routeDistanceKm > 0 ? `$${(routeDistanceKm * ({ economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 }[selectedVehicle] || 1.2)).toFixed(2)}` : "—"}</span>
+                     </div>
+                     {promoApplied && (
+                       <div className="flex justify-between text-xs text-green-600 font-medium">
+                         <span>Descuento promocional</span><span>-15%</span>
+                       </div>
+                     )}
+                     <div className="flex justify-between text-xs font-bold text-green-800 pt-1 border-t border-green-200">
+                        <span>Total estimado</span><span>{estimatedFare || "~$8.00"}</span>
+                     </div>
+                   </div>
+                    {pickupLocation && dropoffLocation && (
+                      <div className="px-4 py-2 bg-green-100/60 flex items-center gap-2">
+                        <MapPin size={12} className="text-green-600 flex-shrink-0" />
+                        <p className="text-xs text-green-700 truncate">{pickupLocation} → {dropoffLocation}</p>
                       </div>
-                      <div className="text-right">
-                        {promoApplied && <span className="text-xs text-green-600 font-medium bg-green-200 px-1.5 py-0.5 rounded-full block mb-0.5">-15% PROMO</span>}
-                        <span className="text-2xl font-black text-green-800">{estimatedFare}</span>
+                    )}
+                    {!pickupLocation && (
+                      <div className="px-4 py-2 bg-blue-50 flex items-center gap-2">
+                        <Navigation size={12} className="text-blue-500 flex-shrink-0" />
+                        <p className="text-xs text-blue-600">Ingresa origen y destino para ver el precio exacto</p>
                       </div>
-                    </div>
-                    <div className="px-4 py-2 space-y-1">
-                      <div className="flex justify-between text-xs text-green-700">
-                        <span>Tarifa base</span><span>$2.50</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-green-700">
-                        <span>Distancia ({estimatedDistance})</span>
-                        <span>${(routeDistanceKm * ({ economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 }[selectedVehicle] || 1.2)).toFixed(2)}</span>
-                      </div>
-                      {promoApplied && (
-                        <div className="flex justify-between text-xs text-green-600 font-medium">
-                          <span>Descuento promocional</span><span>-15%</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-xs font-bold text-green-800 pt-1 border-t border-green-200">
-                        <span>Total estimado</span><span>{estimatedFare}</span>
-                      </div>
-                    </div>
-                    <div className="px-4 py-2 bg-green-100/60 flex items-center gap-2">
-                      <MapPin size={12} className="text-green-600 flex-shrink-0" />
-                      <p className="text-xs text-green-700 truncate">{pickupLocation} → {dropoffLocation}</p>
-                    </div>
-                  </div>
-                )}
+                    )}
+                 </div>
+               )}
 
                 <Button onClick={handleRequestTrip} className="w-full py-3 font-bold text-sm rounded-xl shadow-lg shadow-green-500/25"
                   style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
