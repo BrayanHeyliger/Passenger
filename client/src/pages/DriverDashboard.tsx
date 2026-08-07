@@ -2,23 +2,24 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Phone, Star, DollarSign, LogOut, CheckCircle, XCircle, Bell, Car } from "lucide-react";
+import {
+  MapPin, Phone, Star, DollarSign, LogOut, CheckCircle, XCircle, Bell, Car,
+  Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText
+} from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { toast } from "sonner";
 
 const TRIPS_KEY = "wt_pending_trips";
+const DRIVER_HISTORY_KEY = "wt_driver_history";
 
 interface PendingTrip {
-  id: string;
-  clientId: number;
-  clientName: string;
-  pickup: string;
-  dropoff: string;
-  fare: string;
-  status: string;
-  requestedAt: string;
-  driver?: any;
-  estimatedTime?: string;
+  id: string; clientId: number; clientName: string;
+  pickup: string; dropoff: string; fare: string;
+  status: string; requestedAt: string; driver?: any;
+  estimatedTime?: string; isBid?: boolean;
 }
+
+interface EarningsEntry { date: string; trips: number; earnings: number; }
 
 export default function DriverDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
@@ -26,25 +27,31 @@ export default function DriverDashboard() {
   const [isOnline, setIsOnline] = useState(false);
   const [pendingTrips, setPendingTrips] = useState<PendingTrip[]>([]);
   const [currentTrip, setCurrentTrip] = useState<PendingTrip | null>(null);
-  const [tripPhase, setTripPhase] = useState<"idle" | "accepted" | "in_progress" | "completed">("idle");
+  const [tripPhase, setTripPhase] = useState<"idle" | "accepted" | "otp_verify" | "in_progress" | "completed" | "rating">("idle");
   const [newTripAlert, setNewTripAlert] = useState(false);
   const [earnings, setEarnings] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+  const [otpInput, setOtpInput] = useState("");
+  const [otpCode] = useState("4821"); // Demo OTP
+  const [passengerRating, setPassengerRating] = useState(0);
+  const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "profile" | "docs">("trips");
+  const [earningsHistory] = useState<EarningsEntry[]>([
+    { date: "Hoy", trips: completedCount, earnings },
+    { date: "Ayer", trips: 8, earnings: 145.50 },
+    { date: "Lun", trips: 12, earnings: 210.00 },
+    { date: "Dom", trips: 6, earnings: 98.00 },
+    { date: "Sáb", trips: 15, earnings: 287.50 },
+  ]);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated]);
+  useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
 
-  // Poll for new trips when online
   const checkTrips = useCallback(() => {
     if (!isOnline || tripPhase !== "idle") return;
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const available = trips.filter(t => t.status === "requested");
     if (available.length > pendingTrips.length) {
       setNewTripAlert(true);
-      setTimeout(() => setNewTripAlert(false), 3000);
+      setTimeout(() => setNewTripAlert(false), 4000);
     }
     setPendingTrips(available);
   }, [isOnline, tripPhase, pendingTrips.length]);
@@ -57,260 +64,412 @@ export default function DriverDashboard() {
   const handleAcceptTrip = (trip: PendingTrip) => {
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const updated = trips.map(t => t.id === trip.id ? {
-      ...t,
-      status: "accepted",
-      driver: {
-        id: user?.id,
-        name: user?.name,
-        phone: user?.phone || "+1 555-0000",
-        vehicle: "Mi Vehículo",
-        plate: "XXX-000",
-        rating: 4.8,
-      },
+      ...t, status: "accepted",
+      driver: { id: user?.id, name: user?.name, phone: user?.phone || "+15550000", vehicle: "Mi Vehículo", plate: "XXX-000", rating: 4.8 },
       estimatedTime: "5 min",
     } : t);
     localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
     setCurrentTrip({ ...trip, status: "accepted", estimatedTime: "5 min" });
     setTripPhase("accepted");
     setPendingTrips([]);
+    toast.success("¡Viaje aceptado!");
   };
 
-  const handleStartTrip = () => {
-    if (!currentTrip) return;
-    const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
-    const updated = trips.map(t => t.id === currentTrip.id ? { ...t, status: "in_progress" } : t);
-    localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
-    setTripPhase("in_progress");
+  const handleArrived = () => {
+    setTripPhase("otp_verify");
+    toast.info("Ingresa el código OTP del pasajero para iniciar el viaje");
+  };
+
+  const handleVerifyOTP = () => {
+    if (otpInput === otpCode) {
+      setTripPhase("in_progress");
+      toast.success("¡OTP verificado! Viaje iniciado");
+      if (currentTrip) {
+        const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+        const updated = trips.map(t => t.id === currentTrip.id ? { ...t, status: "in_progress" } : t);
+        localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
+      }
+    } else {
+      toast.error("Código OTP incorrecto");
+    }
   };
 
   const handleCompleteTrip = () => {
+    setTripPhase("rating");
+  };
+
+  const handleSubmitRating = () => {
     if (!currentTrip) return;
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const updated = trips.filter(t => t.id !== currentTrip.id);
     localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
-
     const fareNum = parseFloat(currentTrip.fare.replace("$", "")) || 0;
     setEarnings(prev => prev + fareNum);
     setCompletedCount(prev => prev + 1);
-    setTripPhase("completed");
-
-    setTimeout(() => {
-      setCurrentTrip(null);
-      setTripPhase("idle");
-    }, 2000);
+    setTripPhase("idle");
+    setCurrentTrip(null);
+    setPassengerRating(0);
+    setOtpInput("");
+    toast.success(`¡Viaje completado! +${currentTrip.fare} ganados`);
   };
 
   const handleRejectTrip = (tripId: string) => {
     setPendingTrips(prev => prev.filter(t => t.id !== tripId));
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
+  const handleCallPassenger = () => {
+    toast.info("Llamando al pasajero...");
+    window.location.href = "tel:+15551001";
+  };
+
+  const handleMessagePassenger = () => {
+    window.open("https://wa.me/15551001?text=Hola, soy tu conductor. Estoy en camino.", "_blank");
+  };
+
+  const handleSOS = () => {
+    const msg = `🚨 SOS CONDUCTOR: ${user?.name} | Viaje activo | Pasajero: ${currentTrip?.clientName}`;
+    navigator.clipboard.writeText(msg).catch(() => {});
+    toast.error("🚨 Alerta SOS enviada a la central");
+  };
+
+  const handleNavigate = (destination: string) => {
+    const encoded = encodeURIComponent(destination);
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`, "_blank");
   };
 
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
-              {user?.name?.[0] || "D"}
-            </div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">{user?.name?.[0] || "D"}</div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">{user?.name}</h1>
-              <p className="text-sm text-slate-500">Panel de Conductor</p>
+              <p className="font-semibold text-slate-900 text-sm">{user?.name}</p>
+              <p className="text-xs text-slate-500">Panel de Conductor</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${isOnline ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
+          <div className="flex items-center gap-2">
+            <div className={`px-3 py-1 rounded-full text-xs font-semibold ${isOnline ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
               {isOnline ? "● En Línea" : "○ Desconectado"}
             </div>
             {newTripAlert && (
-              <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold animate-bounce">
-                <Bell size={14} /> ¡Nuevo viaje!
+              <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold animate-bounce">
+                <Bell size={12} /> ¡Nuevo viaje!
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
-              <LogOut size={16} /> Salir
+            <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/"); }} className="gap-1.5 text-xs">
+              <LogOut size={13} /> Salir
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Panel Principal */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Toggle Online */}
-            <Card className="p-6 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 mb-1">Disponibilidad</h2>
-                  <p className="text-sm text-slate-600">
-                    {isOnline ? "Estás disponible para recibir viajes" : "Activa para recibir solicitudes de viaje"}
-                  </p>
-                </div>
-                <Button
-                  onClick={() => setIsOnline(!isOnline)}
-                  className={`px-6 py-3 font-semibold rounded-xl transition-all ${isOnline ? "bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30" : "bg-slate-200 hover:bg-slate-300 text-slate-700"}`}
-                >
-                  {isOnline ? "Desconectar" : "Conectar"}
-                </Button>
-              </div>
-            </Card>
+      {/* Tabs */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 flex">
+          {[
+            { id: "trips" as const, label: "Viajes", icon: Car },
+            { id: "earnings" as const, label: "Ganancias", icon: DollarSign },
+            { id: "profile" as const, label: "Perfil", icon: Shield },
+            { id: "docs" as const, label: "Documentos", icon: FileText },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id ? "border-blue-500 text-blue-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+              <tab.icon size={16} /> {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-            {/* Viaje Actual */}
-            {currentTrip && tripPhase !== "idle" ? (
-              <Card className="p-6 shadow-lg">
-                <h2 className="text-xl font-bold text-slate-900 mb-4">
-                  {tripPhase === "accepted" ? "Viaje Aceptado" : tripPhase === "in_progress" ? "Viaje en Progreso" : "Viaje Completado"}
-                </h2>
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
 
-                {tripPhase === "completed" ? (
-                  <div className="text-center py-6">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                      <CheckCircle size={28} className="text-green-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-slate-900">¡Viaje completado!</h3>
-                    <p className="text-green-600 font-bold text-xl mt-2">{currentTrip.fare}</p>
+        {/* TAB: VIAJES */}
+        {activeTab === "trips" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              {/* Toggle Online */}
+              <Card className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Disponibilidad</h2>
+                    <p className="text-sm text-slate-600">{isOnline ? "Recibirás solicitudes de viaje" : "Activa para recibir viajes"}</p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
+                  <Button onClick={() => setIsOnline(!isOnline)}
+                    className={`px-6 py-2.5 font-semibold rounded-xl ${isOnline ? "bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30" : "bg-slate-200 hover:bg-slate-300 text-slate-700"}`}>
+                    {isOnline ? "Desconectar" : "Conectar"}
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Viaje Actual */}
+              {currentTrip && tripPhase !== "idle" ? (
+                <Card className="p-5">
+                  <h2 className="text-lg font-bold text-slate-900 mb-4">
+                    {tripPhase === "accepted" ? "Viaje Aceptado — En camino" :
+                     tripPhase === "otp_verify" ? "Verificar Pasajero (OTP)" :
+                     tripPhase === "in_progress" ? "Viaje en Progreso" :
+                     tripPhase === "rating" ? "Calificar Pasajero" : "Viaje Completado"}
+                  </h2>
+
+                  {/* Datos del viaje */}
+                  {tripPhase !== "rating" && (
+                    <div className="bg-slate-50 rounded-xl p-4 mb-4">
+                      <div className="flex justify-between items-start mb-3">
                         <div>
                           <p className="font-semibold text-slate-900">{currentTrip.clientName}</p>
-                          <p className="text-xs text-slate-500">Cliente</p>
+                          <p className="text-xs text-slate-500">Pasajero</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600 text-xl">{currentTrip.fare}</p>
-                        </div>
+                        <p className="font-bold text-green-600 text-xl">{currentTrip.fare}</p>
                       </div>
                       <div className="space-y-2 text-sm">
-                        <div className="flex gap-2">
-                          <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                            <MapPin size={12} className="text-green-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Recogida</p>
-                            <p className="font-medium text-slate-900">{currentTrip.pickup}</p>
-                          </div>
+                        <div className="flex gap-2 items-start">
+                          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5"><MapPin size={11} className="text-green-600" /></div>
+                          <div><p className="text-xs text-slate-500">Recogida</p><p className="font-medium text-slate-900">{currentTrip.pickup}</p></div>
                         </div>
-                        <div className="flex gap-2">
-                          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                            <MapPin size={12} className="text-red-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Destino</p>
-                            <p className="font-medium text-slate-900">{currentTrip.dropoff}</p>
-                          </div>
+                        <div className="flex gap-2 items-start">
+                          <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5"><MapPin size={11} className="text-red-600" /></div>
+                          <div><p className="text-xs text-slate-500">Destino</p><p className="font-medium text-slate-900">{currentTrip.dropoff}</p></div>
                         </div>
                       </div>
                     </div>
+                  )}
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button variant="outline" onClick={() => { setCurrentTrip(null); setTripPhase("idle"); }} className="text-red-500 border-red-200">
-                        <XCircle size={16} className="mr-2" /> Cancelar
+                  {/* OTP Verificación */}
+                  {tripPhase === "otp_verify" && (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                        <p className="text-sm text-blue-800 mb-1">Pide al pasajero su código OTP</p>
+                        <p className="text-xs text-blue-600">(Demo: el código es <strong>4821</strong>)</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <input type="text" placeholder="Ingresa código OTP" value={otpInput} onChange={(e) => setOtpInput(e.target.value)}
+                          maxLength={4} className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-center text-2xl font-bold tracking-widest focus:ring-2 focus:ring-blue-500 outline-none" />
+                        <Button onClick={handleVerifyOTP} className="bg-blue-600 hover:bg-blue-700 text-white px-6">
+                          <CheckCircle size={18} />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rating del pasajero */}
+                  {tripPhase === "rating" && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-slate-600">¿Cómo fue el pasajero {currentTrip.clientName}?</p>
+                      <div className="flex justify-center gap-3 py-2">
+                        {[1,2,3,4,5].map(s => (
+                          <button key={s} onClick={() => setPassengerRating(s)}>
+                            <Star size={36} className={`transition-all ${s <= passengerRating ? "text-yellow-500 fill-yellow-500 scale-110" : "text-slate-300 hover:text-yellow-400"}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                        <p className="text-lg font-bold text-green-600">{currentTrip.fare} ganados</p>
+                        <p className="text-xs text-green-700">Viaje completado exitosamente</p>
+                      </div>
+                      <Button onClick={handleSubmitRating} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 font-bold">
+                        Finalizar y Cobrar
                       </Button>
-                      {tripPhase === "accepted" ? (
-                        <Button onClick={handleStartTrip} className="bg-blue-600 hover:bg-blue-700 text-white">
-                          <Car size={16} className="mr-2" /> Iniciar Viaje
-                        </Button>
-                      ) : (
-                        <Button onClick={handleCompleteTrip} className="bg-green-600 hover:bg-green-700 text-white">
-                          <CheckCircle size={16} className="mr-2" /> Completar
-                        </Button>
-                      )}
                     </div>
-                  </div>
-                )}
-              </Card>
-            ) : (
-              /* Viajes Disponibles */
-              <Card className="p-6 shadow-lg">
-                <h2 className="text-xl font-bold text-slate-900 mb-4">
-                  Viajes Disponibles {pendingTrips.length > 0 && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-sm rounded-full">{pendingTrips.length}</span>}
-                </h2>
+                  )}
 
-                {!isOnline ? (
-                  <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
-                    <Car size={40} className="mx-auto text-slate-300 mb-3" />
-                    <p className="text-slate-600 font-medium">Conéctate para ver viajes disponibles</p>
-                    <Button onClick={() => setIsOnline(true)} className="mt-4 bg-green-500 hover:bg-green-600 text-white">
-                      Conectar Ahora
-                    </Button>
-                  </div>
-                ) : pendingTrips.length === 0 ? (
-                  <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
-                    <Bell size={40} className="mx-auto text-slate-300 mb-3" />
-                    <p className="text-slate-600 font-medium">Esperando solicitudes de viaje...</p>
-                    <p className="text-sm text-slate-500 mt-1">Te notificaremos cuando haya un viaje disponible</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {pendingTrips.map(trip => (
-                      <div key={trip.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <p className="font-semibold text-slate-900">{trip.clientName}</p>
-                            <p className="text-xs text-slate-500">{new Date(trip.requestedAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
-                          </div>
-                          <p className="font-bold text-green-600 text-xl">{trip.fare}</p>
-                        </div>
-                        <div className="space-y-1.5 text-sm mb-4">
-                          <p className="text-slate-600"><MapPin size={14} className="inline mr-1 text-green-500" />{trip.pickup}</p>
-                          <p className="text-slate-600"><MapPin size={14} className="inline mr-1 text-red-500" />{trip.dropoff}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleRejectTrip(trip.id)} className="text-red-500 border-red-200">
-                            Rechazar
-                          </Button>
-                          <Button size="sm" onClick={() => handleAcceptTrip(trip)} className="bg-green-500 hover:bg-green-600 text-white">
-                            Aceptar Viaje
-                          </Button>
-                        </div>
+                  {/* Acciones según fase */}
+                  {tripPhase === "accepted" && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button onClick={handleCallPassenger} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                          <Phone size={15} /> Llamar
+                        </Button>
+                        <Button onClick={handleMessagePassenger} className="bg-[#25D366] hover:bg-[#1ebe57] text-white gap-2">
+                          <MessageCircle size={15} /> WhatsApp
+                        </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleNavigate(currentTrip.pickup)} className="gap-1 text-xs">
+                          <Navigation size={12} /> GPS
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleSOS} className="gap-1 text-xs text-red-500 border-red-200">
+                          <AlertTriangle size={12} /> SOS
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleArrived} className="gap-1 text-xs text-blue-600 border-blue-200">
+                          <CheckCircle size={12} /> Llegué
+                        </Button>
+                      </div>
+                      <Button variant="outline" onClick={() => { setCurrentTrip(null); setTripPhase("idle"); }} className="w-full text-red-500 border-red-200">
+                        <XCircle size={16} className="mr-2" /> Cancelar Viaje
+                      </Button>
+                    </div>
+                  )}
+
+                  {tripPhase === "in_progress" && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button onClick={() => handleNavigate(currentTrip.dropoff)} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                          <Navigation size={15} /> Navegar
+                        </Button>
+                        <Button onClick={handleSOS} variant="outline" className="text-red-500 border-red-200 gap-2">
+                          <AlertTriangle size={15} /> SOS
+                        </Button>
+                      </div>
+                      <Button onClick={handleCompleteTrip} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 font-bold gap-2">
+                        <CheckCircle size={18} /> Finalizar Viaje
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              ) : (
+                /* Viajes disponibles */
+                <Card className="p-5">
+                  <h2 className="text-lg font-bold text-slate-900 mb-4">
+                    Viajes Disponibles {pendingTrips.length > 0 && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-sm rounded-full">{pendingTrips.length}</span>}
+                  </h2>
+                  {!isOnline ? (
+                    <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                      <Car size={40} className="mx-auto text-slate-300 mb-3" />
+                      <p className="text-slate-600 font-medium">Conéctate para ver viajes disponibles</p>
+                      <Button onClick={() => setIsOnline(true)} className="mt-4 bg-green-500 hover:bg-green-600 text-white">Conectar Ahora</Button>
+                    </div>
+                  ) : pendingTrips.length === 0 ? (
+                    <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                      <Bell size={40} className="mx-auto text-slate-300 mb-3" />
+                      <p className="text-slate-600 font-medium">Esperando solicitudes...</p>
+                      <p className="text-sm text-slate-500 mt-1">Te notificaremos cuando haya un viaje</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingTrips.map(trip => (
+                        <div key={trip.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <p className="font-semibold text-slate-900">{trip.clientName}</p>
+                              <p className="text-xs text-slate-500">{new Date(trip.requestedAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
+                              {trip.isBid && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Puja</span>}
+                            </div>
+                            <p className="font-bold text-green-600 text-xl">{trip.fare}</p>
+                          </div>
+                          <div className="space-y-1.5 text-sm mb-4">
+                            <p className="text-slate-600"><MapPin size={13} className="inline mr-1 text-green-500" />{trip.pickup}</p>
+                            <p className="text-slate-600"><MapPin size={13} className="inline mr-1 text-red-500" />{trip.dropoff}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button variant="outline" size="sm" onClick={() => handleRejectTrip(trip.id)} className="text-red-500 border-red-200">Rechazar</Button>
+                            <Button size="sm" onClick={() => handleAcceptTrip(trip)} className="bg-green-500 hover:bg-green-600 text-white">Aceptar</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              )}
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-4">
+              <Card className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
+                <h3 className="font-semibold text-green-900 mb-2">Ganancias de Hoy</h3>
+                <p className="text-3xl font-bold text-green-600">${earnings.toFixed(2)}</p>
+                <p className="text-sm text-green-700 mt-1">{completedCount} viajes completados</p>
               </Card>
-            )}
+              <Card className="p-4">
+                <h3 className="font-semibold text-slate-900 mb-3">Mi Perfil</h3>
+                <div className="space-y-2 text-sm">
+                  <div><p className="text-slate-500">Nombre</p><p className="font-medium text-slate-900">{user?.name}</p></div>
+                  <div><p className="text-slate-500">Email</p><p className="font-medium text-slate-900 text-xs">{user?.email}</p></div>
+                  <div className="flex items-center gap-2 pt-1"><Star size={16} className="text-yellow-500 fill-yellow-500" /><div><p className="text-xs text-slate-500">Calificación</p><p className="font-medium">5.0 / 5.0</p></div></div>
+                </div>
+              </Card>
+            </div>
           </div>
+        )}
 
-          {/* Panel Lateral */}
-          <div className="space-y-4">
-            <Card className="p-4 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
-              <h3 className="font-semibold text-green-900 mb-3">Ganancias de Hoy</h3>
-              <p className="text-3xl font-bold text-green-600">${earnings.toFixed(2)}</p>
-              <p className="text-sm text-green-700 mt-1">{completedCount} viajes completados</p>
+        {/* TAB: GANANCIAS */}
+        {activeTab === "earnings" && (
+          <div className="space-y-6">
+            <h1 className="text-2xl font-bold text-slate-900">Mis Ganancias</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="p-5"><p className="text-sm text-slate-500">Hoy</p><p className="text-3xl font-bold text-green-600">${earnings.toFixed(2)}</p><p className="text-sm text-slate-500">{completedCount} viajes</p></Card>
+              <Card className="p-5"><p className="text-sm text-slate-500">Esta Semana</p><p className="text-3xl font-bold text-slate-900">$741.00</p><p className="text-sm text-slate-500">41 viajes</p></Card>
+              <Card className="p-5"><p className="text-sm text-slate-500">Este Mes</p><p className="text-3xl font-bold text-slate-900">$2,890.00</p><p className="text-sm text-slate-500">156 viajes</p></Card>
+            </div>
+            <Card className="p-5">
+              <h2 className="text-base font-bold text-slate-900 mb-4">Historial de Ganancias</h2>
+              <div className="space-y-3">
+                {earningsHistory.map((entry, i) => (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-slate-100">
+                    <div>
+                      <p className="font-medium text-slate-900">{entry.date}</p>
+                      <p className="text-sm text-slate-500">{i === 0 ? completedCount : entry.trips} viajes</p>
+                    </div>
+                    <p className="font-bold text-green-600 text-lg">${i === 0 ? earnings.toFixed(2) : entry.earnings.toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
             </Card>
+          </div>
+        )}
 
-            <Card className="p-4 shadow-lg">
-              <h3 className="font-semibold text-slate-900 mb-3">Mi Perfil</h3>
-              <div className="space-y-2 text-sm">
-                <div><p className="text-slate-500">Nombre</p><p className="font-medium text-slate-900">{user?.name}</p></div>
-                <div><p className="text-slate-500">Email</p><p className="font-medium text-slate-900 text-xs">{user?.email}</p></div>
-                <div className="flex items-center gap-2 pt-1">
-                  <Star size={16} className="text-yellow-500" />
-                  <div><p className="text-slate-500 text-xs">Calificación</p><p className="font-medium text-slate-900">5.0 / 5.0</p></div>
+        {/* TAB: PERFIL */}
+        {activeTab === "profile" && (
+          <div className="space-y-6 max-w-lg">
+            <h1 className="text-2xl font-bold text-slate-900">Mi Perfil</h1>
+            <Card className="p-5">
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">{user?.name?.[0]}</div>
+                <div>
+                  <p className="text-xl font-bold text-slate-900">{user?.name}</p>
+                  <p className="text-sm text-slate-500">{user?.email}</p>
+                  <div className="flex items-center gap-1 mt-1"><Star size={14} className="text-yellow-500 fill-yellow-500" /><span className="text-sm font-medium">5.0 · {completedCount} viajes</span></div>
                 </div>
               </div>
-            </Card>
-
-            <Card className="p-4 shadow-lg">
-              <h3 className="font-semibold text-slate-900 mb-3">Estadísticas</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><p className="text-slate-600">Viajes Hoy</p><p className="font-semibold">{completedCount}</p></div>
-                <div className="flex justify-between"><p className="text-slate-600">Ganancias</p><p className="font-semibold text-green-600">${earnings.toFixed(2)}</p></div>
-                <div className="flex justify-between"><p className="text-slate-600">Estado</p><p className={`font-semibold ${isOnline ? "text-green-600" : "text-slate-500"}`}>{isOnline ? "En línea" : "Desconectado"}</p></div>
+              <div className="space-y-3 text-sm">
+                {[["Teléfono", user?.phone || "No registrado"], ["Estado", isOnline ? "En línea" : "Desconectado"], ["Viajes Completados", completedCount.toString()], ["Calificación Promedio", "5.0 ⭐"]].map(([k, v]) => (
+                  <div key={k} className="flex justify-between py-2 border-b border-slate-100">
+                    <span className="text-slate-500">{k}</span>
+                    <span className="font-medium text-slate-900">{v}</span>
+                  </div>
+                ))}
               </div>
             </Card>
           </div>
-        </div>
+        )}
+
+        {/* TAB: DOCUMENTOS */}
+        {activeTab === "docs" && (
+          <div className="space-y-6 max-w-lg">
+            <h1 className="text-2xl font-bold text-slate-900">Mis Documentos</h1>
+            <Card className="p-5">
+              <div className="space-y-4">
+                {[
+                  { name: "Licencia de Conducir", status: "valid", expires: "2027-03-15" },
+                  { name: "Seguro del Vehículo", status: "valid", expires: "2026-12-01" },
+                  { name: "Inspección Vehicular", status: "expiring", expires: "2026-09-10" },
+                  { name: "Antecedentes Penales", status: "valid", expires: "2028-01-20" },
+                  { name: "Foto de Perfil", status: "valid", expires: "N/A" },
+                ].map(doc => (
+                  <div key={doc.name} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${doc.status === "valid" ? "bg-green-100" : "bg-yellow-100"}`}>
+                        <FileText size={16} className={doc.status === "valid" ? "text-green-600" : "text-yellow-600"} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900 text-sm">{doc.name}</p>
+                        <p className="text-xs text-slate-500">Vence: {doc.expires}</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${doc.status === "valid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                      {doc.status === "valid" ? "Vigente" : "Por vencer"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                <FileText size={16} /> Subir Documento
+              </Button>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );
