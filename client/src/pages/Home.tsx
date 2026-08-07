@@ -2,8 +2,7 @@
  * Home — WhatsApp Taxi SaaS Landing Page + Auth Integration
  * Design: Verde Operacional — Sora + Inter, dark/light alternating sections
  */
-import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
+import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturesSection from "@/components/FeaturesSection";
@@ -13,13 +12,14 @@ import TechStackSection from "@/components/TechStackSection";
 import PricingSection from "@/components/PricingSection";
 import ContactSection from "@/components/ContactSection";
 import FooterSection from "@/components/FooterSection";
+import CTASection from "@/components/CTASection";
 
 export default function Home() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useLocalAuth();
 
   return (
     <div className="min-h-screen">
-      <Navbar user={user} isAuthenticated={isAuthenticated} onLogout={logout} onLogin={startLogin} />
+      <Navbar user={user} isAuthenticated={isAuthenticated} onLogout={logout} onLogin={() => window.location.href = "/login"} />
       <HeroSection />
       <FeaturesSection />
       <HowItWorksSection />
@@ -27,6 +27,7 @@ export default function Home() {
       <TechStackSection />
       <PricingSection />
       <ContactSection />
+      <CTASection />
       <FooterSection />
     </div>
   );

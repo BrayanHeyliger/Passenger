@@ -1,120 +1,141 @@
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Phone, Star, Clock, DollarSign, LogOut, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { MapPin, Phone, Star, DollarSign, LogOut, CheckCircle, XCircle, Bell, Car } from "lucide-react";
+import { useLocalAuth } from "@/contexts/LocalAuthContext";
+
+const TRIPS_KEY = "wt_pending_trips";
+
+interface PendingTrip {
+  id: string;
+  clientId: number;
+  clientName: string;
+  pickup: string;
+  dropoff: string;
+  fare: string;
+  status: string;
+  requestedAt: string;
+  driver?: any;
+  estimatedTime?: string;
+}
 
 export default function DriverDashboard() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
   const [isOnline, setIsOnline] = useState(false);
-  const [availableTrips, setAvailableTrips] = useState<any[]>([]);
-  const [currentTrip, setCurrentTrip] = useState<any>(null);
-  const [totalEarnings, setTotalEarnings] = useState("$1,245.50");
-  const [tripStatus, setTripStatus] = useState<"idle" | "assigned" | "in_progress" | "completed">("idle");
+  const [pendingTrips, setPendingTrips] = useState<PendingTrip[]>([]);
+  const [currentTrip, setCurrentTrip] = useState<PendingTrip | null>(null);
+  const [tripPhase, setTripPhase] = useState<"idle" | "accepted" | "in_progress" | "completed">("idle");
+  const [newTripAlert, setNewTripAlert] = useState(false);
+  const [earnings, setEarnings] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/", { replace: true });
+      navigate("/login");
     }
   }, [isAuthenticated]);
 
-  // Simular viajes disponibles
-  useEffect(() => {
-    if (isOnline) {
-      setAvailableTrips([
-        {
-          id: 1,
-          client: "María García",
-          pickup: "Calle Principal 123",
-          dropoff: "Centro Comercial Plaza",
-          distance: "3.2 km",
-          estimatedFare: "$18.50",
-          rating: 4.7,
-        },
-        {
-          id: 2,
-          client: "Juan López",
-          pickup: "Aeropuerto Internacional",
-          dropoff: "Hotel Downtown",
-          distance: "12.5 km",
-          estimatedFare: "$42.00",
-          rating: 4.9,
-        },
-        {
-          id: 3,
-          client: "Ana Martínez",
-          pickup: "Estación de Tren",
-          dropoff: "Barrio Residencial",
-          distance: "5.8 km",
-          estimatedFare: "$25.75",
-          rating: 4.6,
-        },
-      ]);
-    } else {
-      setAvailableTrips([]);
+  // Poll for new trips when online
+  const checkTrips = useCallback(() => {
+    if (!isOnline || tripPhase !== "idle") return;
+    const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+    const available = trips.filter(t => t.status === "requested");
+    if (available.length > pendingTrips.length) {
+      setNewTripAlert(true);
+      setTimeout(() => setNewTripAlert(false), 3000);
     }
-  }, [isOnline]);
+    setPendingTrips(available);
+  }, [isOnline, tripPhase, pendingTrips.length]);
 
-  const handleToggleOnline = () => {
-    setIsOnline(!isOnline);
-  };
+  useEffect(() => {
+    const interval = setInterval(checkTrips, 2000);
+    return () => clearInterval(interval);
+  }, [checkTrips]);
 
-  const handleAcceptTrip = (trip: any) => {
-    setCurrentTrip(trip);
-    setTripStatus("assigned");
-    setAvailableTrips(availableTrips.filter((t) => t.id !== trip.id));
+  const handleAcceptTrip = (trip: PendingTrip) => {
+    const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+    const updated = trips.map(t => t.id === trip.id ? {
+      ...t,
+      status: "accepted",
+      driver: {
+        id: user?.id,
+        name: user?.name,
+        phone: user?.phone || "+1 555-0000",
+        vehicle: "Mi Vehículo",
+        plate: "XXX-000",
+        rating: 4.8,
+      },
+      estimatedTime: "5 min",
+    } : t);
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
+    setCurrentTrip({ ...trip, status: "accepted", estimatedTime: "5 min" });
+    setTripPhase("accepted");
+    setPendingTrips([]);
   };
 
   const handleStartTrip = () => {
-    setTripStatus("in_progress");
+    if (!currentTrip) return;
+    const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+    const updated = trips.map(t => t.id === currentTrip.id ? { ...t, status: "in_progress" } : t);
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
+    setTripPhase("in_progress");
   };
 
   const handleCompleteTrip = () => {
-    setTripStatus("completed");
-    // Aquí se sumaría a las ganancias
+    if (!currentTrip) return;
+    const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+    const updated = trips.filter(t => t.id !== currentTrip.id);
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
+
+    const fareNum = parseFloat(currentTrip.fare.replace("$", "")) || 0;
+    setEarnings(prev => prev + fareNum);
+    setCompletedCount(prev => prev + 1);
+    setTripPhase("completed");
+
     setTimeout(() => {
       setCurrentTrip(null);
-      setTripStatus("idle");
+      setTripPhase("idle");
     }, 2000);
   };
 
-  const handleCancelTrip = () => {
-    setCurrentTrip(null);
-    setTripStatus("idle");
+  const handleRejectTrip = (tripId: string) => {
+    setPendingTrips(prev => prev.filter(t => t.id !== tripId));
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/", { replace: true });
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
-  if (!isAuthenticated) {
-    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
+      <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
               {user?.name?.[0] || "D"}
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">Hola, {user?.name}</h1>
+              <h1 className="text-lg font-bold text-slate-900">{user?.name}</h1>
               <p className="text-sm text-slate-500">Panel de Conductor</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${isOnline ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-              {isOnline ? "En Línea" : "Desconectado"}
+            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${isOnline ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
+              {isOnline ? "● En Línea" : "○ Desconectado"}
             </div>
+            {newTripAlert && (
+              <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold animate-bounce">
+                <Bell size={14} /> ¡Nuevo viaje!
+              </div>
+            )}
             <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
-              <LogOut size={16} />
-              Cerrar Sesión
+              <LogOut size={16} /> Salir
             </Button>
           </div>
         </div>
@@ -124,161 +145,136 @@ export default function DriverDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Panel Principal */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Estado Online/Offline */}
+            {/* Toggle Online */}
             <Card className="p-6 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 mb-1">Estado de Disponibilidad</h2>
+                  <h2 className="text-xl font-bold text-slate-900 mb-1">Disponibilidad</h2>
                   <p className="text-sm text-slate-600">
-                    {isOnline ? "Estás disponible para recibir viajes" : "Activa tu estado para recibir solicitudes"}
+                    {isOnline ? "Estás disponible para recibir viajes" : "Activa para recibir solicitudes de viaje"}
                   </p>
                 </div>
                 <Button
-                  onClick={handleToggleOnline}
-                  className={`px-6 py-3 font-semibold rounded-lg transition ${
-                    isOnline ? "bg-green-500 hover:bg-green-600 text-white" : "bg-slate-300 hover:bg-slate-400 text-slate-700"
-                  }`}
+                  onClick={() => setIsOnline(!isOnline)}
+                  className={`px-6 py-3 font-semibold rounded-xl transition-all ${isOnline ? "bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30" : "bg-slate-200 hover:bg-slate-300 text-slate-700"}`}
                 >
                   {isOnline ? "Desconectar" : "Conectar"}
                 </Button>
               </div>
             </Card>
 
-            {/* Viaje Actual o Viajes Disponibles */}
-            {currentTrip ? (
+            {/* Viaje Actual */}
+            {currentTrip && tripPhase !== "idle" ? (
               <Card className="p-6 shadow-lg">
-                <h2 className="text-2xl font-bold text-slate-900 mb-6">Viaje Asignado</h2>
+                <h2 className="text-xl font-bold text-slate-900 mb-4">
+                  {tripPhase === "accepted" ? "Viaje Aceptado" : tripPhase === "in_progress" ? "Viaje en Progreso" : "Viaje Completado"}
+                </h2>
 
-                {/* Información del Cliente */}
-                <div className="border border-slate-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="font-semibold text-slate-900">{currentTrip.client}</h3>
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star size={14} className="text-yellow-500" />
-                        <span className="text-sm text-slate-600">{currentTrip.rating}</span>
-                      </div>
+                {tripPhase === "completed" ? (
+                  <div className="text-center py-6">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckCircle size={28} className="text-green-600" />
                     </div>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Phone size={16} />
-                      Llamar
-                    </Button>
+                    <h3 className="text-lg font-semibold text-slate-900">¡Viaje completado!</h3>
+                    <p className="text-green-600 font-bold text-xl mt-2">{currentTrip.fare}</p>
                   </div>
-
-                  {/* Ubicaciones */}
-                  <div className="space-y-3 pt-3 border-t border-slate-200">
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <MapPin size={16} className="text-green-600" />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{currentTrip.clientName}</p>
+                          <p className="text-xs text-slate-500">Cliente</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600 text-xl">{currentTrip.fare}</p>
                         </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Recogida</p>
-                        <p className="font-medium text-slate-900">{currentTrip.pickup}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                          <MapPin size={16} className="text-red-600" />
+                      <div className="space-y-2 text-sm">
+                        <div className="flex gap-2">
+                          <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <MapPin size={12} className="text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Recogida</p>
+                            <p className="font-medium text-slate-900">{currentTrip.pickup}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                            <MapPin size={12} className="text-red-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Destino</p>
+                            <p className="font-medium text-slate-900">{currentTrip.dropoff}</p>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Destino</p>
-                        <p className="font-medium text-slate-900">{currentTrip.dropoff}</p>
-                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button variant="outline" onClick={() => { setCurrentTrip(null); setTripPhase("idle"); }} className="text-red-500 border-red-200">
+                        <XCircle size={16} className="mr-2" /> Cancelar
+                      </Button>
+                      {tripPhase === "accepted" ? (
+                        <Button onClick={handleStartTrip} className="bg-blue-600 hover:bg-blue-700 text-white">
+                          <Car size={16} className="mr-2" /> Iniciar Viaje
+                        </Button>
+                      ) : (
+                        <Button onClick={handleCompleteTrip} className="bg-green-600 hover:bg-green-700 text-white">
+                          <CheckCircle size={16} className="mr-2" /> Completar
+                        </Button>
+                      )}
                     </div>
                   </div>
-
-                  {/* Detalles */}
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 mt-4">
-                    <div>
-                      <p className="text-xs text-slate-500">Distancia</p>
-                      <p className="font-semibold text-slate-900">{currentTrip.distance}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Tarifa Estimada</p>
-                      <p className="font-semibold text-slate-900">{currentTrip.estimatedFare}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botones de Acción */}
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" onClick={handleCancelTrip} className="gap-2">
-                    <XCircle size={16} />
-                    Rechazar
-                  </Button>
-                  {tripStatus === "assigned" && (
-                    <Button onClick={handleStartTrip} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                      <CheckCircle size={16} />
-                      Iniciar Viaje
-                    </Button>
-                  )}
-                  {tripStatus === "in_progress" && (
-                    <Button onClick={handleCompleteTrip} className="bg-green-600 hover:bg-green-700 text-white gap-2">
-                      <CheckCircle size={16} />
-                      Completar Viaje
-                    </Button>
-                  )}
-                </div>
+                )}
               </Card>
             ) : (
+              /* Viajes Disponibles */
               <Card className="p-6 shadow-lg">
-                <h2 className="text-2xl font-bold text-slate-900 mb-6">Viajes Disponibles</h2>
+                <h2 className="text-xl font-bold text-slate-900 mb-4">
+                  Viajes Disponibles {pendingTrips.length > 0 && <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-sm rounded-full">{pendingTrips.length}</span>}
+                </h2>
 
-                {isOnline ? (
-                  availableTrips.length > 0 ? (
-                    <div className="space-y-3">
-                      {availableTrips.map((trip) => (
-                        <div key={trip.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h3 className="font-semibold text-slate-900">{trip.client}</h3>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Star size={14} className="text-yellow-500" />
-                                <span className="text-sm text-slate-600">{trip.rating}</span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-green-600 text-lg">{trip.estimatedFare}</p>
-                              <p className="text-xs text-slate-500">{trip.distance}</p>
-                            </div>
+                {!isOnline ? (
+                  <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                    <Car size={40} className="mx-auto text-slate-300 mb-3" />
+                    <p className="text-slate-600 font-medium">Conéctate para ver viajes disponibles</p>
+                    <Button onClick={() => setIsOnline(true)} className="mt-4 bg-green-500 hover:bg-green-600 text-white">
+                      Conectar Ahora
+                    </Button>
+                  </div>
+                ) : pendingTrips.length === 0 ? (
+                  <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
+                    <Bell size={40} className="mx-auto text-slate-300 mb-3" />
+                    <p className="text-slate-600 font-medium">Esperando solicitudes de viaje...</p>
+                    <p className="text-sm text-slate-500 mt-1">Te notificaremos cuando haya un viaje disponible</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {pendingTrips.map(trip => (
+                      <div key={trip.id} className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-semibold text-slate-900">{trip.clientName}</p>
+                            <p className="text-xs text-slate-500">{new Date(trip.requestedAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
                           </div>
-
-                          <div className="space-y-2 mb-3 text-sm">
-                            <p className="text-slate-600">
-                              <MapPin size={14} className="inline mr-2" />
-                              De: {trip.pickup}
-                            </p>
-                            <p className="text-slate-600">
-                              <MapPin size={14} className="inline mr-2" />
-                              A: {trip.dropoff}
-                            </p>
-                          </div>
-
-                          <Button onClick={() => handleAcceptTrip(trip)} className="w-full bg-green-500 hover:bg-green-600 text-white">
+                          <p className="font-bold text-green-600 text-xl">{trip.fare}</p>
+                        </div>
+                        <div className="space-y-1.5 text-sm mb-4">
+                          <p className="text-slate-600"><MapPin size={14} className="inline mr-1 text-green-500" />{trip.pickup}</p>
+                          <p className="text-slate-600"><MapPin size={14} className="inline mr-1 text-red-500" />{trip.dropoff}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleRejectTrip(trip.id)} className="text-red-500 border-red-200">
+                            Rechazar
+                          </Button>
+                          <Button size="sm" onClick={() => handleAcceptTrip(trip)} className="bg-green-500 hover:bg-green-600 text-white">
                             Aceptar Viaje
                           </Button>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <AlertCircle size={48} className="mx-auto text-slate-300 mb-3" />
-                      <p className="text-slate-600">No hay viajes disponibles en este momento</p>
-                      <p className="text-sm text-slate-500 mt-1">Mantente conectado para recibir notificaciones</p>
-                    </div>
-                  )
-                ) : (
-                  <div className="text-center py-8 bg-slate-50 rounded-lg border border-slate-200">
-                    <AlertCircle size={48} className="mx-auto text-slate-400 mb-3" />
-                    <p className="text-slate-600 font-semibold">Conecta tu estado para ver viajes disponibles</p>
-                    <Button onClick={handleToggleOnline} className="mt-4 bg-green-500 hover:bg-green-600 text-white">
-                      Conectar Ahora
-                    </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </Card>
@@ -287,51 +283,30 @@ export default function DriverDashboard() {
 
           {/* Panel Lateral */}
           <div className="space-y-4">
-            {/* Ganancias del Día */}
             <Card className="p-4 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
               <h3 className="font-semibold text-green-900 mb-3">Ganancias de Hoy</h3>
-              <p className="text-3xl font-bold text-green-600">{totalEarnings}</p>
-              <p className="text-sm text-green-700 mt-2">5 viajes completados</p>
+              <p className="text-3xl font-bold text-green-600">${earnings.toFixed(2)}</p>
+              <p className="text-sm text-green-700 mt-1">{completedCount} viajes completados</p>
             </Card>
 
-            {/* Información del Conductor */}
             <Card className="p-4 shadow-lg">
-              <h3 className="font-semibold text-slate-900 mb-3">Mi Información</h3>
+              <h3 className="font-semibold text-slate-900 mb-3">Mi Perfil</h3>
               <div className="space-y-2 text-sm">
-                <div>
-                  <p className="text-slate-500">Licencia</p>
-                  <p className="font-medium text-slate-900">DL-123456</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Vehículo</p>
-                  <p className="font-medium text-slate-900">Toyota Corolla</p>
-                </div>
-                <div className="flex items-center gap-2">
+                <div><p className="text-slate-500">Nombre</p><p className="font-medium text-slate-900">{user?.name}</p></div>
+                <div><p className="text-slate-500">Email</p><p className="font-medium text-slate-900 text-xs">{user?.email}</p></div>
+                <div className="flex items-center gap-2 pt-1">
                   <Star size={16} className="text-yellow-500" />
-                  <div>
-                    <p className="text-slate-500">Calificación</p>
-                    <p className="font-medium text-slate-900">4.8 / 5.0</p>
-                  </div>
+                  <div><p className="text-slate-500 text-xs">Calificación</p><p className="font-medium text-slate-900">5.0 / 5.0</p></div>
                 </div>
               </div>
             </Card>
 
-            {/* Estadísticas */}
             <Card className="p-4 shadow-lg">
               <h3 className="font-semibold text-slate-900 mb-3">Estadísticas</h3>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <p className="text-slate-600">Viajes Totales</p>
-                  <p className="font-semibold text-slate-900">248</p>
-                </div>
-                <div className="flex justify-between">
-                  <p className="text-slate-600">Horas Conectado</p>
-                  <p className="font-semibold text-slate-900">1,240</p>
-                </div>
-                <div className="flex justify-between">
-                  <p className="text-slate-600">Ganancias Totales</p>
-                  <p className="font-semibold text-slate-900">$8,450</p>
-                </div>
+                <div className="flex justify-between"><p className="text-slate-600">Viajes Hoy</p><p className="font-semibold">{completedCount}</p></div>
+                <div className="flex justify-between"><p className="text-slate-600">Ganancias</p><p className="font-semibold text-green-600">${earnings.toFixed(2)}</p></div>
+                <div className="flex justify-between"><p className="text-slate-600">Estado</p><p className={`font-semibold ${isOnline ? "text-green-600" : "text-slate-500"}`}>{isOnline ? "En línea" : "Desconectado"}</p></div>
               </div>
             </Card>
           </div>

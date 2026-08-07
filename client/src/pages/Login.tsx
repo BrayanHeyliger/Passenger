@@ -3,40 +3,44 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { trpc } from "@/lib/trpc";
+import { useLocalAuth } from "@/contexts/LocalAuthContext";
 
 export default function Login() {
   const [, navigate] = useLocation();
+  const { login } = useLocalAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const loginMutation = trpc.localAuth.login.useMutation({
-    onSuccess: (data) => {
-      // Redirect based on role
-      if (data.role === "admin" as string) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const result = await login(email, password);
+    setLoading(false);
+
+    if (!result.success) {
+      setError(result.error || "Credenciales incorrectas");
+      return;
+    }
+
+    // Get user from localStorage to determine redirect
+    const stored = localStorage.getItem("wt_user");
+    if (stored) {
+      const user = JSON.parse(stored);
+      if (user.role === "admin") {
         navigate("/admin");
-      } else if (data.role === "driver" as string) {
+      } else if (user.role === "driver") {
         navigate("/driver-dashboard");
-      } else if ((data.role as string) === "fleet") {
+      } else if (user.role === "fleet") {
         navigate("/fleet-dashboard");
       } else {
         navigate("/client-dashboard");
       }
-    },
-    onError: (err: any) => {
-      setError(err.message || "Credenciales incorrectas");
-      setLoading(false);
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    loginMutation.mutate({ email, password });
+    }
   };
 
   return (
@@ -75,7 +79,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-white/70 text-sm mb-1">
+              <label className="block text-white/70 text-sm mb-1.5">
                 <Mail size={14} className="inline mr-1" /> Email
               </label>
               <input
@@ -83,13 +87,14 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                 placeholder="tu@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-white/70 text-sm mb-1">
+              <label className="block text-white/70 text-sm mb-1.5">
                 <Lock size={14} className="inline mr-1" /> Contraseña
               </label>
               <div className="relative">
@@ -98,6 +103,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none pr-12"
                   placeholder="Tu contraseña"
                 />
@@ -114,14 +120,19 @@ export default function Login() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full py-3 font-semibold text-base shadow-lg shadow-green-500/25"
+              className="w-full py-3 font-semibold text-base shadow-lg shadow-green-500/25 mt-2"
               style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}
             >
               {loading ? "Ingresando..." : "Iniciar Sesión"}
             </Button>
           </form>
 
-          <div className="mt-6 text-center space-y-3">
+          {/* Demo credentials hint */}
+          <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10 text-xs text-white/40 text-center">
+            Admin: admin@whatsapptaxi.com / Hosting01
+          </div>
+
+          <div className="mt-4 text-center">
             <p className="text-white/50 text-sm">
               ¿No tienes cuenta?{" "}
               <a href="/register" className="text-[oklch(0.76_0.18_148)] hover:underline font-medium">
