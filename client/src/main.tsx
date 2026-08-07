@@ -8,6 +8,7 @@ import App from "./App";
 import { startLogin } from "./const";
 import "./index.css";
 import { LocalAuthProvider } from "./contexts/LocalAuthContext";
+import { I18nProvider } from "./contexts/I18nContext";
 
 const queryClient = new QueryClient();
 
@@ -77,7 +78,9 @@ createRoot(document.getElementById("root")!).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
       <LocalAuthProvider>
-        <App />
+        <I18nProvider>
+          <App />
+        </I18nProvider>
       </LocalAuthProvider>
     </QueryClientProvider>
   </trpc.Provider>

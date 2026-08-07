@@ -8,6 +8,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, Car, LogOut, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useI18n } from "@/contexts/I18nContext";
 
 const navLinks = [
   { label: "Características", href: "#features" },
@@ -28,6 +30,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -92,6 +95,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
 
           {/* CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
+            <LanguageSelector />
             {isAuthenticated && user ? (
               <div className="relative">
                 <button
