@@ -5,6 +5,7 @@
 import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, X, Zap, Building2, Crown } from "lucide-react";
+import { useLocation } from "wouter";
 
 const plans = [
   {
@@ -76,6 +77,7 @@ const plans = [
 ];
 
 export default function PricingSection() {
+  const [, navigate] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -203,6 +205,7 @@ export default function PricingSection() {
                     background: "oklch(0.76 0.18 148)",
                     color: "oklch(0.08 0.02 148)",
                   } : {}}
+                  onClick={() => navigate("/register")}
                 >
                   {plan.cta}
                 </Button>

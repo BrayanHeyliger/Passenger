@@ -2,10 +2,11 @@
  * HeroSection — WhatsApp Taxi SaaS
  * Design: Verde Operacional — dark charcoal bg, green gradient, floating WhatsApp mockup
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Play, CheckCircle2, MessageCircle, MapPin, Star } from "lucide-react";
+import { useLocation } from "wouter";
 
 const stats = [
   { value: "2,400+", label: "Empresas activas" },
@@ -24,6 +25,7 @@ const chatMessages = [
 
 export default function HeroSection() {
   const [visibleMessages, setVisibleMessages] = useState(0);
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -121,7 +123,7 @@ export default function HeroSection() {
                   background: "linear-gradient(135deg, oklch(0.76 0.18 148), oklch(0.68 0.16 148))",
                   color: "oklch(0.08 0.02 148)",
                 }}
-                onClick={() => document.querySelector("#pricing")?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() => navigate("/register")}
               >
                 Empezar gratis
                 <ArrowRight size={18} className="ml-2" />

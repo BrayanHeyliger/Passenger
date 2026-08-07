@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import ClientDashboard from "./pages/ClientDashboard";
 import DriverDashboard from "./pages/DriverDashboard";
+import Register from "./pages/Register";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -15,6 +16,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/client-dashboard"} component={ClientDashboard} />
       <Route path={"/driver-dashboard"} component={DriverDashboard} />
+      <Route path={"/register"} component={Register} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
