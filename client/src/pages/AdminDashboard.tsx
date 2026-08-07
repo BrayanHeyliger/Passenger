@@ -13,7 +13,7 @@ import {
   BarChart2, TrendingUp, MapPin, AlertTriangle, Star, Send,
   Shield, Edit3, Save, Globe, Palette, Layers, Sliders,
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
-  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink
+  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -77,7 +77,7 @@ const statusLabels: Record<string, string> = {
 const defaultSiteConfig = {
   siteTitle: "WhatsApp Taxi SaaS", tagline: "Gestiona tu flota desde WhatsApp",
   heroTitle: "Gestiona tu flota desde WhatsApp. Sin apps. Sin complicaciones.",
-  heroDesc: "La plataforma SaaS que convierte WhatsApp en tu central de taxis.",
+  heroDesc: "La plataforma SaaS que convierte WhatsApp en tu central de taxis. Recibe pedidos, asigna conductores y gestiona tarifas — todo desde un bot inteligente.",
   ctaText: "Empezar gratis", primaryColor: "#25D366", secondaryColor: "#0d1117",
   accentColor: "#128C7E", fontFamily: "Sora", contactEmail: "soporte@whatsapptaxi.com",
   contactPhone: "+1 800 TAXI BOT", contactAddress: "Ciudad de México, México",
@@ -89,6 +89,7 @@ const defaultSiteConfig = {
   maintenanceMode: false, allowRegistration: true, requireEmailVerification: false,
   commissionRate: "20", basefare: "2.50", pricePerKm: "1.20",
   surgePricing: true, surgeMultiplier: "1.5",
+  logoUrl: "",
 };
 
 export default function AdminDashboard() {
@@ -613,6 +614,48 @@ export default function AdminDashboard() {
                 {editorSection === "hero" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-slate-900 flex items-center gap-2"><Monitor size={16} /> Sección Hero / Inicio</h3>
+                    {/* Logo Upload */}
+                    <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                      <p className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2"><ImageIcon size={15} className="text-green-500" /> Logo del sitio</p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center flex-shrink-0">
+                          {siteConfig.logoUrl ? (
+                            <img src={siteConfig.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: siteConfig.primaryColor }}>🚕</div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <label className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors w-fit">
+                            <Upload size={14} className="text-green-500" />
+                            Subir logo (PNG, JPG, SVG)
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 2 * 1024 * 1024) { toast.error("El archivo debe ser menor a 2MB"); return; }
+                                const reader = new FileReader();
+                                reader.onload = ev => {
+                                  const dataUrl = ev.target?.result as string;
+                                  setSiteConfig(c => ({ ...c, logoUrl: dataUrl }));
+                                  toast.success("Logo cargado. Haz clic en Guardar para aplicarlo.");
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                          </label>
+                          <p className="text-xs text-slate-400 mt-1.5">Recomendado: 512×512px, fondo transparente (PNG)</p>
+                          {siteConfig.logoUrl && (
+                            <button onClick={() => setSiteConfig(c => ({ ...c, logoUrl: "" }))} className="text-xs text-red-500 hover:text-red-700 mt-1 flex items-center gap-1">
+                              <XCircle size={11} /> Eliminar logo
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                     {[{ key: "siteTitle", label: "Título del sitio web", type: "text" }, { key: "tagline", label: "Subtítulo / Tagline", type: "text" }, { key: "heroTitle", label: "Título principal del Hero", type: "textarea" }, { key: "heroDesc", label: "Descripción del Hero", type: "textarea" }, { key: "ctaText", label: "Texto del botón CTA", type: "text" }].map(f => (
                       <div key={f.key}>
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">{f.label}</label>

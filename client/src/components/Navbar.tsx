@@ -63,7 +63,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
           >
             <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 shadow-lg shadow-green-500/20">
               <img
-                src="/manus-storage/logo-icon_34950e08.png"
+                src={config.logoUrl || "/manus-storage/logo-icon_34950e08.png"}
                 alt="WhatsApp Taxi Logo"
                 className="w-full h-full object-cover"
                 style={{ background: config.primaryColor }}

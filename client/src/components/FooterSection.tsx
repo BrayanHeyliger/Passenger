@@ -29,10 +29,10 @@ export default function FooterSection() {
             <div className="flex items-center gap-3 mb-4">
               <div
                className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0"
-                style={{ background: config.primaryColor }}
+                style={{ background: config.logoUrl ? "transparent" : config.primaryColor }}
               >
                 <img
-                  src="/manus-storage/logo-icon_34950e08.png"
+                  src={config.logoUrl || "/manus-storage/logo-icon_34950e08.png"}
                   alt="Logo"
                   className="w-full h-full object-cover"
                 />

@@ -28,6 +28,7 @@ export interface SiteConfig {
   pricePerKm: string;
   surgePricing: boolean;
   surgeMultiplier: string;
+  logoUrl: string;
 }
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
@@ -58,6 +59,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   pricePerKm: "1.20",
   surgePricing: true,
   surgeMultiplier: "1.5",
+  logoUrl: "",
 };
 
 const STORAGE_KEY = "wataxi_site_config";
