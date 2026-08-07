@@ -2,7 +2,8 @@
  * FooterSection — WhatsApp Taxi SaaS
  * Design: Verde Operacional — dark footer con links y branding
  */
-import { MessageCircle, Github, Twitter, Linkedin, Heart } from "lucide-react";
+import { Github, Twitter, Linkedin, Heart } from "lucide-react";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 const footerLinks = {
   Producto: ["Características", "Precios", "Changelog", "Roadmap"],
@@ -28,7 +29,7 @@ export default function FooterSection() {
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <div
-               className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0"
+                className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0"
                 style={{ background: config.logoUrl ? "transparent" : config.primaryColor }}
               >
                 <img
@@ -38,10 +39,13 @@ export default function FooterSection() {
                 />
               </div>
               <span
-               className="text-white font-bold text-base"
+                className="text-white font-bold text-base"
                 style={{ fontFamily: `'${config.fontFamily}', sans-serif` }}
               >
-                {config.siteTitle.split(" ")[0]}<span style={{ color: config.primaryColor }}>{config.siteTitle.split(" ").slice(1).join(" ")}</span>
+                {config.siteTitle.split(" ")[0]}
+                <span style={{ color: config.primaryColor }}>
+                  {config.siteTitle.split(" ").slice(1).join(" ")}
+                </span>
               </span>
             </div>
             <p className="text-white/40 text-sm leading-relaxed mb-5">
@@ -98,4 +102,3 @@ export default function FooterSection() {
     </footer>
   );
 }
-import { useSiteConfig } from "@/contexts/SiteConfigContext";

@@ -74,6 +74,35 @@ function loadConfig(): SiteConfig {
   }
 }
 
+async function fetchConfigFromDB(): Promise<Partial<SiteConfig> | null> {
+  try {
+    const res = await fetch(
+      "/api/trpc/siteSettings.getConfig?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%7D%7D",
+      { credentials: "include" }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const result = data?.[0]?.result?.data?.json;
+    return result ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveConfigToDB(cfg: SiteConfig): Promise<boolean> {
+  try {
+    const res = await fetch("/api/trpc/siteSettings.saveConfig?batch=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ "0": { json: { config: JSON.stringify(cfg) } } }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 interface SiteConfigContextValue {
   config: SiteConfig;
   updateConfig: (partial: Partial<SiteConfig>) => void;
@@ -95,23 +124,18 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  // Load from DB on mount
-  const { data: dbConfig } = trpc.siteSettings.getConfig.useQuery(undefined, {
-    retry: false,
-    staleTime: 30_000,
-  });
-
+  // Load from DB on mount using plain fetch (avoids tRPC hook context issues)
   useEffect(() => {
-    if (dbConfig) {
-      const merged = { ...DEFAULT_SITE_CONFIG, ...dbConfig };
-      setConfig(merged);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    }
-  }, [dbConfig]);
+    fetchConfigFromDB().then(dbConfig => {
+      if (dbConfig) {
+        const merged = { ...DEFAULT_SITE_CONFIG, ...dbConfig };
+        setConfig(merged);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      }
+    });
+  }, []);
 
-  const saveMutation = trpc.siteSettings.saveConfig.useMutation();
-
-  // Listen for storage changes from other tabs (e.g. admin panel saving)
+  // Listen for storage changes from other tabs
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY && e.newValue) {
@@ -124,7 +148,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  // Also poll every 500ms to catch same-tab saves from AdminDashboard
+  // Poll every 500ms to catch same-tab saves from AdminDashboard
   useEffect(() => {
     const interval = setInterval(() => {
       const fresh = loadConfig();
@@ -140,14 +164,11 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   // Apply CSS variables whenever config changes
   useEffect(() => {
     const root = document.documentElement;
-    // Convert hex to OKLCH approximation via a CSS custom property
     root.style.setProperty("--wataxi-primary", config.primaryColor);
     root.style.setProperty("--wataxi-secondary", config.secondaryColor);
     root.style.setProperty("--wataxi-accent", config.accentColor);
     root.style.setProperty("--wataxi-font", config.fontFamily);
-    // Update document title
     document.title = config.siteTitle;
-    // Update meta description
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute("content", config.metaDescription);
   }, [config]);
@@ -163,21 +184,12 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const saveConfig = (cfg: SiteConfig) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
     setConfig(cfg);
-    // Also persist to DB
     setIsSaving(true);
-    saveMutation.mutate(
-      { config: JSON.stringify(cfg) },
-      {
-        onSuccess: () => {
-          setLastSaved(new Date());
-          setIsSaving(false);
-        },
-        onError: (err) => {
-          console.error("[SiteConfig] Failed to save to DB:", err);
-          setIsSaving(false);
-        },
-      }
-    );
+    saveConfigToDB(cfg).then(ok => {
+      if (ok) setLastSaved(new Date());
+      else console.error("[SiteConfig] Failed to save to DB");
+      setIsSaving(false);
+    });
   };
 
   return (
@@ -190,4 +202,3 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
 export function useSiteConfig() {
   return useContext(SiteConfigContext);
 }
-import { trpc } from "@/lib/trpc";

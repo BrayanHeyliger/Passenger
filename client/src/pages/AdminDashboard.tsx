@@ -100,6 +100,7 @@ export default function AdminDashboard() {
   const [drivers, setDrivers] = useState<Driver[]>(MOCK_DRIVERS);
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
   const { config: globalConfig, saveConfig: saveGlobalConfig } = useSiteConfig();
+  const { isSaving, lastSaved } = useSiteConfig();
   const [siteConfig, setSiteConfig] = useState(defaultSiteConfig);
   const [editorView, setEditorView] = useState<EditorView>("form");
   const [previewKey, setPreviewKey] = useState(0);
@@ -861,4 +862,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-  const { isSaving, lastSaved } = useSiteConfig();
