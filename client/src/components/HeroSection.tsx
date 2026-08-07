@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Play, CheckCircle2, MessageCircle, MapPin, Star } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { useI18n } from "@/contexts/I18nContext";
 
 const stats = [
   { value: "2,400+", label: "Empresas activas" },
@@ -28,6 +29,7 @@ export default function HeroSection() {
   const [visibleMessages, setVisibleMessages] = useState(0);
   const [, navigate] = useLocation();
   const { config } = useSiteConfig();
+  const { t } = useI18n();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -90,7 +92,7 @@ export default function HeroSection() {
                 }}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-[oklch(0.76_0.18_148)] mr-2 animate-pulse inline-block" />
-                Plataforma SaaS Multitenant
+                {t.hero.badge}
               </Badge>
             </div>
 
@@ -137,12 +139,12 @@ export default function HeroSection() {
                 onClick={() => document.querySelector("#how-it-works")?.scrollIntoView({ behavior: "smooth" })}
               >
                 <Play size={16} className="mr-2" />
-                Ver demo
+                {t.hero.demo}
               </Button>
             </div>
 
             <div className="flex flex-wrap gap-4 pt-2">
-              {["Sin contrato mínimo", "Activación en 48h", "Soporte 24/7"].map((item) => (
+              {[t.hero.noContract, t.hero.activation, t.hero.support].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-white/60 text-sm">
                   <CheckCircle2 size={14} className="text-[oklch(0.76_0.18_148)] flex-shrink-0" />
                   {item}

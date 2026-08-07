@@ -3,6 +3,7 @@
  * Design: Verde Operacional — 3 planes, Pro destacado con fondo verde
  */
 import { useRef, useEffect, useState } from "react";
+import { useI18n } from "@/contexts/I18nContext";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, X, Zap, Building2, Crown } from "lucide-react";
 import { useLocation } from "wouter";
@@ -77,6 +78,7 @@ const plans = [
 ];
 
 export default function PricingSection() {
+  const { t } = useI18n();
   const [, navigate] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -110,17 +112,16 @@ export default function PricingSection() {
             style={{ background: "oklch(0.76 0.18 148 / 0.1)", color: "oklch(0.52 0.12 148)" }}
           >
             <Crown size={12} />
-            Planes y precios
+            {t.pricing.badge}
           </div>
           <h2
             className="text-3xl lg:text-4xl font-extrabold text-[oklch(0.14_0.01_250)] mb-4"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            Elige el plan{" "}
-            <span style={{ color: "oklch(0.52 0.12 148)" }}>que se adapta a tu flota</span>
+            {t.pricing.title}
           </h2>
           <p className="text-[oklch(0.55_0.01_80)] text-lg">
-            Sin contratos mínimos. Cancela cuando quieras. Todos los planes incluyen 14 días de prueba gratis.
+            {t.pricing.sub}
           </p>
         </div>
 

@@ -1,11 +1,12 @@
 /**
  * CTASection — Botones de acción directa en el landing
- * Pedir Viaje (→ /register?type=client) y Ser Chofer (→ /register?type=driver)
+ * Pedir Viaje (→ /register?type=client) y {t.cta.driver} (→ /register?type=driver)
  */
 import { Button } from "@/components/ui/button";
 import { User, Car, ArrowRight } from "lucide-react";
 
 export default function CTASection() {
+  const { t } = useI18n();
   return (
     <section
       id="cta"
@@ -26,7 +27,7 @@ export default function CTASection() {
             className="text-3xl lg:text-5xl font-extrabold text-white mb-4"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            ¿Listo para empezar?
+            {t.cta.title}
           </h2>
           <p className="text-white/60 text-lg max-w-xl mx-auto">
             Elige cómo quieres usar WhatsApp Taxi. Regístrate gratis en menos de 2 minutos.
@@ -44,7 +45,7 @@ export default function CTASection() {
               <User size={26} className="text-white" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>
-              Pedir un Viaje
+              {t.cta.client}
             </h3>
             <p className="text-white/50 text-sm mb-6">
               Regístrate como cliente y solicita taxis al instante desde WhatsApp o la web.
@@ -59,7 +60,7 @@ export default function CTASection() {
             </Button>
           </div>
 
-          {/* Ser Chofer */}
+          {/* {t.cta.driver} */}
           <div
             className="rounded-2xl p-8 border border-white/10 hover:border-blue-500/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer group"
             style={{ background: "oklch(0.16 0.01 250)" }}
@@ -69,7 +70,7 @@ export default function CTASection() {
               <Car size={26} className="text-white" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>
-              Ser Chofer
+              {t.cta.driver}
             </h3>
             <p className="text-white/50 text-sm mb-6">
               Regístrate como conductor, acepta viajes y gana dinero con tu propio horario.

@@ -4,6 +4,7 @@
  * Sección alternada: texto izquierda + demo derecha, con chat bubbles y status badges
  */
 import { useRef, useEffect, useState } from "react";
+import { useI18n } from "@/contexts/I18nContext";
 import { CheckCircle2, MapPin, DollarSign, Users, BarChart3, Shield, Zap } from "lucide-react";
 
 const statusBadges = [
@@ -265,6 +266,7 @@ function FeatureRow({ feature, index }: { feature: typeof features[0]; index: nu
 }
 
 export default function FeaturesSection() {
+  const { t } = useI18n();
   return (
     <section id="features" className="py-20 lg:py-28 bg-[oklch(0.97_0.003_100)]">
       <div className="container">
@@ -274,7 +276,7 @@ export default function FeaturesSection() {
             style={{ background: "oklch(0.76 0.18 148 / 0.1)", color: "oklch(0.52 0.12 148)" }}
           >
             <Zap size={12} />
-            Características de la plataforma
+            {t.features.badge}
           </div>
           <h2
             className="text-3xl lg:text-4xl font-extrabold text-[oklch(0.14_0.01_250)] mb-4"

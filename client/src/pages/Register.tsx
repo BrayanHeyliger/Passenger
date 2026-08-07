@@ -8,6 +8,7 @@ import { useLocalAuth, type UserRole } from "@/contexts/LocalAuthContext";
 type RegisterType = "select" | "client" | "driver" | "fleet";
 
 export default function Register() {
+  const { t } = useI18n();
   const [, navigate] = useLocation();
   const { register } = useLocalAuth();
   const [registerType, setRegisterType] = useState<RegisterType>("select");
