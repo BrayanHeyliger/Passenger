@@ -21,7 +21,7 @@ import {
 } from "recharts";
 
 type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "settings";
-type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing";
+type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email";
 type EditorView = "form" | "preview";
 
 interface Driver { id: string; name: string; phone: string; email: string; vehicle: string; plate: string; status: "active" | "inactive" | "suspended" | "pending"; rating: number; trips: number; earnings: string; joinDate: string; online: boolean; permissions: { canAcceptTrips: boolean; canSetOwnFare: boolean; canViewClientPhone: boolean; canCancelTrip: boolean; }; }
@@ -611,6 +611,8 @@ export default function AdminDashboard() {
                   { id: "meta" as EditorSection, label: "SEO / Meta Tags", icon: Globe },
                   { id: "features" as EditorSection, label: "Funcionalidades", icon: Sliders },
                   { id: "pricing" as EditorSection, label: "Precios y Tarifas", icon: DollarSign },
+                  { id: "testimonials" as EditorSection, label: "Testimonios", icon: Star },
+                  { id: "email" as EditorSection, label: "Email / SMTP", icon: Mail },
                 ].map(s => (
                   <button key={s.id} onClick={() => setEditorSection(s.id)} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${editorSection === s.id ? "bg-green-500 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
                     <s.icon size={15} />{s.label}
@@ -758,6 +760,44 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </Card>
+                {editorSection === "testimonials" && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-slate-900 flex items-center gap-2"><Star size={16} /> Testimonios de Clientes</h3>
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                      <div><p className="text-sm font-medium text-slate-900">Mostrar testimonios en el landing</p><p className="text-xs text-slate-500">Activa para que sean visibles</p></div>
+                      <button onClick={() => setSiteConfig(c => ({ ...c, showTestimonials: !c.showTestimonials }))} className={`w-10 h-6 rounded-full transition-colors relative ${siteConfig.showTestimonials ? "bg-green-500" : "bg-slate-300"}`}><div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${siteConfig.showTestimonials ? "translate-x-4" : "translate-x-0.5"}`} /></button>
+                    </div>
+                    {((siteConfig as any).testimonials || []).map((t: any, idx: number) => (
+                      <div key={t.id} className="p-4 border border-slate-200 rounded-xl space-y-3 bg-slate-50">
+                        <div className="flex items-center justify-between"><p className="text-sm font-semibold text-slate-800">Testimonio #{idx + 1}</p><button onClick={() => setSiteConfig(c => ({ ...c, testimonials: (c as any).testimonials.filter((_: any, i: number) => i !== idx) } as any))} className="text-red-400 hover:text-red-600"><XCircle size={16} /></button></div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="block text-xs font-medium text-slate-600 mb-1">Nombre</label><input type="text" value={t.name} onChange={e => { const ts = [...(siteConfig as any).testimonials]; ts[idx] = { ...ts[idx], name: e.target.value }; setSiteConfig(c => ({ ...c, testimonials: ts } as any)); }} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
+                          <div><label className="block text-xs font-medium text-slate-600 mb-1">Empresa</label><input type="text" value={t.company} onChange={e => { const ts = [...(siteConfig as any).testimonials]; ts[idx] = { ...ts[idx], company: e.target.value }; setSiteConfig(c => ({ ...c, testimonials: ts } as any)); }} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
+                        </div>
+                        <div><label className="block text-xs font-medium text-slate-600 mb-1">Testimonio</label><textarea value={t.text} onChange={e => { const ts = [...(siteConfig as any).testimonials]; ts[idx] = { ...ts[idx], text: e.target.value }; setSiteConfig(c => ({ ...c, testimonials: ts } as any)); }} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none" /></div>
+                        <div><label className="block text-xs font-medium text-slate-600 mb-1">Calificación</label><div className="flex gap-1">{[1,2,3,4,5].map(star => <button key={star} onClick={() => { const ts = [...(siteConfig as any).testimonials]; ts[idx] = { ...ts[idx], rating: star }; setSiteConfig(c => ({ ...c, testimonials: ts } as any)); }} className={`text-xl transition-transform hover:scale-110 ${star <= t.rating ? "text-yellow-400" : "text-slate-300"}`}>★</button>)}</div></div>
+                      </div>
+                    ))}
+                    <button onClick={() => setSiteConfig(c => ({ ...c, testimonials: [...((c as any).testimonials || []), { id: Date.now().toString(), name: "", company: "", text: "", rating: 5, avatarUrl: "" }] } as any))} className="w-full py-3 border-2 border-dashed border-green-300 rounded-xl text-green-600 text-sm font-medium hover:bg-green-50 transition-colors flex items-center justify-center gap-2">+ Agregar testimonio</button>
+                    {((siteConfig as any).testimonials || []).length === 0 && <div className="text-center py-8 text-slate-400"><Star size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm">No hay testimonios. Haz clic en "Agregar testimonio".</p></div>}
+                  </div>
+                )}
+                {editorSection === "email" && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-slate-900 flex items-center gap-2"><Mail size={16} /> Configuración de Email</h3>
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-200"><p className="text-sm font-semibold text-blue-800 mb-1">📧 Email de notificaciones</p><p className="text-xs text-blue-600">Los mensajes del formulario de contacto y alertas llegarán a este correo.</p></div>
+                    <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Email donde recibirás los mensajes <span className="text-red-500">*</span></label><input type="email" value={(siteConfig as any).notificationEmail || ""} onChange={e => setSiteConfig(c => ({ ...c, notificationEmail: e.target.value } as any))} placeholder="tu@correo.com" className="w-full px-3 py-2.5 border-2 border-green-300 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
+                    <div className="border-t border-slate-200 pt-4">
+                      <p className="text-sm font-semibold text-slate-800 mb-1">Configuración SMTP <span className="text-xs font-normal text-slate-400">(opcional)</span></p>
+                      <p className="text-xs text-slate-500 mb-3">Si configuras SMTP, los emails se enviarán desde tu propio servidor. Si lo dejas vacío, se usará el servicio por defecto.</p>
+                      {[{ key: "smtpHost", label: "Servidor SMTP", placeholder: "smtp.gmail.com" }, { key: "smtpPort", label: "Puerto", placeholder: "587" }, { key: "smtpUser", label: "Usuario SMTP", placeholder: "tu@gmail.com" }, { key: "smtpFrom", label: "Email remitente (From)", placeholder: "noreply@tudominio.com" }].map(f => (
+                        <div key={f.key} className="mb-3"><label className="block text-xs font-medium text-slate-600 mb-1">{f.label}</label><input type="text" value={(siteConfig as any)[f.key] || ""} onChange={e => setSiteConfig(c => ({ ...c, [f.key]: e.target.value } as any))} placeholder={f.placeholder} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
+                      ))}
+                      <div className="mb-3"><label className="block text-xs font-medium text-slate-600 mb-1">Contraseña SMTP</label><input type="password" value={(siteConfig as any).smtpPass || ""} onChange={e => setSiteConfig(c => ({ ...c, smtpPass: e.target.value } as any))} placeholder="••••••••" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
+                    </div>
+                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-200"><p className="text-xs text-amber-700"><strong>Gmail:</strong> Usa "Contraseña de aplicación". Ve a Google Account → Seguridad → Contraseñas de aplicación.</p></div>
+                  </div>
+                )}
             </div>
             )}
             </div>

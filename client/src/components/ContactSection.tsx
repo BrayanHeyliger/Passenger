@@ -7,14 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Mail, Phone, MapPin, MessageCircle, Send, CheckCircle2 } from "lucide-react";
+import { Mail, Phone, MapPin, MessageCircle, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { trpc } from "@/lib/trpc";
 
 export default function ContactSection() {
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
   const { config } = useSiteConfig();
+  const [sending, setSending] = useState(false);
+  const sendEmailMutation = trpc.siteSettings.sendContactEmail.useMutation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +25,25 @@ export default function ContactSection() {
       toast.error("Por favor completa los campos requeridos.");
       return;
     }
-    setSubmitted(true);
-    toast.success("¡Mensaje enviado! Te contactaremos pronto.");
+    if (!form.message) {
+      toast.error("Por favor escribe tu mensaje.");
+      return;
+    }
+    setSending(true);
+    sendEmailMutation.mutate(
+      { name: form.name, email: form.email, company: form.company || undefined, message: form.message },
+      {
+        onSuccess: (data) => {
+          setSubmitted(true);
+          setSending(false);
+          toast.success(`¡Mensaje enviado a ${data.sentTo}! Te contactaremos pronto.`);
+        },
+        onError: (err) => {
+          setSending(false);
+          toast.error(err.message || "Error al enviar el mensaje. Por favor intenta de nuevo.");
+        },
+      }
+    );
   };
 
   return (
@@ -202,8 +222,7 @@ export default function ContactSection() {
                   className="w-full font-bold h-12 mt-2 active:scale-[0.97] transition-transform shadow-lg shadow-green-500/20"
                   style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}
                 >
-                  <Send size={16} className="mr-2" />
-                  Solicitar demo gratuita
+                  {sending ? <><Loader2 size={16} className="mr-2 animate-spin" />Enviando...</> : <><Send size={16} className="mr-2" />Solicitar demo gratuita</>}
                 </Button>
               </form>
             )}

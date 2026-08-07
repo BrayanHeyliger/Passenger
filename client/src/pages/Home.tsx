@@ -13,6 +13,7 @@ import PricingSection from "@/components/PricingSection";
 import ContactSection from "@/components/ContactSection";
 import FooterSection from "@/components/FooterSection";
 import CTASection from "@/components/CTASection";
+import TestimonialsSection from "@/components/TestimonialsSection";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useLocalAuth();
@@ -27,6 +28,7 @@ export default function Home() {
       <TechStackSection />
       <PricingSection />
       <ContactSection />
+      <TestimonialsSection />
       <CTASection />
       <FooterSection />
     </div>

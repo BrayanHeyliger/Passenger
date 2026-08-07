@@ -29,6 +29,14 @@ export interface SiteConfig {
   surgePricing: boolean;
   surgeMultiplier: string;
   logoUrl: string;
+  heroBgUrl: string;
+  testimonials: Array<{ id: string; name: string; company: string; text: string; rating: number; avatarUrl: string }>;
+  notificationEmail: string;
+  smtpHost: string;
+  smtpPort: string;
+  smtpUser: string;
+  smtpPass: string;
+  smtpFrom: string;
 }
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
@@ -60,6 +68,14 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   surgePricing: true,
   surgeMultiplier: "1.5",
   logoUrl: "",
+  heroBgUrl: "",
+  testimonials: [],
+  notificationEmail: "admin@whatsapptaxi.com",
+  smtpHost: "",
+  smtpPort: "587",
+  smtpUser: "",
+  smtpPass: "",
+  smtpFrom: "noreply@whatsapptaxi.com",
 };
 
 const STORAGE_KEY = "wataxi_site_config";
