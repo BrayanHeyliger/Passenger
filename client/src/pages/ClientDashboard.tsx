@@ -56,6 +56,105 @@ export default function ClientDashboard() {
   const dropoffMarkerRef = useRef<any>(null);
   const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const vehicleMarkersRef = useRef<any[]>([]);
+  const vehicleAnimFrameRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Nearby vehicles simulation ──────────────────────────────────────────────
+  // Generate a set of fake nearby drivers that drift slowly around a center point
+  const spawnNearbyVehicles = useCallback((map: google.maps.Map, center: { lat: number; lng: number }) => {
+    // Clear previous markers
+    vehicleMarkersRef.current.forEach(m => { m.marker.map = null; });
+    vehicleMarkersRef.current = [];
+    if (vehicleAnimFrameRef.current) clearInterval(vehicleAnimFrameRef.current);
+
+    const vehicleTypes = [
+      { emoji: "🚗", label: "Económico", color: "#25D366" },
+      { emoji: "🚙", label: "Confort",   color: "#3B82F6" },
+      { emoji: "🚘", label: "Premium",   color: "#8B5CF6" },
+      { emoji: "🚐", label: "SUV",       color: "#F59E0B" },
+    ];
+
+    // Spread 8 vehicles randomly within ~600 m of center
+    const spread = 0.006; // ~600 m in degrees
+    const vehicles = Array.from({ length: 8 }, (_, i) => {
+      const type = vehicleTypes[i % vehicleTypes.length];
+      const lat = center.lat + (Math.random() - 0.5) * spread;
+      const lng = center.lng + (Math.random() - 0.5) * spread;
+      const driftLat = (Math.random() - 0.5) * 0.00004;
+      const driftLng = (Math.random() - 0.5) * 0.00004;
+      const heading = Math.random() * 360;
+
+      // Build custom HTML element for the marker
+      const el = document.createElement("div");
+      el.style.cssText = [
+        "width:36px", "height:36px", "border-radius:50%",
+        `background:${type.color}`, "border:2.5px solid white",
+        "box-shadow:0 2px 10px rgba(0,0,0,0.25)",
+        "display:flex", "align-items:center", "justify-content:center",
+        "font-size:18px", "cursor:pointer",
+        "transition:transform 0.8s ease",
+        `transform:rotate(${heading}deg)`,
+      ].join(";");
+      el.textContent = type.emoji;
+      el.title = `${type.label} — disponible`;
+
+      // Pulse ring
+      const ring = document.createElement("div");
+      ring.style.cssText = [
+        "position:absolute", "inset:-6px", "border-radius:50%",
+        `border:2px solid ${type.color}`, "opacity:0.4",
+        "animation:pulse-ring 2s ease-out infinite",
+      ].join(";");
+      el.style.position = "relative";
+      el.appendChild(ring);
+
+      const marker = new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: { lat, lng },
+        content: el,
+        title: type.label,
+      });
+
+      return { marker, el, lat, lng, driftLat, driftLng, heading, type };
+    });
+
+    vehicleMarkersRef.current = vehicles;
+
+    // Inject pulse-ring keyframes once
+    if (!document.getElementById("wt-pulse-style")) {
+      const style = document.createElement("style");
+      style.id = "wt-pulse-style";
+      style.textContent = `
+        @keyframes pulse-ring {
+          0%   { transform: scale(1);   opacity: 0.5; }
+          70%  { transform: scale(1.6); opacity: 0;   }
+          100% { transform: scale(1.6); opacity: 0;   }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Animate: drift each vehicle slowly every 1.2 s
+    vehicleAnimFrameRef.current = setInterval(() => {
+      vehicleMarkersRef.current.forEach(v => {
+        v.lat += v.driftLat + (Math.random() - 0.5) * 0.00003;
+        v.lng += v.driftLng + (Math.random() - 0.5) * 0.00003;
+        v.heading = (v.heading + (Math.random() - 0.5) * 15) % 360;
+        v.marker.position = { lat: v.lat, lng: v.lng };
+        v.el.style.transform = `rotate(${v.heading}deg)`;
+      });
+    }, 1200);
+  }, []);
+
+  // Remove vehicle markers when a trip is requested
+  const clearVehicleMarkers = useCallback(() => {
+    vehicleMarkersRef.current.forEach(v => { v.marker.map = null; });
+    vehicleMarkersRef.current = [];
+    if (vehicleAnimFrameRef.current) { clearInterval(vehicleAnimFrameRef.current); vehicleAnimFrameRef.current = null; }
+  }, []);
+
+  // Clean up on unmount
+  useEffect(() => () => clearVehicleMarkers(), [clearVehicleMarkers]);
 
   useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
 
@@ -124,9 +223,14 @@ export default function ClientDashboard() {
         });
         if (pickupMarkerRef.current) pickupMarkerRef.current.map = null;
         pickupMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({ map, position: coords, title: "Mi ubicación" });
+        // Spawn nearby vehicles around user location
+        spawnNearbyVehicles(map, coords);
       }, () => {/* silently fail */});
+    } else {
+      // Fallback: spawn vehicles around default center
+      spawnNearbyVehicles(map, { lat: 19.4326, lng: -99.1332 });
     }
-  }, []);
+  }, [spawnNearbyVehicles]);
 
   const handlePickupSelect = (address: string, coords: { lat: number; lng: number }) => {
     setPickupCoords(coords);
@@ -136,6 +240,8 @@ export default function ClientDashboard() {
     if (mapRef.current) {
       pickupMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({ map: mapRef.current, position: coords, title: "Recogida" });
     }
+    // Re-spawn vehicles around new pickup location
+    if (mapRef.current) spawnNearbyVehicles(mapRef.current, coords);
     if (dropoffCoords) calculateRoute(coords, dropoffCoords);
   };
 
@@ -184,6 +290,8 @@ export default function ClientDashboard() {
 
   const handleRequestTrip = () => {
     if (!pickupLocation || !dropoffLocation) { toast.error("Completa origen y destino"); return; }
+    // Hide vehicles when trip is requested
+    clearVehicleMarkers();
     const fare = showBidMode && bidAmount ? `$${bidAmount}` : (estimatedFare || "$15.00");
     const newTrip = {
       id: Date.now().toString(), clientId: user?.id, clientName: user?.name,
