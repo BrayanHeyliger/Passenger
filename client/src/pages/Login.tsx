@@ -125,7 +125,7 @@ export default function Login() {
               className="w-full py-3 font-semibold text-base shadow-lg shadow-green-500/25 mt-2"
               style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}
             >
-              {loading ? "Ingresando..." : {t.login.submit}}
+              {loading ? "Ingresando..." : t.login.submit}
             </Button>
           </form>
 

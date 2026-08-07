@@ -1,8 +1,9 @@
 /**
  * CTASection — Botones de acción directa en el landing
- * Pedir Viaje (→ /register?type=client) y {t.cta.driver} (→ /register?type=driver)
+ * Pedir Viaje y Ser Chofer
  */
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/contexts/I18nContext";
 import { User, Car, ArrowRight } from "lucide-react";
 
 export default function CTASection() {

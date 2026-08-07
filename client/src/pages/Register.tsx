@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { User, Car, ArrowLeft, Mail, Lock, Phone, FileText, Building2, Eye, EyeOff } from "lucide-react";
 import { useLocalAuth, type UserRole } from "@/contexts/LocalAuthContext";
+import { useI18n } from "@/contexts/I18nContext";
 
 type RegisterType = "select" | "client" | "driver" | "fleet";
 

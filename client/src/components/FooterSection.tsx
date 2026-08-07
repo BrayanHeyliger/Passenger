@@ -9,8 +9,8 @@ import { useSiteConfig } from "@/contexts/SiteConfigContext";
 const footerLinks = {
   Producto: ["Características", "Precios", "Changelog", "Roadmap"],
   Empresa: ["Sobre nosotros", "Blog", "Carreras", "Prensa"],
-  Recursos: ["Documentación", "API Reference", "Guías", {t.footer.support}],
-  Legal: [{t.footer.privacy}, "Términos de uso", "Cookies", "GDPR"],
+  Recursos: ["Documentación", "API Reference", "Guías", "Soporte"],
+  Legal: ["Privacidad", "Términos de uso", "Cookies", "GDPR"],
 };
 
 export default function FooterSection() {
