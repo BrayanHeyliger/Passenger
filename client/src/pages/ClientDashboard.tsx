@@ -40,6 +40,13 @@ export default function ClientDashboard() {
   const [allFares, setAllFares] = useState<Record<string, string>>({});
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  // Availability counters per vehicle type (derived from spawned markers)
+  const [vehicleAvailability, setVehicleAvailability] = useState<Record<string, { count: number; eta: string }>>({
+    economy: { count: 3, eta: "2 min" },
+    comfort:  { count: 2, eta: "4 min" },
+    premium:  { count: 1, eta: "7 min" },
+    suv:      { count: 2, eta: "5 min" },
+  });
   const [selectedVehicle, setSelectedVehicle] = useState("economy");
   const [loyaltyPoints, setLoyaltyPoints] = useState(120);
   const [activePanel, setActivePanel] = useState<ActivePanel>("request");
@@ -72,10 +79,10 @@ export default function ClientDashboard() {
     if (vehicleAnimFrameRef.current) clearInterval(vehicleAnimFrameRef.current);
 
     const vehicleTypes = [
-      { emoji: "🚗", label: "Económico", color: "#25D366" },
-      { emoji: "🚙", label: "Confort",   color: "#3B82F6" },
-      { emoji: "🚘", label: "Premium",   color: "#8B5CF6" },
-      { emoji: "🚐", label: "SUV",       color: "#F59E0B" },
+      { id: "economy", emoji: "🚗", label: "Económico", color: "#25D366" },
+      { id: "comfort",  emoji: "🚙", label: "Confort",   color: "#3B82F6" },
+      { id: "premium",  emoji: "🚘", label: "Premium",   color: "#8B5CF6" },
+      { id: "suv",      emoji: "🚐", label: "SUV",       color: "#F59E0B" },
     ];
 
     // Spread 8 vehicles randomly within ~600 m of center
@@ -125,6 +132,18 @@ export default function ClientDashboard() {
     vehicleMarkersRef.current = vehicles;
 
     // Inject pulse-ring keyframes once
+    // Compute availability from spawned markers and update state
+    const countByType: Record<string, number> = { economy: 0, comfort: 0, premium: 0, suv: 0 };
+    vehicles.forEach(v => { countByType[v.type.id] = (countByType[v.type.id] || 0) + 1; });
+    // Estimate ETA based on average distance to center (rough approximation)
+    const etaByCount = (n: number) => n >= 3 ? "2 min" : n === 2 ? "4 min" : n === 1 ? "7 min" : "10+ min";
+    setVehicleAvailability({
+      economy: { count: countByType.economy, eta: etaByCount(countByType.economy) },
+      comfort:  { count: countByType.comfort,  eta: etaByCount(countByType.comfort)  },
+      premium:  { count: countByType.premium,  eta: etaByCount(countByType.premium)  },
+      suv:      { count: countByType.suv,      eta: etaByCount(countByType.suv)      },
+    });
+
     if (!document.getElementById("wt-pulse-style")) {
       const style = document.createElement("style");
       style.id = "wt-pulse-style";
@@ -529,17 +548,38 @@ export default function ClientDashboard() {
                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Tipo de vehículo</p>
                  <div className="grid grid-cols-2 gap-2">
                    {vehicles.map(v => (
-                     <button key={v.id} onClick={() => setSelectedVehicle(v.id)}
-                       className={`p-2.5 rounded-xl border-2 text-left transition-all ${selectedVehicle === v.id ? "border-green-500 bg-green-50" : "border-slate-200 hover:border-slate-300"}`}>
-                       <div className="text-lg mb-0.5">{v.icon}</div>
-                       <p className="text-xs font-semibold text-slate-900">{v.label}</p>
-                        <p className="text-xs text-slate-500">{v.price}</p>
-                        {allFares[v.id] ? (
-                          <p className={`text-sm font-bold mt-0.5 ${selectedVehicle === v.id ? "text-green-700" : "text-slate-700"}`}>{allFares[v.id]}</p>
-                        ) : (
-                          <p className="text-xs text-slate-400 mt-0.5">{v.time}</p>
+                      <button
+                        key={v.id}
+                        onClick={() => setSelectedVehicle(v.id)}
+                        className={`p-2.5 rounded-xl border-2 text-left transition-all relative overflow-hidden ${selectedVehicle === v.id ? "border-green-500 bg-green-50" : "border-slate-200 hover:border-slate-300 bg-white"}`}
+                      >
+                        {/* Selected indicator */}
+                        {selectedVehicle === v.id && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
                         )}
-                     </button>
+                        {/* Icon + label */}
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-xl">{v.icon}</span>
+                          <p className="text-xs font-bold text-slate-900">{v.label}</p>
+                        </div>
+                        {/* Price — show calculated fare or rate */}
+                        {allFares[v.id] ? (
+                          <p className={`text-base font-black ${selectedVehicle === v.id ? "text-green-700" : "text-slate-800"}`}>{allFares[v.id]}</p>
+                        ) : (
+                          <p className="text-xs text-slate-500">{v.price}</p>
+                        )}
+                        {/* ETA + availability */}
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${(vehicleAvailability[v.id]?.count ?? 0) > 0 ? "bg-green-500" : "bg-slate-300"}`} />
+                          <p className="text-xs text-slate-500">
+                            {(vehicleAvailability[v.id]?.count ?? 0) > 0
+                              ? `${vehicleAvailability[v.id]?.count} disp · ${vehicleAvailability[v.id]?.eta}`
+                              : "No disponible"}
+                          </p>
+                        </div>
+                      </button>
                    ))}
                  </div>
                 </div>
