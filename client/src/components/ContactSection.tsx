@@ -9,10 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, MessageCircle, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 export default function ContactSection() {
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
+  const { config } = useSiteConfig();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,9 +72,9 @@ export default function ContactSection() {
               <div className="flex flex-col gap-5">
                 {[
                   { icon: MessageCircle, label: "WhatsApp directo", value: "+1 (555) 000-0000", color: "oklch(0.76 0.18 148)" },
-                  { icon: Mail, label: "Email", value: "hola@whatsapptaxi.com", color: "oklch(0.65 0.15 250)" },
-                  { icon: Phone, label: "Teléfono", value: "+1 (555) 000-0001", color: "oklch(0.65 0.12 30)" },
-                  { icon: MapPin, label: "Oficina", value: "Ciudad de México, México", color: "oklch(0.65 0.15 30)" },
+                  { icon: Mail, label: "Email", value: config.contactEmail, color: "oklch(0.65 0.15 250)" },
+                  { icon: Phone, label: "Teléfono", value: config.contactPhone, color: "oklch(0.65 0.12 30)" },
+                  { icon: MapPin, label: "Oficina", value: config.contactAddress, color: "oklch(0.65 0.15 30)" },
                 ].map((item, i) => {
                   const Icon = item.icon;
                   return (

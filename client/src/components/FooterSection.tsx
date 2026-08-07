@@ -12,6 +12,8 @@ const footerLinks = {
 };
 
 export default function FooterSection() {
+  const { config } = useSiteConfig();
+
   return (
     <footer
       className="border-t"
@@ -26,8 +28,8 @@ export default function FooterSection() {
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <div
-                className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0"
-                style={{ background: "oklch(0.76 0.18 148)" }}
+               className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0"
+                style={{ background: config.primaryColor }}
               >
                 <img
                   src="/manus-storage/logo-icon_34950e08.png"
@@ -36,14 +38,14 @@ export default function FooterSection() {
                 />
               </div>
               <span
-                className="text-white font-bold text-base"
-                style={{ fontFamily: "'Sora', sans-serif" }}
+               className="text-white font-bold text-base"
+                style={{ fontFamily: `'${config.fontFamily}', sans-serif` }}
               >
-                WhatsApp<span style={{ color: "oklch(0.76 0.18 148)" }}>Taxi</span>
+                {config.siteTitle.split(" ")[0]}<span style={{ color: config.primaryColor }}>{config.siteTitle.split(" ").slice(1).join(" ")}</span>
               </span>
             </div>
             <p className="text-white/40 text-sm leading-relaxed mb-5">
-              La plataforma SaaS que convierte WhatsApp en tu central de taxis.
+              {config.tagline}
             </p>
             <div className="flex gap-3">
               {[Twitter, Github, Linkedin].map((Icon, i) => (
@@ -86,7 +88,7 @@ export default function FooterSection() {
           style={{ borderColor: "oklch(1 0 0 / 0.08)" }}
         >
           <p className="text-white/30 text-xs">
-            © 2026 WhatsApp Taxi SaaS. Todos los derechos reservados.
+            {config.footerText}
           </p>
           <p className="text-white/30 text-xs flex items-center gap-1.5">
             Hecho con <Heart size={11} className="text-red-400 fill-red-400" /> para empresas de taxi en Latinoamérica
@@ -96,4 +98,4 @@ export default function FooterSection() {
     </footer>
   );
 }
-
+import { useSiteConfig } from "@/contexts/SiteConfigContext";

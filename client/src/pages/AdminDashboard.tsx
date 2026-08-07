@@ -13,7 +13,7 @@ import {
   BarChart2, TrendingUp, MapPin, AlertTriangle, Star, Send,
   Shield, Edit3, Save, Globe, Palette, Layers, Sliders,
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
-  Monitor, ChevronRight, Download, RefreshCw
+  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -22,6 +22,7 @@ import {
 
 type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "settings";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing";
+type EditorView = "form" | "preview";
 
 interface Driver { id: string; name: string; phone: string; email: string; vehicle: string; plate: string; status: "active" | "inactive" | "suspended" | "pending"; rating: number; trips: number; earnings: string; joinDate: string; online: boolean; permissions: { canAcceptTrips: boolean; canSetOwnFare: boolean; canViewClientPhone: boolean; canCancelTrip: boolean; }; }
 interface Client { id: string; name: string; phone: string; email: string; trips: number; spent: string; rating: number; joinDate: string; status: "active" | "suspended"; }
@@ -99,6 +100,8 @@ export default function AdminDashboard() {
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
   const { config: globalConfig, saveConfig: saveGlobalConfig } = useSiteConfig();
   const [siteConfig, setSiteConfig] = useState(defaultSiteConfig);
+  const [editorView, setEditorView] = useState<EditorView>("form");
+  const [previewKey, setPreviewKey] = useState(0);
 
   // Sync local editor state from global config on mount
   useEffect(() => {
@@ -163,7 +166,14 @@ export default function AdminDashboard() {
 
   const handleSaveConfig = () => {
     saveGlobalConfig(siteConfig as any);
+    setPreviewKey(k => k + 1);
     toast.success("Configuración guardada ✅");
+  };
+
+  const handleResetConfig = () => {
+    setSiteConfig(defaultSiteConfig);
+    saveGlobalConfig(defaultSiteConfig as any);
+    toast.success("Configuración restablecida a valores por defecto ✅");
   };
 
   const tabs: { id: Tab; label: string; icon: any; badge?: number; dot?: boolean }[] = [
@@ -532,7 +542,57 @@ export default function AdminDashboard() {
 
           {/* ── EDITOR WEB ── */}
           {activeTab === "editor" && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="space-y-4">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between">
+                <div className="flex gap-2">
+                  <button onClick={() => setEditorView("form")} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${editorView === "form" ? "bg-green-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                    <Edit3 size={14} /> Editor
+                  </button>
+                  <button onClick={() => { handleSaveConfig(); setEditorView("preview"); setPreviewKey(k => k + 1); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${editorView === "preview" ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                    <Eye size={14} /> Vista previa
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleResetConfig} className="gap-2 text-sm text-red-500 border-red-200 hover:bg-red-50">
+                    <RotateCcw size={14} /> Restablecer
+                  </Button>
+                  <Button size="sm" onClick={handleSaveConfig} className="gap-2 text-sm bg-green-500 hover:bg-green-600 text-white">
+                    <Save size={14} /> Guardar cambios
+                  </Button>
+                  <a href="/" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="gap-2 text-sm">
+                      <ExternalLink size={14} /> Ver sitio
+                    </Button>
+                  </a>
+                </div>
+              </div>
+
+              {/* Preview iframe */}
+              {editorView === "preview" && (
+                <Card className="overflow-hidden" style={{ height: "600px" }}>
+                  <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-red-400" /><div className="w-3 h-3 rounded-full bg-yellow-400" /><div className="w-3 h-3 rounded-full bg-green-400" /></div>
+                      <span className="text-xs text-slate-500 font-mono ml-2">whatsapptaxi.com — Vista previa en vivo</span>
+                    </div>
+                    <button onClick={() => setPreviewKey(k => k + 1)} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-200 transition-colors">
+                      <RefreshCw size={12} /> Recargar
+                    </button>
+                  </div>
+                  <iframe
+                    key={previewKey}
+                    src="/"
+                    className="w-full border-0"
+                    style={{ height: "calc(100% - 40px)" }}
+                    title="Vista previa del landing"
+                  />
+                </Card>
+              )}
+
+              {/* Editor form */}
+              {editorView === "form" && (
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="space-y-1">
                 {[
                   { id: "hero" as EditorSection, label: "Hero / Inicio", icon: Monitor },
@@ -647,6 +707,8 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </Card>
+            </div>
+            )}
             </div>
           )}
 
