@@ -1,3 +1,4 @@
+import { VehiclesExtrasEditor } from "@/components/VehiclesExtrasEditor";
 import FAQEditor from "@/components/FAQEditor";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -24,7 +25,7 @@ import {
 } from "recharts";
 
 type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings";
-type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email";
+type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email" | "vehicles";
 type EditorView = "form" | "preview";
 
 interface Driver { id: string; name: string; phone: string; email: string; vehicle: string; plate: string; status: "active" | "inactive" | "suspended" | "pending"; rating: number; trips: number; earnings: string; joinDate: string; online: boolean; permissions: { canAcceptTrips: boolean; canSetOwnFare: boolean; canViewClientPhone: boolean; canCancelTrip: boolean; }; }
@@ -589,6 +590,7 @@ export default function AdminDashboard() {
                   { id: "features" as EditorSection, label: "Funcionalidades", icon: Sliders },
                   { id: "pricing" as EditorSection, label: "Precios y Tarifas", icon: DollarSign },
                   { id: "testimonials" as EditorSection, label: "Testimonios", icon: Star },
+                  { id: "vehicles" as EditorSection, label: "Vehículos y Extras", icon: Car },
                   { id: "email" as EditorSection, label: "Email / SMTP", icon: Mail },
                 ].map(s => (
                   <button key={s.id} onClick={() => setEditorSection(s.id)} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${editorSection === s.id ? "bg-green-500 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
@@ -758,6 +760,9 @@ export default function AdminDashboard() {
                     <button onClick={() => setSiteConfig(c => ({ ...c, testimonials: [...((c as any).testimonials || []), { id: Date.now().toString(), name: "", company: "", text: "", rating: 5, avatarUrl: "" }] } as any))} className="w-full py-3 border-2 border-dashed border-green-300 rounded-xl text-green-600 text-sm font-medium hover:bg-green-50 transition-colors flex items-center justify-center gap-2">+ Agregar testimonio</button>
                     {((siteConfig as any).testimonials || []).length === 0 && <div className="text-center py-8 text-slate-400"><Star size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm">No hay testimonios. Haz clic en "Agregar testimonio".</p></div>}
                   </div>
+                )}
+                                {editorSection === "vehicles" && (
+                  <VehiclesExtrasEditor />
                 )}
                 {editorSection === "email" && (
                   <div className="space-y-4">

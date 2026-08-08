@@ -70,6 +70,10 @@ export default function ClientDashboard() {
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const vehicleMarkersRef = useRef<any[]>([]);
   const vehicleAnimFrameRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const driverAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [driverEta, setDriverEta] = useState<string | null>(null);
+  const [driverDistance, setDriverDistance] = useState<string | null>(null);
 
   // ── Nearby vehicles simulation ──────────────────────────────────────────────
   // Generate a set of fake nearby drivers that drift slowly around a center point
@@ -242,6 +246,12 @@ export default function ClientDashboard() {
         setTripStatus("accepted");
         addNotification("🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min", "success");
         setLoyaltyPoints(p => p + 10);
+        // Start driver approach animation
+        if (pickupCoords) startDriverApproach(pickupCoords);
+        else if (mapRef.current) {
+          const center = mapRef.current.getCenter();
+          if (center) startDriverApproach({ lat: center.lat(), lng: center.lng() });
+        }
       }
     }, 6000);
     return () => clearTimeout(autoAssign);
@@ -286,6 +296,70 @@ export default function ClientDashboard() {
       }
     });
   }, [selectedVehicle, promoApplied]);
+
+  // Animate driver marker approaching the pickup location
+  const startDriverApproach = useCallback((pickup: { lat: number; lng: number }) => {
+    if (!mapRef.current) return;
+    // Start driver ~800m away from pickup
+    const spread = 0.008;
+    let driverPos = {
+      lat: pickup.lat + (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
+      lng: pickup.lng + (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
+    };
+    // Create driver marker
+    if (driverMarkerRef.current) driverMarkerRef.current.map = null;
+    const el = document.createElement("div");
+    el.style.cssText = "width:40px;height:40px;border-radius:50%;background:#3B82F6;border:3px solid white;box-shadow:0 4px 12px rgba(59,130,246,0.5);display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;";
+    el.textContent = "🚕";
+    const pulse = document.createElement("div");
+    pulse.style.cssText = "position:absolute;inset:-8px;border-radius:50%;border:2px solid #3B82F6;opacity:0.4;animation:pulse-ring 1.5s ease-out infinite;";
+    el.appendChild(pulse);
+    driverMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
+      map: mapRef.current,
+      position: driverPos,
+      content: el,
+      title: "Tu conductor",
+    });
+    mapRef.current.setZoom(15);
+    mapRef.current.setCenter(driverPos);
+    let step = 0;
+    const totalSteps = 60; // ~2 min simulation
+    if (driverAnimRef.current) clearInterval(driverAnimRef.current);
+    driverAnimRef.current = setInterval(() => {
+      step++;
+      // Move driver toward pickup
+      const progress = step / totalSteps;
+      const easedProgress = 1 - Math.pow(1 - progress, 2); // ease-in
+      driverPos = {
+        lat: driverPos.lat + (pickup.lat - driverPos.lat) * 0.06 + (Math.random() - 0.5) * 0.0001,
+        lng: driverPos.lng + (pickup.lng - driverPos.lng) * 0.06 + (Math.random() - 0.5) * 0.0001,
+      };
+      if (driverMarkerRef.current) driverMarkerRef.current.position = driverPos;
+      // Update ETA and distance
+      const distLat = Math.abs(pickup.lat - driverPos.lat) * 111000;
+      const distLng = Math.abs(pickup.lng - driverPos.lng) * 111000 * Math.cos(pickup.lat * Math.PI / 180);
+      const distM = Math.sqrt(distLat * distLat + distLng * distLng);
+      const etaSec = Math.max(0, Math.round(distM / 8)); // ~8 m/s = 28 km/h
+      const etaMin = Math.ceil(etaSec / 60);
+      setDriverDistance(distM < 1000 ? `${Math.round(distM)} m` : `${(distM / 1000).toFixed(1)} km`);
+      setDriverEta(etaMin <= 1 ? "Menos de 1 min" : `${etaMin} min`);
+      // Pan map to show both driver and pickup
+      if (mapRef.current && step % 5 === 0) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(driverPos);
+        bounds.extend(pickup);
+        mapRef.current.fitBounds(bounds, { top: 60, bottom: 60, left: 40, right: 40 });
+      }
+      // Stop when very close
+      if (distM < 30 || step >= totalSteps) {
+        clearInterval(driverAnimRef.current!);
+        driverAnimRef.current = null;
+        setDriverEta("¡Llegó!");
+        setDriverDistance("0 m");
+        setTripStatus("in_progress");
+      }
+    }, 2000); // update every 2s
+  }, []);
 
   const handleMapReady = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
@@ -818,8 +892,13 @@ export default function ClientDashboard() {
                     </div>
                   </div>
                   <div className="p-3 grid grid-cols-2 gap-3 border-t border-slate-200">
-                    <div className="flex items-center gap-2"><Clock size={15} className="text-slate-400" /><div><p className="text-xs text-slate-500">ETA</p><p className="font-bold text-slate-900 text-sm">{currentTrip.estimatedTime}</p></div></div>
+                    <div className="flex items-center gap-2"><Clock size={15} className="text-slate-400" /><div><p className="text-xs text-slate-500">ETA en tiempo real</p><p className="font-bold text-slate-900 text-sm">{driverEta || currentTrip.estimatedTime}</p></div></div>
+                    {driverDistance && (
+                    <div className="flex items-center gap-2"><Navigation size={15} className="text-blue-400" /><div><p className="text-xs text-slate-500">Distancia</p><p className="font-bold text-blue-600 text-sm">{driverDistance}</p></div></div>
+                    )}
+                    {!driverDistance && (
                     <div className="flex items-center gap-2"><DollarSign size={15} className="text-slate-400" /><div><p className="text-xs text-slate-500">Tarifa</p><p className="font-bold text-green-600 text-sm">{currentTrip.fare}</p></div></div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">

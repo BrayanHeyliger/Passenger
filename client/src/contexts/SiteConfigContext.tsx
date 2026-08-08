@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface SiteConfig {
+  vehicles: Array<{ id: string; label: string; emoji: string; base: number; perKm: number; eta: string; seats: number; active: boolean }>;
+  extras: Array<{ id: string; label: string; icon: string; price: number; active: boolean }>;
   siteTitle: string;
   tagline: string;
   heroTitle: string;
@@ -40,6 +42,19 @@ export interface SiteConfig {
 }
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
+  vehicles: [
+    { id: "economy", label: "Económico", emoji: "🚗", base: 6,  perKm: 0.9, eta: "3 min", seats: 4, active: true },
+    { id: "comfort",  label: "Confort",   emoji: "🚙", base: 9,  perKm: 1.3, eta: "5 min", seats: 4, active: true },
+    { id: "premium",  label: "Premium",   emoji: "🚘", base: 14, perKm: 1.8, eta: "7 min", seats: 4, active: true },
+    { id: "suv",      label: "SUV",       emoji: "🚐", base: 18, perKm: 2.2, eta: "8 min", seats: 6, active: true },
+  ],
+  extras: [
+    { id: "pet",        label: "Mascota",        icon: "🐾", price: 2, active: true },
+    { id: "luggage",    label: "Maletas",         icon: "🧳", price: 1, active: true },
+    { id: "child_seat", label: "Silla de niño",   icon: "👶", price: 3, active: true },
+    { id: "wheelchair", label: "Silla de ruedas", icon: "♿", price: 0, active: true },
+    { id: "music",      label: "Música a gusto",  icon: "🎵", price: 0, active: true },
+  ],
   siteTitle: "WhatsApp Taxi SaaS",
   tagline: "Gestiona tu flota desde WhatsApp",
   heroTitle: "Gestiona tu flota desde WhatsApp. Sin apps. Sin complicaciones.",
