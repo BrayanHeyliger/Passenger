@@ -23,6 +23,7 @@ export default function Home() {
       <Navbar user={user} isAuthenticated={isAuthenticated} onLogout={logout} onLogin={() => window.location.href = "/login"} />
       <HeroSection />
       <FeaturesSection />
+      <QuickQuoteSection />
       <HowItWorksSection />
       <ModulesSection />
       <TechStackSection />
@@ -31,6 +32,9 @@ export default function Home() {
       <TestimonialsSection />
       <CTASection />
       <FooterSection />
+      <PWAInstallBanner />
     </div>
   );
 }
+import QuickQuoteSection from "@/components/QuickQuoteSection";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
