@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   MapPin, Phone, Star, DollarSign, LogOut, CheckCircle, XCircle, Bell, Car,
-  Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText
+  Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText, Gift
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import LeafletMap from "@/components/LeafletMap";
+import ReferralPanel from "@/components/ReferralPanel";
 
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
@@ -40,7 +41,7 @@ export default function DriverDashboard() {
   const [otpInput, setOtpInput] = useState("");
   const [otpCode] = useState("4821"); // Demo OTP
   const [passengerRating, setPassengerRating] = useState(0);
-  const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "profile" | "docs">("trips");
+  const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "referrals" | "profile" | "docs">("trips");
   const [earningsHistory] = useState<EarningsEntry[]>([
     { date: "Hoy", trips: completedCount, earnings },
     { date: "Ayer", trips: 8, earnings: 145.50 },
@@ -250,6 +251,7 @@ export default function DriverDashboard() {
           {[
             { id: "trips" as const, label: "Viajes", icon: Car },
             { id: "earnings" as const, label: "Ganancias", icon: DollarSign },
+            { id: "referrals" as const, label: "Referidos", icon: Gift },
             { id: "profile" as const, label: "Perfil", icon: Shield },
             { id: "docs" as const, label: "Documentos", icon: FileText },
           ].map(tab => (
@@ -262,6 +264,26 @@ export default function DriverDashboard() {
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+
+        {/* TAB: REFERIDOS */}
+        {activeTab === "referrals" && (
+          <div className="max-w-lg mx-auto">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                <Gift size={20} className="text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Programa de Referidos</h2>
+                <p className="text-sm text-slate-500">Recluta conductores y gana bonos en efectivo</p>
+              </div>
+            </div>
+            <ReferralPanel
+              userId={user?.id || 0}
+              userName={user?.name || "Conductor"}
+              userRole="driver"
+            />
+          </div>
+        )}
 
         {/* TAB: VIAJES */}
         {activeTab === "trips" && (

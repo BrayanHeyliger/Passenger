@@ -11,6 +11,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import FleetDashboard from "./pages/FleetDashboard";
+import DispatcherDashboard from "./pages/DispatcherDashboard";
 import Payments from "./pages/Payments";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/fleet-dashboard"} component={FleetDashboard} />
       <Route path={"/payments"} component={Payments} />
+      <Route path={"/dispatcher"} component={DispatcherDashboard} />
       <Route path={"/faq"} component={FAQPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

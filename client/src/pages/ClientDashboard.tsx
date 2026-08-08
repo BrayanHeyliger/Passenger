@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import {
   Phone, Star, Clock, DollarSign, LogOut, CheckCircle, Bell,
   Car, X, ChevronRight, AlertTriangle, Share2, Tag, Calendar,
-  History, Home, Briefcase, MessageCircle, MapPin, Navigation
+  History, Home, Briefcase, MessageCircle, MapPin, Navigation, Gift
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
@@ -14,9 +14,10 @@ import { TripChat } from "@/components/TripChat";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
+import ReferralPanel from "@/components/ReferralPanel";
 
 type TripStatus = "idle" | "searching" | "accepted" | "in_progress" | "completed" | "rating";
-type ActivePanel = "request" | "history" | "scheduled" | "promo";
+type ActivePanel = "request" | "history" | "scheduled" | "promo" | "referrals";
 
 interface TripNotification { id: string; message: string; time: string; type: "info" | "success" | "warning"; }
 interface TripHistory { id: string; date: string; from: string; to: string; fare: string; driver: string; rating: number; }
@@ -468,6 +469,7 @@ export default function ClientDashboard() {
                 { id: "scheduled" as ActivePanel, label: "Programar", icon: Calendar },
                 { id: "history" as ActivePanel, label: "Historial", icon: History },
                 { id: "promo" as ActivePanel, label: "Promos", icon: Tag },
+                { id: "referrals" as ActivePanel, label: "Referidos", icon: Gift },
               ].map(tab => (
                 <button key={tab.id} onClick={() => setActivePanel(tab.id)}
                   className={`flex-1 flex flex-col items-center py-2.5 text-xs font-medium transition-colors ${activePanel === tab.id ? "text-green-600 border-b-2 border-green-500" : "text-slate-500 hover:text-slate-700"}`}>
@@ -710,6 +712,26 @@ export default function ClientDashboard() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* REFERIDOS */}
+            {tripStatus === "idle" && activePanel === "referrals" && (
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <Gift size={16} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Programa de Referidos</h2>
+                    <p className="text-xs text-slate-500">Invita amigos y gana recompensas</p>
+                  </div>
+                </div>
+                <ReferralPanel
+                  userId={user?.id || 0}
+                  userName={user?.name || "Usuario"}
+                  userRole="client"
+                />
               </div>
             )}
 

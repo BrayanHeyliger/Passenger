@@ -19,12 +19,13 @@ import {
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
   Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database, HelpCircle
 } from "lucide-react";
+import { Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email" | "vehicles";
 type EditorView = "form" | "preview";
 
@@ -209,6 +210,8 @@ export default function AdminDashboard() {
     { id: "payments", label: "Pagos / API", icon: DollarSign },
     { id: "faq", label: "Editor FAQ", icon: HelpCircle },
     { id: "settings", label: "Configuración", icon: Settings },
+    { id: "referrals", label: "Referidos", icon: Gift },
+    { id: "dispatchers", label: "Dispatchers", icon: UserCog },
   ];
 
   if (!isAuthenticated) return null;
@@ -995,6 +998,16 @@ export default function AdminDashboard() {
           )}
 
 
+          {/* ── REFERIDOS ── */}
+          {activeTab === "referrals" && (
+            <ReferralAdminPanel />
+          )}
+
+          {/* ── DISPATCHERS ── */}
+          {activeTab === "dispatchers" && (
+            <DispatcherAdminPanel />
+          )}
+
           {/* ── FAQ EDITOR ── */}
           {activeTab === "faq" && (
             <FAQEditor />
@@ -1049,6 +1062,266 @@ export default function AdminDashboard() {
               ))}
             </div>
             <Button onClick={() => setEditingDriver(null)} className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white">Cerrar</Button>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Inline admin sub-components ───────────────────────────────────────────────
+
+function ReferralAdminPanel() {
+  const { data: allRewards, refetch } = trpc.referrals.getAllRewardsAdmin.useQuery();
+  const saveReward = trpc.referrals.saveReward.useMutation({ onSuccess: () => { refetch(); toast.success("Recompensa guardada"); } });
+  const deleteReward = trpc.referrals.deleteReward.useMutation({ onSuccess: () => { refetch(); toast.success("Recompensa eliminada"); } });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ userRole: "client" as "client" | "driver", eventType: "", eventLabel: "", rewardType: "credit" as any, rewardValue: 0, rewardLabel: "", rewardDescription: "", triggerCount: 1, isActive: true, sortOrder: 0 });
+  const [showForm, setShowForm] = useState(false);
+  const [filterRole, setFilterRole] = useState<"all" | "client" | "driver">("all");
+
+  const clientRewards = allRewards?.filter((r: any) => r.userRole === "client") || [];
+  const driverRewards = allRewards?.filter((r: any) => r.userRole === "driver") || [];
+  const filtered = filterRole === "all" ? (allRewards || []) : (filterRole === "client" ? clientRewards : driverRewards);
+
+  const handleEdit = (r: any) => {
+    setEditingId(r.id);
+    setForm({ userRole: r.userRole, eventType: r.eventType, eventLabel: r.eventLabel, rewardType: r.rewardType, rewardValue: Number(r.rewardValue), rewardLabel: r.rewardLabel, rewardDescription: r.rewardDescription || "", triggerCount: r.triggerCount, isActive: Boolean(r.isActive), sortOrder: r.sortOrder });
+    setShowForm(true);
+  };
+
+  const handleSave = () => {
+    saveReward.mutate(editingId ? { ...form, id: editingId } : form);
+    setShowForm(false);
+    setEditingId(null);
+    setForm({ userRole: "client", eventType: "", eventLabel: "", rewardType: "credit", rewardValue: 0, rewardLabel: "", rewardDescription: "", triggerCount: 1, isActive: true, sortOrder: 0 });
+  };
+
+  const rewardTypeColors: Record<string, string> = { credit: "bg-green-100 text-green-700", free_trip: "bg-blue-100 text-blue-700", discount: "bg-purple-100 text-purple-700", badge: "bg-yellow-100 text-yellow-700", cash_bonus: "bg-emerald-100 text-emerald-700" };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Editor de Recompensas</h2>
+          <p className="text-sm text-slate-500">Configura los premios del programa de referidos para clientes y choferes</p>
+        </div>
+        <Button onClick={() => { setShowForm(true); setEditingId(null); }} className="bg-green-500 hover:bg-green-600 text-white gap-2">
+          <Plus size={16} /> Nueva Recompensa
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{allRewards?.length || 0}</p><p className="text-sm text-slate-500">Total recompensas</p></Card>
+        <Card className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{clientRewards.length}</p><p className="text-sm text-slate-500">Para clientes</p></Card>
+        <Card className="p-4 text-center"><p className="text-2xl font-bold text-blue-600">{driverRewards.length}</p><p className="text-sm text-slate-500">Para choferes</p></Card>
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-2">
+        {(["all", "client", "driver"] as const).map(role => (
+          <button key={role} onClick={() => setFilterRole(role)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterRole === role ? "bg-green-500 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            {role === "all" ? "Todos" : role === "client" ? "Clientes" : "Choferes"}
+          </button>
+        ))}
+      </div>
+
+      {/* Rewards list */}
+      <div className="space-y-3">
+        {filtered.map((r: any) => (
+          <Card key={r.id} className={`p-4 ${!r.isActive ? "opacity-60" : ""}`}>
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${rewardTypeColors[r.rewardType] || "bg-slate-100 text-slate-600"}`}>{r.rewardType}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${r.userRole === "client" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>{r.userRole === "client" ? "Cliente" : "Chofer"}</span>
+                  {!r.isActive && <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Inactivo</span>}
+                </div>
+                <p className="font-semibold text-slate-900">{r.rewardLabel}</p>
+                <p className="text-sm text-slate-500">{r.eventLabel}</p>
+                {r.rewardDescription && <p className="text-xs text-slate-400 mt-0.5">{r.rewardDescription}</p>}
+                <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                  <span>Valor: <strong className="text-slate-700">{r.rewardType === "badge" ? "Badge" : `$${Number(r.rewardValue).toFixed(2)}`}</strong></span>
+                  <span>Trigger: <strong className="text-slate-700">{r.triggerCount} referido(s)</strong></span>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button onClick={() => handleEdit(r)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"><Edit3 size={14} /></button>
+                <button onClick={() => deleteReward.mutate({ id: r.id })} className="p-2 rounded-lg hover:bg-red-50 text-red-400"><Trash2 size={14} /></button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Form modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">{editingId ? "Editar Recompensa" : "Nueva Recompensa"}</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Para quién</label>
+                  <select value={form.userRole} onChange={e => setForm(f => ({ ...f, userRole: e.target.value as any }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="client">Cliente</option><option value="driver">Chofer</option>
+                  </select>
+                </div>
+                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Tipo de recompensa</label>
+                  <select value={form.rewardType} onChange={e => setForm(f => ({ ...f, rewardType: e.target.value as any }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="credit">Crédito ($)</option><option value="free_trip">Viaje gratis</option><option value="discount">Descuento %</option><option value="badge">Badge</option><option value="cash_bonus">Bono efectivo</option>
+                  </select>
+                </div>
+              </div>
+              {[
+                { key: "eventType", label: "Tipo de evento (código)", placeholder: "ej: referral_registered" },
+                { key: "eventLabel", label: "Descripción del evento", placeholder: "ej: Referido se registra" },
+                { key: "rewardLabel", label: "Nombre de la recompensa", placeholder: "ej: $2 crédito en wallet" },
+                { key: "rewardDescription", label: "Descripción (opcional)", placeholder: "ej: Tu amigo se registró..." },
+              ].map(f => (
+                <div key={f.key}><label className="text-xs font-medium text-slate-600 mb-1 block">{f.label}</label>
+                  <input value={(form as any)[f.key]} onChange={e => setForm(ff => ({ ...ff, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+              ))}
+              <div className="grid grid-cols-3 gap-3">
+                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Valor ($)</label>
+                  <input type="number" value={form.rewardValue} onChange={e => setForm(f => ({ ...f, rewardValue: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Trigger (referidos)</label>
+                  <input type="number" value={form.triggerCount} onChange={e => setForm(f => ({ ...f, triggerCount: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Orden</label>
+                  <input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))} className={`w-10 h-6 rounded-full transition-colors relative ${form.isActive ? "bg-green-500" : "bg-slate-300"}`}>
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isActive ? "translate-x-4" : "translate-x-0.5"}`} />
+                </button>
+                <span className="text-sm text-slate-600">Recompensa activa</span>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <Button variant="outline" className="flex-1" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Button>
+              <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white" onClick={handleSave}>Guardar</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DispatcherAdminPanel() {
+  const { data: dispatchers, refetch } = trpc.referrals.getDispatchers.useQuery();
+  const saveDispatcher = trpc.referrals.saveDispatcher.useMutation({ onSuccess: () => { refetch(); toast.success("Dispatcher guardado"); } });
+  const deleteDispatcher = trpc.referrals.deleteDispatcher.useMutation({ onSuccess: () => { refetch(); toast.success("Dispatcher eliminado"); } });
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", status: "active" as "active" | "inactive" | "suspended", assignedZone: "", permissions: { viewMap: true, assignTrips: true, viewDrivers: true, contactUsers: true, viewTripHistory: true, cancelTrips: false, viewFinancials: false, editPrices: false, editSite: false } });
+
+  const handleEdit = (d: any) => {
+    setEditingId(d.id);
+    setForm({ name: d.name, email: d.email, phone: d.phone || "", status: d.status, assignedZone: d.assignedZone || "", permissions: { ...{ viewMap: true, assignTrips: true, viewDrivers: true, contactUsers: true, viewTripHistory: true, cancelTrips: false, viewFinancials: false, editPrices: false, editSite: false }, ...d.permissions } });
+    setShowForm(true);
+  };
+
+  const handleSave = () => {
+    saveDispatcher.mutate(editingId ? { ...form, id: editingId, createdBy: 1 } : { ...form, createdBy: 1 });
+    setShowForm(false);
+    setEditingId(null);
+  };
+
+  const permLabels: Record<string, string> = { viewMap: "Ver mapa", assignTrips: "Asignar viajes", viewDrivers: "Ver conductores", contactUsers: "Contactar usuarios", viewTripHistory: "Ver historial", cancelTrips: "Cancelar viajes", viewFinancials: "Ver finanzas", editPrices: "Editar precios", editSite: "Editar sitio" };
+  const permColors: Record<string, string> = { viewMap: "green", assignTrips: "green", viewDrivers: "green", contactUsers: "green", viewTripHistory: "green", cancelTrips: "yellow", viewFinancials: "red", editPrices: "red", editSite: "red" };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Gestión de Dispatchers</h2>
+          <p className="text-sm text-slate-500">Crea operadores con permisos limitados para gestionar viajes</p>
+        </div>
+        <Button onClick={() => { setShowForm(true); setEditingId(null); }} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+          <Plus size={16} /> Nuevo Dispatcher
+        </Button>
+      </div>
+
+      {/* Dispatcher list */}
+      {(!dispatchers || dispatchers.length === 0) ? (
+        <Card className="p-8 text-center">
+          <UserCog size={40} className="mx-auto text-slate-200 mb-3" />
+          <p className="text-slate-500 font-medium">No hay dispatchers creados</p>
+          <p className="text-sm text-slate-400 mt-1">Crea el primer dispatcher para delegar la gestión de viajes</p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {dispatchers.map((d: any) => (
+            <Card key={d.id} className="p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">{d.name[0]}</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-900">{d.name}</p>
+                  <p className="text-xs text-slate-500">{d.email}</p>
+                  {d.assignedZone && <p className="text-xs text-slate-400">Zona: {d.assignedZone}</p>}
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${d.status === "active" ? "bg-green-100 text-green-700" : d.status === "suspended" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-500"}`}>
+                  {d.status === "active" ? "Activo" : d.status === "suspended" ? "Suspendido" : "Inactivo"}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1 mb-3">
+                {Object.entries(d.permissions || {}).filter(([, v]) => v).map(([k]) => (
+                  <span key={k} className={`text-xs px-2 py-0.5 rounded-full ${permColors[k] === "red" ? "bg-red-100 text-red-600" : permColors[k] === "yellow" ? "bg-yellow-100 text-yellow-600" : "bg-green-100 text-green-700"}`}>
+                    {permLabels[k] || k}
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1 text-xs gap-1" onClick={() => handleEdit(d)}><Edit3 size={12} /> Editar</Button>
+                <Button size="sm" variant="outline" className="text-xs text-red-500 border-red-200 hover:bg-red-50" onClick={() => deleteDispatcher.mutate({ id: d.id })}><Trash2 size={12} /></Button>
+                <Button size="sm" className="flex-1 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1" onClick={() => window.open("/dispatcher", "_blank")}><Eye size={12} /> Ver panel</Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Form modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">{editingId ? "Editar Dispatcher" : "Nuevo Dispatcher"}</h3>
+            <div className="space-y-3">
+              {[{ key: "name", label: "Nombre completo", type: "text" }, { key: "email", label: "Email", type: "email" }, { key: "phone", label: "Teléfono", type: "tel" }, { key: "assignedZone", label: "Zona asignada (opcional)", type: "text" }].map(f => (
+                <div key={f.key}><label className="text-xs font-medium text-slate-600 mb-1 block">{f.label}</label>
+                  <input type={f.type} value={(form as any)[f.key]} onChange={e => setForm(ff => ({ ...ff, [f.key]: e.target.value }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              ))}
+              <div><label className="text-xs font-medium text-slate-600 mb-1 block">Estado</label>
+                <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as any }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="active">Activo</option><option value="inactive">Inactivo</option><option value="suspended">Suspendido</option>
+                </select>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-600 mb-2">Permisos</p>
+                <div className="space-y-2">
+                  {Object.entries(form.permissions).map(([key, val]) => (
+                    <div key={key} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50">
+                      <span className="text-sm text-slate-700">{permLabels[key] || key}</span>
+                      <button onClick={() => setForm(f => ({ ...f, permissions: { ...f.permissions, [key]: !val } }))}
+                        className={`w-10 h-6 rounded-full transition-colors relative ${val ? "bg-blue-500" : "bg-slate-300"}`}>
+                        <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${val ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <Button variant="outline" className="flex-1" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Button>
+              <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSave}>Guardar</Button>
+            </div>
           </Card>
         </div>
       )}
