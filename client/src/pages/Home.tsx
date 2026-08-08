@@ -1,21 +1,14 @@
-/**
- * Home — WhatsApp Taxi SaaS Landing Page + Auth Integration
- * Design: Verde Operacional — Sora + Inter, dark/light alternating sections
- */
-import { useLocalAuth } from "@/contexts/LocalAuthContext";
-import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/HeroSection";
-import FeaturesSection from "@/components/FeaturesSection";
-import QuickQuoteSection from "@/components/QuickQuoteSection";
-import HowItWorksSection from "@/components/HowItWorksSection";
-import ModulesSection from "@/components/ModulesSection";
-import TechStackSection from "@/components/TechStackSection";
-import PricingSection from "@/components/PricingSection";
-import ContactSection from "@/components/ContactSection";
-import FooterSection from "@/components/FooterSection";
-import CTASection from "@/components/CTASection";
-import TestimonialsSection from "@/components/TestimonialsSection";
-import PWAInstallBanner from "@/components/PWAInstallBanner";
+ import { useLocalAuth } from "@/contexts/LocalAuthContext";
+ import Navbar from "@/components/Navbar";
+ import HeroSection from "@/components/HeroSection";
+ import ForClientsSection from "@/components/ForClientsSection";
+ import ForDriversSection from "@/components/ForDriversSection";
+ import ForFleetSection from "@/components/ForFleetSection";
+ import PricingSection from "@/components/PricingSection";
+ import ContactSection from "@/components/ContactSection";
+ import FooterSection from "@/components/FooterSection";
+ import TestimonialsSection from "@/components/TestimonialsSection";
+ import PWAInstallBanner from "@/components/PWAInstallBanner";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useLocalAuth();
@@ -24,15 +17,12 @@ export default function Home() {
     <div className="min-h-screen">
       <Navbar user={user} isAuthenticated={isAuthenticated} onLogout={logout} onLogin={() => window.location.href = "/login"} />
       <HeroSection />
-      <FeaturesSection />
-      <QuickQuoteSection />
-      <HowItWorksSection />
-      <ModulesSection />
-      <TechStackSection />
+      <ForClientsSection />
+      <ForDriversSection />
+      <ForFleetSection />
       <PricingSection />
-      <ContactSection />
       <TestimonialsSection />
-      <CTASection />
+      <ContactSection />
       <FooterSection />
       <PWAInstallBanner />
     </div>

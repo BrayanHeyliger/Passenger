@@ -129,11 +129,6 @@ export default function Login() {
             </Button>
           </form>
 
-          {/* Demo credentials hint */}
-          <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10 text-xs text-white/40 text-center">
-            Admin: admin@whatsapptaxi.com / Hosting01
-          </div>
-
           <div className="mt-4 text-center">
             <p className="text-white/50 text-sm">
               ¿No tienes cuenta?{" "}
