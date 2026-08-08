@@ -77,7 +77,7 @@ export default function ForDriversSection() {
             ))}
           </div>
           <div className="text-center">
-            <a href="/register?role=driver" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
+            <a href="/register" onClick={(e) => { e.preventDefault(); sessionStorage.setItem("registerRole","driver"); window.location.href="/register"; }} className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
               Quiero ser conductor <ChevronRight size={16} />
             </a>
             <p className="text-white/30 text-xs mt-3">Registro gratuito · Sin cuota de membresía · Sin contratos</p>

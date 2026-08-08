@@ -13,9 +13,9 @@ import { useI18n } from "@/contexts/I18nContext";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 const navLinks = [
-  { label: "Características", href: "#features" },
-  { label: "Cómo funciona", href: "#how-it-works" },
-  { label: "Módulos", href: "#modules" },
+  { label: "Para Clientes", href: "#clientes" },
+  { label: "Para Conductores", href: "#conductores" },
+  { label: "Para Flotillas", href: "#flotilla" },
   { label: "Precios", href: "#pricing" },
   { label: "Contacto", href: "#contact" },
   { label: "FAQ", href: "/faq" },

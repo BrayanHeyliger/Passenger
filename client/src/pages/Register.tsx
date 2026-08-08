@@ -44,6 +44,13 @@ export default function Register() {
     }
   }, []);
 
+  // Auto-select role if coming from landing page section buttons
+  useEffect(() => {
+    const savedRole = sessionStorage.getItem("registerRole");
+    if (savedRole === "driver") { setRegisterType("driver"); sessionStorage.removeItem("registerRole"); }
+    else if (savedRole === "fleet") { setRegisterType("fleet"); sessionStorage.removeItem("registerRole"); }
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");

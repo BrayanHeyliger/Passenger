@@ -8,7 +8,8 @@
  import ContactSection from "@/components/ContactSection";
  import FooterSection from "@/components/FooterSection";
  import TestimonialsSection from "@/components/TestimonialsSection";
- import PWAInstallBanner from "@/components/PWAInstallBanner";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useLocalAuth();
@@ -25,6 +26,7 @@ export default function Home() {
       <ContactSection />
       <FooterSection />
       <PWAInstallBanner />
+      <WhatsAppFloatingButton />
     </div>
   );
 }

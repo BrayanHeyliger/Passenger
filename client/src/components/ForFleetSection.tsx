@@ -51,7 +51,7 @@ export default function ForFleetSection() {
                 Con solo 10 conductores activos puedes generar más de <span style={{ color: "oklch(0.76 0.18 148)" }}>$3,000 al mes</span> en comisiones.
               </h3>
               <p className="text-white/50 text-sm mb-6">Basado en un promedio de 15 viajes/día por conductor a $20 con 10% de comisión.</p>
-              <a href="/register?role=fleet" className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
+              <a href="/register" onClick={(e) => { e.preventDefault(); sessionStorage.setItem("registerRole","fleet"); window.location.href="/register"; }} className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
                 Crear mi flotilla ahora <ChevronRight size={16} />
               </a>
             </div>
