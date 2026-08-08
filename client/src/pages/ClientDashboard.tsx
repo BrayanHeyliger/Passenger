@@ -8,8 +8,8 @@ import {
   History, Home, Briefcase, MessageCircle, MapPin, Navigation
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
-import { MapView } from "@/components/Map";
-import { PlacesAutocomplete } from "@/components/PlacesAutocomplete";
+import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
+import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { TripChat } from "@/components/TripChat";
 import { toast } from "sonner";
 
@@ -63,125 +63,15 @@ export default function ClientDashboard() {
   const [showBidMode, setShowBidMode] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
 
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const pickupMarkerRef = useRef<any>(null);
-  const dropoffMarkerRef = useRef<any>(null);
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-  const vehicleMarkersRef = useRef<any[]>([]);
-  const vehicleAnimFrameRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const driverMarkerRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMapRef | null>(null);
   const driverAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [driverEta, setDriverEta] = useState<string | null>(null);
   const [driverDistance, setDriverDistance] = useState<string | null>(null);
 
-  // ── Nearby vehicles simulation ──────────────────────────────────────────────
-  // Generate a set of fake nearby drivers that drift slowly around a center point
-  const spawnNearbyVehicles = useCallback((map: google.maps.Map, center: { lat: number; lng: number }) => {
-    // Clear previous markers
-    vehicleMarkersRef.current.forEach(m => { m.marker.map = null; });
-    vehicleMarkersRef.current = [];
-    if (vehicleAnimFrameRef.current) clearInterval(vehicleAnimFrameRef.current);
-
-    const vehicleTypes = [
-      { id: "economy", emoji: "🚗", label: "Económico", color: "#25D366" },
-      { id: "comfort",  emoji: "🚙", label: "Confort",   color: "#3B82F6" },
-      { id: "premium",  emoji: "🚘", label: "Premium",   color: "#8B5CF6" },
-      { id: "suv",      emoji: "🚐", label: "SUV",       color: "#F59E0B" },
-    ];
-
-    // Spread 8 vehicles randomly within ~600 m of center
-    const spread = 0.006; // ~600 m in degrees
-    const vehicles = Array.from({ length: 8 }, (_, i) => {
-      const type = vehicleTypes[i % vehicleTypes.length];
-      const lat = center.lat + (Math.random() - 0.5) * spread;
-      const lng = center.lng + (Math.random() - 0.5) * spread;
-      const driftLat = (Math.random() - 0.5) * 0.00004;
-      const driftLng = (Math.random() - 0.5) * 0.00004;
-      const heading = Math.random() * 360;
-
-      // Build custom HTML element for the marker
-      const el = document.createElement("div");
-      el.style.cssText = [
-        "width:36px", "height:36px", "border-radius:50%",
-        `background:${type.color}`, "border:2.5px solid white",
-        "box-shadow:0 2px 10px rgba(0,0,0,0.25)",
-        "display:flex", "align-items:center", "justify-content:center",
-        "font-size:18px", "cursor:pointer",
-        "transition:transform 0.8s ease",
-        `transform:rotate(${heading}deg)`,
-      ].join(";");
-      el.textContent = type.emoji;
-      el.title = `${type.label} — disponible`;
-
-      // Pulse ring
-      const ring = document.createElement("div");
-      ring.style.cssText = [
-        "position:absolute", "inset:-6px", "border-radius:50%",
-        `border:2px solid ${type.color}`, "opacity:0.4",
-        "animation:pulse-ring 2s ease-out infinite",
-      ].join(";");
-      el.style.position = "relative";
-      el.appendChild(ring);
-
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        map,
-        position: { lat, lng },
-        content: el,
-        title: type.label,
-      });
-
-      return { marker, el, lat, lng, driftLat, driftLng, heading, type };
-    });
-
-    vehicleMarkersRef.current = vehicles;
-
-    // Inject pulse-ring keyframes once
-    // Compute availability from spawned markers and update state
-    const countByType: Record<string, number> = { economy: 0, comfort: 0, premium: 0, suv: 0 };
-    vehicles.forEach(v => { countByType[v.type.id] = (countByType[v.type.id] || 0) + 1; });
-    // Estimate ETA based on average distance to center (rough approximation)
-    const etaByCount = (n: number) => n >= 3 ? "2 min" : n === 2 ? "4 min" : n === 1 ? "7 min" : "10+ min";
-    setVehicleAvailability({
-      economy: { count: countByType.economy, eta: etaByCount(countByType.economy) },
-      comfort:  { count: countByType.comfort,  eta: etaByCount(countByType.comfort)  },
-      premium:  { count: countByType.premium,  eta: etaByCount(countByType.premium)  },
-      suv:      { count: countByType.suv,      eta: etaByCount(countByType.suv)      },
-    });
-
-    if (!document.getElementById("wt-pulse-style")) {
-      const style = document.createElement("style");
-      style.id = "wt-pulse-style";
-      style.textContent = `
-        @keyframes pulse-ring {
-          0%   { transform: scale(1);   opacity: 0.5; }
-          70%  { transform: scale(1.6); opacity: 0;   }
-          100% { transform: scale(1.6); opacity: 0;   }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    // Animate: drift each vehicle slowly every 1.2 s
-    vehicleAnimFrameRef.current = setInterval(() => {
-      vehicleMarkersRef.current.forEach(v => {
-        v.lat += v.driftLat + (Math.random() - 0.5) * 0.00003;
-        v.lng += v.driftLng + (Math.random() - 0.5) * 0.00003;
-        v.heading = (v.heading + (Math.random() - 0.5) * 15) % 360;
-        v.marker.position = { lat: v.lat, lng: v.lng };
-        v.el.style.transform = `rotate(${v.heading}deg)`;
-      });
-    }, 1200);
-  }, []);
-
-  // Remove vehicle markers when a trip is requested
+  // LeafletMap handles vehicle spawning internally
   const clearVehicleMarkers = useCallback(() => {
-    vehicleMarkersRef.current.forEach(v => { v.marker.map = null; });
-    vehicleMarkersRef.current = [];
-    if (vehicleAnimFrameRef.current) { clearInterval(vehicleAnimFrameRef.current); vehicleAnimFrameRef.current = null; }
+    // Leaflet map handles its own cleanup
   }, []);
-
-  // Clean up on unmount
   useEffect(() => () => clearVehicleMarkers(), [clearVehicleMarkers]);
 
   // Recalculate fare when vehicle type changes (without re-fetching the route)
@@ -246,12 +136,8 @@ export default function ClientDashboard() {
         setTripStatus("accepted");
         addNotification("🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min", "success");
         setLoyaltyPoints(p => p + 10);
-        // Start driver approach animation
         if (pickupCoords) startDriverApproach(pickupCoords);
-        else if (mapRef.current) {
-          const center = mapRef.current.getCenter();
-          if (center) startDriverApproach({ lat: center.lat(), lng: center.lng() });
-        }
+        else startDriverApproach({ lat: 19.4326, lng: -99.1332 });
       }
     }, 6000);
     return () => clearTimeout(autoAssign);
@@ -262,95 +148,53 @@ export default function ClientDashboard() {
     setNotifications(prev => [notif, ...prev.slice(0, 9)]);
   };
 
-  const calculateRoute = useCallback((pickup: { lat: number; lng: number }, dropoff: { lat: number; lng: number }) => {
+  const calculateRoute = useCallback(async (pickup: { lat: number; lng: number }, dropoff: { lat: number; lng: number }) => {
     if (!mapRef.current) return;
     setIsCalculatingRoute(true);
-    if (!directionsRendererRef.current) {
-      directionsRendererRef.current = new google.maps.DirectionsRenderer({
-        map: mapRef.current,
-        suppressMarkers: false,
-        polylineOptions: { strokeColor: "#25D366", strokeWeight: 6, strokeOpacity: 0.9 },
+    mapRef.current.setPickup(pickup.lat, pickup.lng, "Recogida");
+    mapRef.current.setDropoff(dropoff.lat, dropoff.lng, "Destino");
+    const route = await mapRef.current.getRoute();
+    setIsCalculatingRoute(false);
+    if (route) {
+      const distKm = route.distanceKm;
+      setRouteDistanceKm(distKm);
+      setEstimatedDistance(`${distKm.toFixed(1)} km`);
+      setEstimatedTime(`${route.durationMin} min`);
+      const rates: Record<string, number> = { economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 };
+      const computed: Record<string, string> = {};
+      Object.entries(rates).forEach(([vid, rate]) => {
+        let f = 2.5 + distKm * rate;
+        if (promoApplied) f *= 0.85;
+        computed[vid] = `$${f.toFixed(2)}`;
       });
+      setAllFares(computed);
+      setEstimatedFare(computed[selectedVehicle] || null);
     }
-    const ds = new google.maps.DirectionsService();
-    ds.route({ origin: pickup, destination: dropoff, travelMode: google.maps.TravelMode.DRIVING }, (result, status) => {
-      setIsCalculatingRoute(false);
-      if (status === "OK" && result) {
-        directionsRendererRef.current!.setDirections(result);
-        const leg = result.routes[0]?.legs[0];
-        if (leg) {
-          const distKm = (leg.distance?.value || 0) / 1000;
-          setRouteDistanceKm(distKm);
-          setEstimatedDistance(leg.distance?.text || `${distKm.toFixed(1)} km`);
-          setEstimatedTime(leg.duration?.text || "~10 min");
-          const rates: Record<string, number> = { economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 };
-          const computed: Record<string, string> = {};
-          Object.entries(rates).forEach(([vid, rate]) => {
-            let f = 2.5 + distKm * rate;
-            if (promoApplied) f *= 0.85;
-            computed[vid] = `$${f.toFixed(2)}`;
-          });
-          setAllFares(computed);
-          setEstimatedFare(computed[selectedVehicle] || null);
-        }
-      }
-    });
   }, [selectedVehicle, promoApplied]);
 
-  // Animate driver marker approaching the pickup location
+  // Animate driver approaching pickup using Leaflet
   const startDriverApproach = useCallback((pickup: { lat: number; lng: number }) => {
-    if (!mapRef.current) return;
-    // Start driver ~800m away from pickup
     const spread = 0.008;
     let driverPos = {
       lat: pickup.lat + (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
       lng: pickup.lng + (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
     };
-    // Create driver marker
-    if (driverMarkerRef.current) driverMarkerRef.current.map = null;
-    const el = document.createElement("div");
-    el.style.cssText = "width:40px;height:40px;border-radius:50%;background:#3B82F6;border:3px solid white;box-shadow:0 4px 12px rgba(59,130,246,0.5);display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;";
-    el.textContent = "🚕";
-    const pulse = document.createElement("div");
-    pulse.style.cssText = "position:absolute;inset:-8px;border-radius:50%;border:2px solid #3B82F6;opacity:0.4;animation:pulse-ring 1.5s ease-out infinite;";
-    el.appendChild(pulse);
-    driverMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
-      map: mapRef.current,
-      position: driverPos,
-      content: el,
-      title: "Tu conductor",
-    });
-    mapRef.current.setZoom(15);
-    mapRef.current.setCenter(driverPos);
     let step = 0;
-    const totalSteps = 60; // ~2 min simulation
+    const totalSteps = 60;
     if (driverAnimRef.current) clearInterval(driverAnimRef.current);
     driverAnimRef.current = setInterval(() => {
       step++;
-      // Move driver toward pickup
-      const progress = step / totalSteps;
-      const easedProgress = 1 - Math.pow(1 - progress, 2); // ease-in
       driverPos = {
         lat: driverPos.lat + (pickup.lat - driverPos.lat) * 0.06 + (Math.random() - 0.5) * 0.0001,
         lng: driverPos.lng + (pickup.lng - driverPos.lng) * 0.06 + (Math.random() - 0.5) * 0.0001,
       };
-      if (driverMarkerRef.current) driverMarkerRef.current.position = driverPos;
-      // Update ETA and distance
+      mapRef.current?.panTo(driverPos.lat, driverPos.lng);
       const distLat = Math.abs(pickup.lat - driverPos.lat) * 111000;
       const distLng = Math.abs(pickup.lng - driverPos.lng) * 111000 * Math.cos(pickup.lat * Math.PI / 180);
       const distM = Math.sqrt(distLat * distLat + distLng * distLng);
-      const etaSec = Math.max(0, Math.round(distM / 8)); // ~8 m/s = 28 km/h
-      const etaMin = Math.ceil(etaSec / 60);
+      const etaMin = Math.ceil(Math.max(0, distM / 8) / 60);
       setDriverDistance(distM < 1000 ? `${Math.round(distM)} m` : `${(distM / 1000).toFixed(1)} km`);
       setDriverEta(etaMin <= 1 ? "Menos de 1 min" : `${etaMin} min`);
-      // Pan map to show both driver and pickup
-      if (mapRef.current && step % 5 === 0) {
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(driverPos);
-        bounds.extend(pickup);
-        mapRef.current.fitBounds(bounds, { top: 60, bottom: 60, left: 40, right: 40 });
-      }
-      // Stop when very close
       if (distM < 30 || step >= totalSteps) {
         clearInterval(driverAnimRef.current!);
         driverAnimRef.current = null;
@@ -358,75 +202,53 @@ export default function ClientDashboard() {
         setDriverDistance("0 m");
         setTripStatus("in_progress");
       }
-    }, 2000); // update every 2s
+    }, 2000);
   }, []);
 
-  const handleMapReady = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-    geocoderRef.current = new google.maps.Geocoder();
-    // Try to get user location on load
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        map.setCenter(coords);
-        map.setZoom(15);
-        setPickupCoords(coords);
-        geocoderRef.current?.geocode({ location: coords }, (results, status) => {
-          if (status === "OK" && results?.[0]) setPickupLocation(results[0].formatted_address);
-        });
-        if (pickupMarkerRef.current) pickupMarkerRef.current.map = null;
-        pickupMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({ map, position: coords, title: "Mi ubicación" });
-        // Spawn nearby vehicles around user location
-        spawnNearbyVehicles(map, coords);
-      }, () => {/* silently fail */});
-    } else {
-      // Fallback: spawn vehicles around default center
-      spawnNearbyVehicles(map, { lat: 19.4326, lng: -99.1332 });
-    }
-  }, [spawnNearbyVehicles]);
+  const handleMapReady = useCallback((ref: LeafletMapRef) => {
+    mapRef.current = ref;
+    navigator.geolocation?.getCurrentPosition(async (pos) => {
+      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setPickupCoords(coords);
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`, { headers: { "Accept-Language": "es" } });
+        const data = await res.json();
+        if (data.display_name) setPickupLocation(data.display_name.split(",").slice(0, 2).join(","));
+      } catch {}
+    });
+  }, []);
 
-  const handlePickupSelect = (address: string, coords: { lat: number; lng: number }) => {
+  const handlePickupSelect = (address: string, lat: number, lng: number) => {
+    const coords = { lat, lng };
     setPickupCoords(coords);
-    mapRef.current?.setCenter(coords);
-    mapRef.current?.setZoom(15);
-    if (pickupMarkerRef.current) pickupMarkerRef.current.map = null;
-    if (mapRef.current) {
-      pickupMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({ map: mapRef.current, position: coords, title: "Recogida" });
-    }
-    // Re-spawn vehicles around new pickup location
-    if (mapRef.current) spawnNearbyVehicles(mapRef.current, coords);
+    mapRef.current?.setPickup(lat, lng, address);
+    mapRef.current?.spawnVehicles(lat, lng);
     if (dropoffCoords) calculateRoute(coords, dropoffCoords);
   };
 
-  const handleDropoffSelect = (address: string, coords: { lat: number; lng: number }) => {
+  const handleDropoffSelect = (address: string, lat: number, lng: number) => {
+    const coords = { lat, lng };
     setDropoffCoords(coords);
-    if (dropoffMarkerRef.current) dropoffMarkerRef.current.map = null;
-    if (mapRef.current) {
-      dropoffMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({ map: mapRef.current, position: coords, title: "Destino" });
-    }
+    mapRef.current?.setDropoff(lat, lng, address);
     if (pickupCoords) calculateRoute(pickupCoords, coords);
-    else mapRef.current?.setCenter(coords);
+    else mapRef.current?.panTo(lat, lng);
   };
 
   const handleGetMyLocation = () => {
     if (!navigator.geolocation) { toast.error("Geolocalización no disponible"); return; }
     setGettingLocation(true);
-    navigator.geolocation.getCurrentPosition((pos) => {
+    navigator.geolocation.getCurrentPosition(async (pos) => {
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setPickupCoords(coords);
-      mapRef.current?.setCenter(coords);
-      mapRef.current?.setZoom(16);
-      geocoderRef.current?.geocode({ location: coords }, (results, status) => {
-        if (status === "OK" && results?.[0]) {
-          setPickupLocation(results[0].formatted_address);
-          if (pickupMarkerRef.current) pickupMarkerRef.current.map = null;
-          if (mapRef.current) {
-            pickupMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({ map: mapRef.current, position: coords, title: "Mi ubicación" });
-          }
-          if (dropoffCoords) calculateRoute(coords, dropoffCoords);
-        }
-        setGettingLocation(false);
-      });
+      mapRef.current?.setPickup(coords.lat, coords.lng, "Mi ubicación");
+      mapRef.current?.spawnVehicles(coords.lat, coords.lng);
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`, { headers: { "Accept-Language": "es" } });
+        const data = await res.json();
+        setPickupLocation(data.display_name?.split(",").slice(0, 2).join(",") || "Mi ubicación 📍");
+        if (dropoffCoords) calculateRoute(coords, dropoffCoords);
+      } catch { setPickupLocation("Mi ubicación 📍"); }
+      setGettingLocation(false);
     }, () => { setGettingLocation(false); toast.error("No se pudo obtener tu ubicación"); });
   };
 
@@ -443,8 +265,7 @@ export default function ClientDashboard() {
 
   const handleRequestTrip = () => {
     if (!pickupLocation || !dropoffLocation) { toast.error("Completa origen y destino"); return; }
-    // Hide vehicles when trip is requested
-    clearVehicleMarkers();
+    mapRef.current?.clearRoute();
     const fare = showBidMode && bidAmount ? `$${bidAmount}` : (estimatedFare || "$15.00");
     const newTrip = {
       id: Date.now().toString(), clientId: user?.id, clientName: user?.name,
@@ -570,9 +391,8 @@ export default function ClientDashboard() {
         <div className="relative lg:flex-1" style={{ height: '45vw', minHeight: '220px', maxHeight: '320px' }}>
           {/* En desktop, ocupa todo el espacio restante */}
           <style>{`@media (min-width: 1024px) { .map-container { height: 100% !important; max-height: none !important; } }`}</style>
-          <MapView
-            initialCenter={{ lat: 19.4326, lng: -99.1332 }}
-            initialZoom={13}
+          <LeafletMap
+            height="100%"
             onMapReady={handleMapReady}
             className="map-container absolute inset-0 w-full h-full"
           />
@@ -641,24 +461,28 @@ export default function ClientDashboard() {
                 </div>
 
                 {/* Pickup con autocompletado */}
-                <PlacesAutocomplete
-                  value={pickupLocation}
-                  onChange={setPickupLocation}
-                  onSelect={handlePickupSelect}
-                  placeholder="¿Desde dónde te recogemos?"
-                  dotColor="green"
-                  showLocationButton
-                  onGetLocation={handleGetMyLocation}
-                  gettingLocation={gettingLocation}
-                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <NominatimAutocomplete
+                      value={pickupLocation}
+                      onChange={setPickupLocation}
+                      onSelect={handlePickupSelect}
+                      placeholder="¿Desde dónde te recogemos?"
+                      icon={<span className="w-3 h-3 rounded-full inline-block bg-green-500" />}
+                    />
+                  </div>
+                  <button onClick={handleGetMyLocation} disabled={gettingLocation} className="px-3 py-3 rounded-xl border border-slate-200 hover:bg-green-50 transition-colors" title="Mi ubicación">
+                    {gettingLocation ? <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /> : <Navigation size={16} className="text-green-500" />}
+                  </button>
+                </div>
 
                 {/* Dropoff con autocompletado */}
-                <PlacesAutocomplete
+                <NominatimAutocomplete
                   value={dropoffLocation}
                   onChange={setDropoffLocation}
                   onSelect={handleDropoffSelect}
                   placeholder="¿A dónde vas?"
-                  dotColor="red"
+                  icon={<span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />}
                 />
 
                 {/* Tipo de vehículo */}
@@ -797,8 +621,8 @@ export default function ClientDashboard() {
                 <div><label className="block text-sm font-medium text-slate-700 mb-1">Hora</label>
                   <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
-                <PlacesAutocomplete value={pickupLocation} onChange={setPickupLocation} onSelect={handlePickupSelect} placeholder="¿Dónde te recogemos?" dotColor="green" />
-                <PlacesAutocomplete value={dropoffLocation} onChange={setDropoffLocation} onSelect={handleDropoffSelect} placeholder="¿A dónde vas?" dotColor="red" />
+                <NominatimAutocomplete value={pickupLocation} onChange={setPickupLocation} onSelect={handlePickupSelect} placeholder="¿Dónde te recogemos?" icon={<span className="w-3 h-3 rounded-full inline-block bg-green-500" />} />
+                <NominatimAutocomplete value={dropoffLocation} onChange={setDropoffLocation} onSelect={handleDropoffSelect} placeholder="¿A dónde vas?" icon={<span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />} />
                 <Button onClick={() => { if (scheduledDate && scheduledTime && pickupLocation && dropoffLocation) { handleRequestTrip(); setActivePanel("request"); } else { toast.error("Completa todos los campos"); } }}
                   className="w-full py-3 font-bold" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
                   <Calendar size={15} className="mr-2" /> Programar Viaje

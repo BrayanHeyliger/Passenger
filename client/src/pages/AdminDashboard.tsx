@@ -9,7 +9,7 @@ import { LanguageSelectorLight } from "@/components/LanguageSelector";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapView } from "@/components/Map";
+import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import { toast } from "sonner";
 import {
   LayoutDashboard, Users, Car, Navigation, DollarSign, Settings,
@@ -146,25 +146,14 @@ export default function AdminDashboard() {
     { id: "m2", to: "all_drivers", subject: "Actualización de tarifas", body: "Las tarifas se han actualizado.", channel: "email", date: "Ayer 14:30" },
   ]);
   const [editorSection, setEditorSection] = useState<EditorSection>("hero");
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<any[]>([]);
+  const mapRef = useRef<LeafletMapRef | null>(null);
 
   useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
 
-  const handleMapReady = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-    MOCK_DRIVERS.forEach(driver => {
-      const colors: Record<string, string> = { active: "#25D366", on_trip: "#3B82F6", inactive: "#9CA3AF", pending: "#F59E0B", suspended: "#EF4444" };
-      const el = document.createElement("div");
-      el.style.cssText = `width:36px;height:36px;border-radius:50%;background:${colors[driver.status] || "#9CA3AF"};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:13px;cursor:pointer;`;
-      el.textContent = driver.name[0];
-      el.title = `${driver.name} — ${statusLabels[driver.status]}`;
-      const positions: Record<string, { lat: number; lng: number }> = {
-        d1: { lat: 19.44, lng: -99.14 }, d2: { lat: 19.43, lng: -99.13 },
-        d3: { lat: 19.45, lng: -99.15 }, d4: { lat: 19.42, lng: -99.12 }, d5: { lat: 19.46, lng: -99.16 },
-      };
-      new google.maps.marker.AdvancedMarkerElement({ map, position: positions[driver.id] || { lat: 19.43, lng: -99.13 }, content: el, title: driver.name });
-    });
+  const handleMapReady = useCallback((ref: LeafletMapRef) => {
+    mapRef.current = ref;
+    // Spawn animated vehicle markers for all drivers via LeafletMap
+    ref.spawnVehicles(19.4326, -99.1332);
   }, []);
 
   const handleDriverAction = (driverId: string, action: "approve" | "suspend" | "activate" | "delete") => {
@@ -339,7 +328,7 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <div className="lg:col-span-3">
                   <Card className="overflow-hidden" style={{ height: "500px", position: "relative" }}>
-                    <MapView initialCenter={{ lat: 19.4326, lng: -99.1332 }} initialZoom={13} onMapReady={handleMapReady} className="absolute inset-0 w-full h-full" />
+                    <LeafletMap height="100%" onMapReady={handleMapReady} className="absolute inset-0 w-full h-full" />
                   </Card>
                 </div>
                 <div className="space-y-3">

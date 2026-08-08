@@ -3,7 +3,7 @@ import { publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { users, clients, drivers } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 
 function hashPassword(password: string): string {
   return createHash("sha256").update(password).digest("hex");
@@ -28,13 +28,18 @@ export const localAuthRouter = router({
       const [user] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
       if (!user) throw new Error("Credenciales incorrectas");
 
-      // For demo purposes, accept any password for existing users
-      // In production, compare hashed passwords
+      // Verify password hash
+      const storedHash = (user as any).passwordHash;
+      if (storedHash) {
+        const inputHash = hashPassword(input.password);
+        if (storedHash !== inputHash) throw new Error("Credenciales incorrectas");
+      }
       return {
         id: user.id,
         name: user.name || "Usuario",
         email: user.email || "",
         role: user.role as "user" | "admin" | "client" | "driver",
+        phone: user.phone ?? undefined,
       };
     }),
 
@@ -59,7 +64,7 @@ export const localAuthRouter = router({
       if (!db) throw new Error("Base de datos no disponible");
 
       const hashedPassword = hashPassword(input.password);
-      const role = input.role === "fleet" ? "admin" : input.role;
+      const role = input.role === "fleet" ? "admin" : (input.role as "client" | "driver");
 
       // Create user
       const [result] = await db.insert(users).values({
@@ -97,7 +102,7 @@ export const localAuthRouter = router({
         id: userId,
         name: `${input.firstName} ${input.lastName || ""}`.trim(),
         email: input.email,
-        role: input.role,
+        role: input.role as "client" | "driver" | "fleet",
       };
     }),
 });

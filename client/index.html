@@ -18,9 +18,19 @@
     <!-- Theme color -->
     <meta name="theme-color" content="#25D366" />
     <meta name="msapplication-TileColor" content="#25D366" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <!-- Leaflet CSS (nativo, sin dependencia de Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Fuentes auto-hospedadas: Sora + Inter (sin dependencia de Google Fonts) -->
+    <style>
+      @font-face { font-family: 'Sora'; font-weight: 400; font-display: swap; src: url('/manus-storage/sora-400_ce2439f2.ttf') format('truetype'); }
+      @font-face { font-family: 'Sora'; font-weight: 600; font-display: swap; src: url('/manus-storage/sora-600_eafb1d9c.ttf') format('truetype'); }
+      @font-face { font-family: 'Sora'; font-weight: 700; font-display: swap; src: url('/manus-storage/sora-700_44bd5cd4.ttf') format('truetype'); }
+      @font-face { font-family: 'Sora'; font-weight: 800; font-display: swap; src: url('/manus-storage/sora-800_c87f75b7.ttf') format('truetype'); }
+      @font-face { font-family: 'Inter'; font-weight: 400; font-display: swap; src: url('/manus-storage/inter-400_105f8b52.ttf') format('truetype'); }
+      @font-face { font-family: 'Inter'; font-weight: 500; font-display: swap; src: url('/manus-storage/inter-500_f0aa8fe1.ttf') format('truetype'); }
+      @font-face { font-family: 'Inter'; font-weight: 600; font-display: swap; src: url('/manus-storage/inter-600_948ea806.ttf') format('truetype'); }
+      @font-face { font-family: 'Inter'; font-weight: 700; font-display: swap; src: url('/manus-storage/inter-700_b9dc43c4.ttf') format('truetype'); }
+    </style>
   </head>
 
   <body>

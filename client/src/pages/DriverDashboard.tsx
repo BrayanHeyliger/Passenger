@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { toast } from "sonner";
-import { MapView } from "@/components/Map";
+import LeafletMap from "@/components/LeafletMap";
 
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
@@ -138,21 +138,17 @@ export default function DriverDashboard() {
     const encoded = encodeURIComponent(destination);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isAndroid = /Android/.test(navigator.userAgent);
+    // Use OpenStreetMap/OsmAnd for navigation (no Google dependency)
     if (isIOS) {
-      // Try Apple Maps first, fallback to Google Maps
-      window.location.href = `maps://maps.apple.com/?daddr=${encoded}&dirflg=d`;
-      setTimeout(() => {
-        window.open(`https://maps.google.com/maps?daddr=${encoded}&dirflg=d`, "_blank");
-      }, 500);
+      window.open(`https://maps.apple.com/?daddr=${encoded}&dirflg=d`, "_blank");
     } else if (isAndroid) {
-      // Try Google Maps app first
-      window.location.href = `google.navigation:q=${encoded}&mode=d`;
+      // Try OsmAnd first, fallback to OSM web
+      window.location.href = `osmand.navigation:q=${encoded}`;
       setTimeout(() => {
-        window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`, "_blank");
+        window.open(`https://www.openstreetmap.org/search?query=${encoded}`, "_blank");
       }, 500);
     } else {
-      // Desktop: open Google Maps in new tab
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`, "_blank");
+      window.open(`https://www.openstreetmap.org/search?query=${encoded}`, "_blank");
     }
     toast.success(`Abriendo navegación hacia: ${destination}`);
   };
@@ -415,46 +411,25 @@ export default function DriverDashboard() {
                   </span>
                 </div>
                 <div className="relative w-full" style={{ height: "240px" }}>
-                  <MapView
+                  <LeafletMap
+                    height="100%"
                     className="absolute inset-0 w-full h-full"
-                    onMapReady={(map) => {
-                      // Center on user location
-                      if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => {
-                            const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                            map.setCenter(loc);
-                            map.setZoom(15);
-                            new google.maps.Marker({
-                              position: loc, map,
-                              title: "Mi ubicación",
-                              icon: {
-                                path: google.maps.SymbolPath.CIRCLE,
-                                scale: 10,
-                                fillColor: "#3B82F6",
-                                fillOpacity: 1,
-                                strokeColor: "white",
-                                strokeWeight: 3,
-                              }
-                            });
-                          },
-                          () => {
-                            // Default to Mexico City if geolocation fails
-                            map.setCenter({ lat: 19.4326, lng: -99.1332 });
-                            map.setZoom(12);
-                          }
-                        );
-                      }
-                      // Show current trip route if active
+                    onMapReady={(ref) => {
+                      // LeafletMap auto-centers on user location
                       if (currentTrip && (tripPhase === "accepted" || tripPhase === "in_progress")) {
-                        const directionsService = new google.maps.DirectionsService();
-                        const directionsRenderer = new google.maps.DirectionsRenderer({ map, suppressMarkers: false });
-                        directionsService.route({
-                          origin: currentTrip.pickup,
-                          destination: currentTrip.dropoff,
-                          travelMode: google.maps.TravelMode.DRIVING,
-                        }, (result, status) => {
-                          if (status === "OK" && result) directionsRenderer.setDirections(result);
+                        // Show route for active trip using OSRM
+                        navigator.geolocation?.getCurrentPosition(async (pos) => {
+                          const { latitude: lat, longitude: lng } = pos.coords;
+                          ref.setPickup(lat, lng, "Mi posición");
+                          // Geocode destination with Nominatim
+                          try {
+                            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(currentTrip.dropoff)}&limit=1`);
+                            const data = await res.json();
+                            if (data[0]) {
+                              ref.setDropoff(parseFloat(data[0].lat), parseFloat(data[0].lon), currentTrip.dropoff);
+                              ref.getRoute();
+                            }
+                          } catch {}
                         });
                       }
                     }}
