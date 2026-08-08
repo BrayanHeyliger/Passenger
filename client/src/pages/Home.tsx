@@ -6,6 +6,7 @@ import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import FeaturesSection from "@/components/FeaturesSection";
+import QuickQuoteSection from "@/components/QuickQuoteSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import ModulesSection from "@/components/ModulesSection";
 import TechStackSection from "@/components/TechStackSection";
@@ -14,6 +15,7 @@ import ContactSection from "@/components/ContactSection";
 import FooterSection from "@/components/FooterSection";
 import CTASection from "@/components/CTASection";
 import TestimonialsSection from "@/components/TestimonialsSection";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useLocalAuth();
@@ -36,5 +38,3 @@ export default function Home() {
     </div>
   );
 }
-import QuickQuoteSection from "@/components/QuickQuoteSection";
-import PWAInstallBanner from "@/components/PWAInstallBanner";
