@@ -7,6 +7,7 @@ import {
   Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import LeafletMap from "@/components/LeafletMap";
 
@@ -25,6 +26,7 @@ interface EarningsEntry { date: string; trips: number; earnings: number; }
 export default function DriverDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
+  const { permission: notifPermission, requestPermission, sendNotification } = usePushNotifications();
   const [isOnline, setIsOnline] = useState(false);
   const [pendingTrips, setPendingTrips] = useState<PendingTrip[]>([]);
   const [currentTrip, setCurrentTrip] = useState<PendingTrip | null>(null);
@@ -53,9 +55,15 @@ export default function DriverDashboard() {
     if (available.length > pendingTrips.length) {
       setNewTripAlert(true);
       setTimeout(() => setNewTripAlert(false), 4000);
+      // Notificación push para nuevo viaje
+      sendNotification("🚕 ¡Nuevo viaje disponible!", {
+        body: `${available[available.length - 1]?.pickup} → ${available[available.length - 1]?.dropoff}`,
+        url: "/driver-dashboard",
+        tag: "new-trip",
+      });
     }
     setPendingTrips(available);
-  }, [isOnline, tripPhase, pendingTrips.length]);
+  }, [isOnline, tripPhase, pendingTrips.length, sendNotification]);
 
   useEffect(() => {
     const interval = setInterval(checkTrips, 2000);
@@ -74,6 +82,7 @@ export default function DriverDashboard() {
     setTripPhase("accepted");
     setPendingTrips([]);
     toast.success("¡Viaje aceptado!");
+    sendNotification("✅ Viaje aceptado", { body: `${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, url: "/driver-dashboard", tag: "trip-accepted" });
   };
 
   const handleArrived = () => {
@@ -175,6 +184,11 @@ export default function DriverDashboard() {
               <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold animate-bounce">
                 <Bell size={12} /> ¡Nuevo viaje!
               </div>
+            )}
+            {notifPermission !== "granted" && (
+              <button onClick={requestPermission} title="Activar notificaciones push" className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 border border-blue-200 text-xs flex items-center gap-1">
+                <Bell size={14} /> Push
+              </button>
             )}
             <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/"); }} className="gap-1.5 text-xs">
               <LogOut size={13} /> Salir

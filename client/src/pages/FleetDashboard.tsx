@@ -10,6 +10,7 @@ import {
   TrendingUp, MapPin, AlertTriangle, Settings, Bell, Download,
   UserCheck, UserX, Navigation, Briefcase, BarChart2, ChevronRight
 } from "lucide-react";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -85,6 +86,7 @@ const statusLabels: Record<string, string> = {
 export default function FleetDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
+  const { permission: notifPermission, requestPermission, sendNotification } = usePushNotifications();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [search, setSearch] = useState("");
   const [drivers, setDrivers] = useState<Driver[]>(MOCK_DRIVERS);
@@ -93,6 +95,21 @@ export default function FleetDashboard() {
   const [activeChatTrip, setActiveChatTrip] = useState<string | null>(null);
 
   useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
+
+  // Notificación push al cargar si hay conductores pendientes
+  useEffect(() => {
+    const pending = MOCK_DRIVERS.filter(d => d.status === "pending").length;
+    if (pending > 0) {
+      setTimeout(() => {
+        sendNotification("👤 Conductor pendiente de aprobación", {
+          body: `${pending} conductor(es) esperan tu revisión.`,
+          url: "/fleet-dashboard",
+          tag: "fleet-pending",
+        });
+      }, 3000);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeDrivers = drivers.filter(d => d.status === "active").length;
   const onlineDrivers = drivers.filter(d => d.online).length;
@@ -110,6 +127,9 @@ export default function FleetDashboard() {
     );
     const msgs: Record<string, string> = { approve: "Conductor aprobado ✅", suspend: "Conductor suspendido", activate: "Conductor activado ✅", delete: "Conductor eliminado" };
     toast.success(msgs[action]);
+    const pushMsgs: Record<string, string> = { approve: "✅ Conductor aprobado", suspend: "⚠️ Conductor suspendido", activate: "✅ Conductor activado", delete: "🗑️ Conductor eliminado" };
+    const d = drivers.find(dr => dr.id === driverId);
+    if (d) sendNotification(pushMsgs[action], { body: d.name, url: "/fleet-dashboard", tag: "fleet-action" });
   };
 
   const handleClientAction = (clientId: string, action: "suspend" | "activate") => {
@@ -180,6 +200,11 @@ export default function FleetDashboard() {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
               )}
             </button>
+            {notifPermission !== "granted" && (
+              <button onClick={requestPermission} title="Activar notificaciones push" className="p-2 rounded-lg hover:bg-green-50 text-green-600 border border-green-200 text-xs flex items-center gap-1">
+                <Bell size={14} /> Push
+              </button>
+            )}
             <Button size="sm" onClick={() => toast.info("Formulario de nuevo conductor próximamente")}
               className="gap-2 bg-green-500 hover:bg-green-600 text-white">
               <Plus size={15} /> Agregar Conductor

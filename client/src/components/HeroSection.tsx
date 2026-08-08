@@ -130,8 +130,8 @@ export default function HeroSection() {
       <div className="container relative z-10 py-12 lg:py-20">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
-          {/* Left: Copy */}
-          <div className="order-2 lg:order-1">
+          {/* Left: Copy — en móvil aparece primero (order-1), en desktop a la izquierda */}
+          <div className="order-1 lg:order-1">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-6" style={{ background: "oklch(0.76 0.18 148 / 0.15)", color: "oklch(0.76 0.18 148)" }}>
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "oklch(0.76 0.18 148)" }} />
               Conductores disponibles ahora
@@ -156,8 +156,8 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* Right: Booking card */}
-          <div className="order-1 lg:order-2">
+          {/* Right: Booking card — en móvil aparece segundo (order-2), en desktop a la derecha */}
+          <div className="order-2 lg:order-2">
             <div className="rounded-3xl p-6 shadow-2xl shadow-black/40" style={{ background: "white" }}>
               {step === "form" && (
                 <>

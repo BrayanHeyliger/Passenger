@@ -1,4 +1,4 @@
-const CACHE_NAME = "wataxi-v1";
+const CACHE_NAME = "wataxi-v2";
 const STATIC_ASSETS = ["/", "/login", "/register", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -37,20 +37,39 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// Push notifications
+// Push notifications — recibe desde servidor o desde showNotification directo
 self.addEventListener("push", (event) => {
   const data = event.data?.json() || {};
+  const options = {
+    body: data.body || "Tienes una nueva notificación",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: data.tag || "wataxi-notif",
+    data: { url: data.url || "/" },
+    actions: data.actions || [],
+    requireInteraction: data.requireInteraction || false,
+  };
   event.waitUntil(
-    self.registration.showNotification(data.title || "WhatsApp Taxi", {
-      body: data.body || "Tienes una nueva notificación",
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      data: data.url || "/",
-    })
+    self.registration.showNotification(data.title || "WhatsApp Taxi 🚕", options)
   );
 });
 
+// Clic en notificación — abre la URL correspondiente
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data || "/"));
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Si ya hay una ventana abierta, enfócala y navega
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.focus();
+          client.navigate(url);
+          return;
+        }
+      }
+      // Si no hay ventana abierta, abre una nueva
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
 });

@@ -11,6 +11,7 @@ import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { TripChat } from "@/components/TripChat";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 
 type TripStatus = "idle" | "searching" | "accepted" | "in_progress" | "completed" | "rating";
@@ -25,6 +26,8 @@ const HISTORY_KEY = "wt_trip_history";
 export default function ClientDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
+  const { permission: notifPermission, requestPermission, sendNotification } = usePushNotifications();
+  const [pendingTripBanner, setPendingTripBanner] = useState<string | null>(null);
 
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
@@ -114,7 +117,9 @@ export default function ClientDashboard() {
         setAllFares(computed);
         setEstimatedFare(computed[pending.vehicle || "economy"] || null);
       }
-      toast.success("🚕 ¡Tu viaje está listo! Confirma la solicitud.", { duration: 6000 });
+      // Mostrar banner en lugar de toast para no bloquear el botón
+      setPendingTripBanner("🚕 ¡Tu viaje está listo! Confirma la solicitud abajo.");
+      setTimeout(() => setPendingTripBanner(null), 4000);
     } catch {
       sessionStorage.removeItem("pendingTrip");
     }
@@ -134,7 +139,7 @@ export default function ClientDashboard() {
         localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
         setCurrentTrip(updatedTrip);
         setTripStatus("accepted");
-        addNotification("🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min", "success");
+        addNotification("🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min", "success", "¡Conductor en camino! 🚕", "Carlos M. aceptó tu viaje. Llegará en 4 minutos.");
         setLoyaltyPoints(p => p + 10);
         if (pickupCoords) startDriverApproach(pickupCoords);
         else startDriverApproach({ lat: 19.4326, lng: -99.1332 });
@@ -143,10 +148,11 @@ export default function ClientDashboard() {
     return () => clearTimeout(autoAssign);
   }, [tripStatus, user?.id]);
 
-  const addNotification = (message: string, type: "info" | "success" | "warning" = "info") => {
+  const addNotification = useCallback((message: string, type: "info" | "success" | "warning" = "info", pushTitle?: string, pushBody?: string) => {
     const notif: TripNotification = { id: Date.now().toString(), message, time: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }), type };
     setNotifications(prev => [notif, ...prev.slice(0, 9)]);
-  };
+    if (pushTitle) sendNotification(pushTitle, { body: pushBody || message, url: "/client-dashboard", tag: "trip-update" });
+  }, [sendNotification]);
 
   const calculateRoute = useCallback(async (pickup: { lat: number; lng: number }, dropoff: { lat: number; lng: number }) => {
     if (!mapRef.current) return;
@@ -379,11 +385,24 @@ export default function ClientDashboard() {
                 </div>
               )}
             </div>
+            {/* Botón activar notificaciones push */}
+            {notifPermission !== "granted" && (
+              <button onClick={requestPermission} title="Activar notificaciones" className="p-2 rounded-lg hover:bg-green-50 text-green-600 border border-green-200 text-xs flex items-center gap-1">
+                <Bell size={14} /> Push
+              </button>
+            )}
             <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/"); }} className="gap-1.5 text-xs"><LogOut size={14} /> Salir</Button>
           </div>
         </div>
       </header>
 
+      {/* Banner de viaje listo — aparece 4 segundos y desaparece */}
+      {pendingTripBanner && (
+        <div className="bg-green-500 text-white text-sm font-semibold px-4 py-2.5 flex items-center justify-between animate-pulse">
+          <span>{pendingTripBanner}</span>
+          <button onClick={() => setPendingTripBanner(null)} className="ml-3 text-white/80 hover:text-white">✕</button>
+        </div>
+      )}
       {/* Main content — fills remaining height */}
       <div className="flex-1 flex flex-col lg:flex-row min-h-0" style={{ height: 'calc(100vh - 65px)' }}>
 
