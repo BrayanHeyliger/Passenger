@@ -12,6 +12,8 @@ import {
   Gift, Copy, Share2, Users, Star, DollarSign, Trophy,
   CheckCircle, Clock, ChevronRight, Zap, Award, Ticket
 } from "lucide-react";
+import { useNotificationHistory } from "@/hooks/useNotificationHistory";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 interface ReferralPanelProps {
   userId: number;
@@ -29,6 +31,9 @@ const rewardTypeConfig = {
 
 export default function ReferralPanel({ userId, userName, userRole }: ReferralPanelProps) {
   const [copied, setCopied] = useState(false);
+  const { addNotification } = useNotificationHistory(userRole);
+  const { permission: pushPermission, sendNotification } = usePushNotifications();
+
   const [activeTab, setActiveTab] = useState<"overview" | "rewards" | "history">("overview");
 
   const { data: myCode, refetch: refetchCode } = trpc.referrals.getMyCode.useQuery(
@@ -54,6 +59,46 @@ export default function ReferralPanel({ userId, userName, userRole }: ReferralPa
   const referralLink = myCode
     ? `${window.location.origin}/register?ref=${myCode.code}`
     : "";
+
+  // Listen for referral events from other tabs (BroadcastChannel) or same tab (localStorage polling)
+  useEffect(() => {
+    if (!myCode?.code) return;
+
+    const handleReferralEvent = (ev: { code: string; newUserName: string; newUserRole: string; timestamp: number }) => {
+      if (ev.code !== myCode.code) return;
+      const lastKey = `wt_last_referral_notif_${myCode.code}`;
+      const last = Number(localStorage.getItem(lastKey) || 0);
+      if (Date.now() - last < 5000) return;
+      localStorage.setItem(lastKey, String(Date.now()));
+
+      const msg = `🎉 ¡${ev.newUserName} usó tu código! Ya tienes una nueva recompensa pendiente.`;
+      addNotification(msg, { title: "¡Nuevo referido!", type: "success", sound: "new_trip" });
+      if (pushPermission === "granted") {
+        sendNotification("¡Nuevo referido!", { body: msg, icon: "/icon-192.png", url: userRole === "driver" ? "/driver-dashboard" : "/client-dashboard" });
+      }
+    };
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("wt_referral_notifications");
+      bc.onmessage = (e) => handleReferralEvent(e.data);
+    } catch { /* not available */ }
+
+    const pollInterval = setInterval(() => {
+      const eventKey = `wt_referral_event_${myCode.code}`;
+      const raw = localStorage.getItem(eventKey);
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Date.now() - parsed.timestamp < 30000) {
+          handleReferralEvent(parsed);
+          localStorage.removeItem(eventKey);
+        }
+      } catch { /* ignore */ }
+    }, 2000);
+
+    return () => { bc?.close(); clearInterval(pollInterval); };
+  }, [myCode?.code, addNotification, pushPermission, sendNotification, userRole]);
 
   const handleCopyCode = () => {
     if (!myCode) return;

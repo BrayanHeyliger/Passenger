@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { User, Car, ArrowLeft, Mail, Lock, Phone, FileText, Building2, Eye, EyeOff, MapPin, ChevronRight } from "lucide-react";
 import { useLocalAuth, type UserRole } from "@/contexts/LocalAuthContext";
 import { useI18n } from "@/contexts/I18nContext";
+import { trpc } from "@/lib/trpc";
 
 type RegisterType = "select" | "client" | "driver" | "fleet";
 
@@ -29,6 +30,7 @@ export default function Register() {
     vehicleModel: "",
     vehiclePlate: "",
     companyName: "",
+    referralCode: "",
   });
 
   // Check for pending trip from Hero
@@ -44,6 +46,13 @@ export default function Register() {
     }
   }, []);
 
+  // Auto-fill referral code from URL param (?ref=CODE)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) setFormData(f => ({ ...f, referralCode: ref.toUpperCase() }));
+  }, []);
+
   // Auto-select role if coming from landing page section buttons
   useEffect(() => {
     const savedRole = sessionStorage.getItem("registerRole");
@@ -55,6 +64,8 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
   };
+
+  const applyCodeMutation = trpc.referrals.applyCode.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +102,30 @@ export default function Register() {
     if (!result.success) {
       setError(result.error || "Error al registrar");
       return;
+    }
+
+    // Apply referral code if provided
+    if (formData.referralCode.trim() && (result as any).userId) {
+      try {
+        await applyCodeMutation.mutateAsync({
+          code: formData.referralCode.trim().toUpperCase(),
+          newUserId: (result as any).userId,
+          newUserRole: role === "driver" ? "driver" : "client",
+        });
+        // Broadcast referral event so the referrer gets notified in real-time
+        const event = {
+          code: formData.referralCode.trim().toUpperCase(),
+          newUserName: formData.firstName + (formData.lastName ? ` ${formData.lastName}` : ""),
+          newUserRole: role === "driver" ? "driver" : "client",
+          timestamp: Date.now(),
+        };
+        localStorage.setItem(`wt_referral_event_${event.code}`, JSON.stringify(event));
+        try {
+          const bc = new BroadcastChannel("wt_referral_notifications");
+          bc.postMessage(event);
+          bc.close();
+        } catch { /* BroadcastChannel not available in some browsers */ }
+      } catch { /* invalid code — don't block registration */ }
     }
 
     // Redirect based on role
@@ -280,6 +315,25 @@ export default function Register() {
               <div>
                 <label className="block text-white/70 text-sm mb-1"><Lock size={14} className="inline mr-1" /> Confirmar Contraseña *</label>
                 <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} required autoComplete="new-password" className={inputClass()} placeholder="Repite tu contraseña" />
+              </div>
+
+              {/* Referral code field */}
+              <div>
+                <label className="block text-white/70 text-sm mb-1">
+                  <span className="mr-1">🎁</span> Código de referido <span className="text-white/30 text-xs">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  name="referralCode"
+                  value={formData.referralCode}
+                  onChange={e => setFormData(f => ({ ...f, referralCode: e.target.value.toUpperCase() }))}
+                  className={inputClass()}
+                  placeholder="Ej: JUAN2024"
+                  maxLength={20}
+                />
+                {formData.referralCode && (
+                  <p className="text-xs text-green-400 mt-1">✓ Se aplicará al crear tu cuenta</p>
+                )}
               </div>
 
               <Button
