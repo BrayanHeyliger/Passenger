@@ -1,5 +1,6 @@
 import { VehiclesExtrasEditor } from "@/components/VehiclesExtrasEditor";
 import FAQEditor from "@/components/FAQEditor";
+import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import MessagesInbox from "@/components/MessagesInbox";
@@ -261,10 +262,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-3">
             <LanguageSelectorLight />
-            <button className="relative p-2 rounded-lg hover:bg-slate-100">
-              <Bell size={20} className="text-slate-600" />
-              {drivers.filter(d => d.status === "pending").length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
-            </button>
+            <AdminNotificationBell />
             <Button variant="outline" size="sm" className="gap-2 text-sm"><RefreshCw size={14} /> Actualizar</Button>
           </div>
         </header>
@@ -2119,6 +2117,74 @@ function SafetyTipsAdminPanel() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ADMIN NOTIFICATION BELL ───────────────────────────────────────────────────
+function AdminNotificationBell() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { notifications, unreadCount, markAllRead, clearAll } = useNotificationHistory("admin");
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleOpen = () => {
+    setOpen(o => !o);
+    if (!open) markAllRead();
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={handleOpen} className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
+        <Bell size={20} className="text-slate-600" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-2xl" style={{ zIndex: 9999 }}>
+          <div className="p-3 border-b border-slate-200 flex justify-between items-center">
+            <div>
+              <h3 className="font-semibold text-slate-900 text-sm">Notificaciones</h3>
+              <p className="text-xs text-slate-400">Últimas 24 horas</p>
+            </div>
+            <button onClick={clearAll} className="text-xs text-slate-500 hover:text-red-500 transition-colors">Limpiar</button>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="p-6 text-center">
+                <Bell size={28} className="mx-auto text-slate-200 mb-2" />
+                <p className="text-sm text-slate-400">Sin notificaciones</p>
+                <p className="text-xs text-slate-300 mt-1">Las alertas del sistema aparecerán aquí</p>
+              </div>
+            ) : (
+              notifications.map(n => (
+                <div key={n.id} className={`p-3 border-b border-slate-100 flex gap-3 items-start ${!n.read ? "bg-green-50/60" : ""}`}>
+                  <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.type === "success" ? "bg-green-500" : n.type === "warning" ? "bg-yellow-500" : n.type === "error" ? "bg-red-500" : "bg-blue-500"}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-800 leading-snug">{n.message}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{new Date(n.timestamp).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                  {!n.read && <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />}
+                </div>
+              ))
+            )}
+          </div>
+          <div className="p-2 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-400">Se reinicia automáticamente cada 24 h</p>
+          </div>
         </div>
       )}
     </div>
