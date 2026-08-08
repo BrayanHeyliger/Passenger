@@ -25,7 +25,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing" | "broadcast";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email" | "vehicles";
 type EditorView = "form" | "preview";
 
@@ -214,6 +214,7 @@ export default function AdminDashboard() {
     { id: "dispatchers", label: "Dispatchers", icon: UserCog },
     { id: "manualBooking", label: "Reserva Manual", icon: Phone },
     { id: "surgePricing", label: "Precio Surge", icon: TrendingUp },
+    { id: "broadcast", label: "Broadcast", icon: Send },
   ];
 
   if (!isAuthenticated) return null;
@@ -1022,6 +1023,12 @@ export default function AdminDashboard() {
           )}
 
           {/* ── FAQ EDITOR ── */}
+          {/* ── BROADCAST ── */}
+          {activeTab === "broadcast" && (
+            <BroadcastPanel />
+          )}
+
+          {/* ── FAQ EDITOR ── */}
           {activeTab === "faq" && (
             <FAQEditor />
           )}
@@ -1748,6 +1755,207 @@ function SurgePricingPanel() {
           <div className="flex gap-2"><span className="text-lg">📱</span><p><strong>Visible al cliente:</strong> El cliente ve el precio surge antes de confirmar su viaje con un aviso claro.</p></div>
         </div>
       </Card>
+    </div>
+  );
+}
+
+// ── BROADCAST PANEL ──────────────────────────────────────────────────────────
+function BroadcastPanel() {
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    message: "",
+    type: "info" as "info" | "warning" | "success" | "urgent",
+    target: "all" as "all" | "drivers" | "clients" | "fleet",
+    pinned: false,
+    expiresHours: "",
+  });
+
+  const createMutation = trpc.announcements.create.useMutation();
+  const toggleMutation = trpc.announcements.toggleActive.useMutation();
+  const deleteMutation = trpc.announcements.delete.useMutation();
+  const { data: allAnnouncements, refetch } = trpc.announcements.getAll.useQuery();
+
+  const displayList = allAnnouncements ?? announcements;
+
+  const typeConfig: Record<string, { color: string; bg: string; label: string; icon: string }> = {
+    info:    { color: "text-blue-700",   bg: "bg-blue-50 border-blue-200",   label: "Información", icon: "ℹ️" },
+    warning: { color: "text-amber-700",  bg: "bg-amber-50 border-amber-200", label: "Advertencia", icon: "⚠️" },
+    success: { color: "text-green-700",  bg: "bg-green-50 border-green-200", label: "Éxito",       icon: "✅" },
+    urgent:  { color: "text-red-700",    bg: "bg-red-50 border-red-200",     label: "Urgente",     icon: "🚨" },
+  };
+
+  const targetConfig: Record<string, { label: string; icon: string }> = {
+    all:     { label: "Todos",      icon: "👥" },
+    clients: { label: "Clientes",   icon: "🧑" },
+    drivers: { label: "Conductores", icon: "🚗" },
+    fleet:   { label: "Flotillas",  icon: "🏢" },
+  };
+
+  const handleSend = async () => {
+    if (!form.title.trim() || !form.message.trim()) {
+      toast.error("Completa el título y el mensaje");
+      return;
+    }
+    setSending(true);
+    const expiresAt = form.expiresHours ? Date.now() + parseInt(form.expiresHours) * 3600000 : undefined;
+    const result = await createMutation.mutateAsync({ ...form, expiresAt });
+    setSending(false);
+    if (result.success) {
+      toast.success(`📢 Anuncio enviado a ${targetConfig[form.target].label}`);
+      setForm({ title: "", message: "", type: "info", target: "all", pinned: false, expiresHours: "" });
+      setShowForm(false);
+      refetch();
+    } else {
+      toast.error("Error al enviar el anuncio");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Broadcast Announcements</h2>
+          <p className="text-sm text-slate-500 mt-1">Envía anuncios directamente a los paneles de conductores, clientes o flotillas</p>
+        </div>
+        <Button onClick={() => setShowForm(true)} className="bg-green-500 hover:bg-green-600 text-white gap-2">
+          <Send size={16} /> Nuevo Anuncio
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "Total", value: displayList.length, color: "text-slate-700" },
+          { label: "Activos", value: displayList.filter((a: any) => a.active).length, color: "text-green-600" },
+          { label: "Fijados", value: displayList.filter((a: any) => a.pinned).length, color: "text-blue-600" },
+          { label: "Inactivos", value: displayList.filter((a: any) => !a.active).length, color: "text-slate-400" },
+        ].map(s => (
+          <Card key={s.label} className="p-4 text-center">
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+          </Card>
+        ))}
+      </div>
+
+      {/* New announcement form */}
+      {showForm && (
+        <Card className="p-5 border-2 border-green-200 bg-green-50/30">
+          <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Send size={16} className="text-green-600" /> Crear Anuncio</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Título del anuncio *</label>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Ej: ¡Bonos de fin de semana!" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Mensaje *</label>
+              <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Escribe el mensaje completo del anuncio..." rows={3} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Tipo</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(["info", "warning", "success", "urgent"] as const).map(t => (
+                    <button key={t} onClick={() => setForm(f => ({ ...f, type: t }))}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.type === t ? "border-green-500 bg-green-50 text-green-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                      {typeConfig[t].icon} {typeConfig[t].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Destinatarios</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(["all", "clients", "drivers", "fleet"] as const).map(t => (
+                    <button key={t} onClick={() => setForm(f => ({ ...f, target: t }))}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${form.target === t ? "border-green-500 bg-green-50 text-green-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                      {targetConfig[t].icon} {targetConfig[t].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Expira en (horas, opcional)</label>
+                <input type="number" min="1" max="720" value={form.expiresHours} onChange={e => setForm(f => ({ ...f, expiresHours: e.target.value }))} placeholder="Ej: 24 (1 día)" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white" />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <button onClick={() => setForm(f => ({ ...f, pinned: !f.pinned }))}
+                    className={`w-10 h-6 rounded-full transition-colors relative ${form.pinned ? "bg-green-500" : "bg-slate-300"}`}>
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.pinned ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </button>
+                  <span className="text-sm text-slate-700">Fijar anuncio</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Preview */}
+            {form.title && (
+              <div className={`p-3 rounded-xl border ${typeConfig[form.type].bg}`}>
+                <p className="text-xs font-semibold text-slate-500 mb-1">Vista previa:</p>
+                <p className={`font-bold text-sm ${typeConfig[form.type].color}`}>{typeConfig[form.type].icon} {form.title}</p>
+                {form.message && <p className="text-xs text-slate-600 mt-1">{form.message}</p>}
+                <p className="text-xs text-slate-400 mt-1">Para: {targetConfig[form.target].icon} {targetConfig[form.target].label}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
+              <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white gap-2" onClick={handleSend} disabled={sending}>
+                {sending ? <><Loader2 size={14} className="animate-spin" /> Enviando...</> : <><Send size={14} /> Enviar Anuncio</>}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Announcements list */}
+      <div className="space-y-3">
+        <h3 className="font-semibold text-slate-900">Anuncios ({displayList.length})</h3>
+        {displayList.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Send size={32} className="mx-auto text-slate-300 mb-3" />
+            <p className="text-slate-500 text-sm">No hay anuncios aún</p>
+            <p className="text-slate-400 text-xs mt-1">Crea tu primer anuncio para enviarlo a los paneles</p>
+          </Card>
+        ) : (
+          displayList.map((ann: any) => {
+            const tc = typeConfig[ann.type] || typeConfig.info;
+            const tgt = targetConfig[ann.target] || targetConfig.all;
+            return (
+              <Card key={ann.id} className={`p-4 ${!ann.active ? "opacity-60" : ""}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${tc.bg} border`}>{tc.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <p className="font-semibold text-slate-900 text-sm">{ann.title}</p>
+                      {ann.pinned ? <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">📌 Fijado</span> : null}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${ann.active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>{ann.active ? "Activo" : "Inactivo"}</span>
+                      <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">{tgt.icon} {tgt.label}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 line-clamp-2">{ann.message}</p>
+                    <p className="text-xs text-slate-400 mt-1">{new Date(ann.createdAt).toLocaleString("es", { dateStyle: "short", timeStyle: "short" })}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button onClick={async () => { await toggleMutation.mutateAsync({ id: ann.id, active: !ann.active }); refetch(); }}
+                      className={`w-10 h-6 rounded-full transition-colors relative ${ann.active ? "bg-green-500" : "bg-slate-300"}`}>
+                      <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${ann.active ? "translate-x-4" : "translate-x-0.5"}`} />
+                    </button>
+                    <button onClick={async () => { await deleteMutation.mutateAsync({ id: ann.id }); refetch(); toast.success("Anuncio eliminado"); }}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-red-400">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText, Gift
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
@@ -264,6 +265,12 @@ export default function DriverDashboard() {
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+
+        {/* TAB: REFERIDOS */}
+        {/* Broadcast Announcements */}
+        <div className="mb-4">
+          <AnnouncementBanner target="drivers" />
+        </div>
 
         {/* TAB: REFERIDOS */}
         {activeTab === "referrals" && (

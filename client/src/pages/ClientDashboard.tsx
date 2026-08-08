@@ -8,6 +8,7 @@ import {
   History, Home, Briefcase, MessageCircle, MapPin, Navigation, Gift
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { TripChat } from "@/components/TripChat";
@@ -482,6 +483,12 @@ export default function ClientDashboard() {
 
           {/* Contenido scrollable */}
           <div className="flex-1 overflow-y-auto pb-24 lg:pb-0">
+
+            {/* SOLICITAR VIAJE */}
+            {/* Broadcast Announcements */}
+            <div className="px-4 pt-3">
+              <AnnouncementBanner target="clients" />
+            </div>
 
             {/* SOLICITAR VIAJE */}
             {tripStatus === "idle" && activePanel === "request" && (
