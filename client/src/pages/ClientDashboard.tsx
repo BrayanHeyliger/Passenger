@@ -11,6 +11,7 @@ import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { TripChat } from "@/components/TripChat";
+import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ export default function ClientDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
   const { permission: notifPermission, requestPermission, sendNotification } = usePushNotifications();
+  const { notifications: persistedNotifs, unreadCount, addNotification: addPersistedNotif, markAllRead, clearAll: clearAllNotifs } = useNotificationHistory(user?.role || "client");
   const [pendingTripBanner, setPendingTripBanner] = useState<string | null>(null);
 
   const [pickupLocation, setPickupLocation] = useState("");
@@ -35,7 +37,6 @@ export default function ClientDashboard() {
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [tripStatus, setTripStatus] = useState<TripStatus>("idle");
   const [currentTrip, setCurrentTrip] = useState<any>(null);
-  const [notifications, setNotifications] = useState<TripNotification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [estimatedFare, setEstimatedFare] = useState<string | null>(null);
   const [estimatedTime, setEstimatedTime] = useState<string | null>(null);
@@ -149,10 +150,14 @@ export default function ClientDashboard() {
   }, [tripStatus, user?.id]);
 
   const addNotification = useCallback((message: string, type: "info" | "success" | "warning" = "info", pushTitle?: string, pushBody?: string) => {
-    const notif: TripNotification = { id: Date.now().toString(), message, time: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }), type };
-    setNotifications(prev => [notif, ...prev.slice(0, 9)]);
+    const soundMap: Record<string, "new_trip" | "accepted" | "info"> = {
+      success: "accepted",
+      warning: "info",
+      info: "info",
+    };
+    addPersistedNotif(message, { type, sound: soundMap[type] || "info", url: "/client-dashboard" });
     if (pushTitle) sendNotification(pushTitle, { body: pushBody || message, url: "/client-dashboard", tag: "trip-update" });
-  }, [sendNotification]);
+  }, [addPersistedNotif, sendNotification]);
 
   const calculateRoute = useCallback(async (pickup: { lat: number; lng: number }, dropoff: { lat: number; lng: number }) => {
     if (!mapRef.current) return;
@@ -363,24 +368,36 @@ export default function ClientDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 rounded-lg hover:bg-slate-100">
+              <button onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markAllRead(); }} className="relative p-2 rounded-lg hover:bg-slate-100">
                 <Bell size={20} className="text-slate-600" />
-                {notifications.length > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{notifications.length > 9 ? "9+" : notifications.length}</span>}
+                {unreadCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">{unreadCount > 9 ? "9+" : unreadCount}</span>}
               </button>
               {showNotifications && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50">
                   <div className="p-3 border-b border-slate-200 flex justify-between items-center">
-                    <h3 className="font-semibold text-slate-900 text-sm">Notificaciones</h3>
-                    <button onClick={() => setNotifications([])} className="text-xs text-slate-500 hover:text-slate-700">Limpiar</button>
+                    <div>
+                      <h3 className="font-semibold text-slate-900 text-sm">Notificaciones</h3>
+                      <p className="text-xs text-slate-400">Últimas 24 horas</p>
+                    </div>
+                    <button onClick={clearAllNotifs} className="text-xs text-slate-500 hover:text-red-500 transition-colors">Limpiar</button>
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifications.length === 0 ? <p className="p-4 text-sm text-slate-500 text-center">Sin notificaciones</p> :
-                      notifications.map(n => (
-                        <div key={n.id} className={`p-3 border-b border-slate-100 flex gap-3 ${n.type === "success" ? "bg-green-50" : n.type === "warning" ? "bg-yellow-50" : "bg-blue-50"}`}>
-                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.type === "success" ? "bg-green-500" : n.type === "warning" ? "bg-yellow-500" : "bg-blue-500"}`} />
-                          <div><p className="text-sm text-slate-800">{n.message}</p><p className="text-xs text-slate-500 mt-0.5">{n.time}</p></div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {persistedNotifs.length === 0
+                      ? <div className="p-6 text-center"><Bell size={28} className="mx-auto text-slate-200 mb-2" /><p className="text-sm text-slate-400">Sin notificaciones</p></div>
+                      : persistedNotifs.map(n => (
+                        <div key={n.id} className={`p-3 border-b border-slate-100 flex gap-3 items-start ${!n.read ? "bg-green-50/60" : ""}`}>
+                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.type === "success" ? "bg-green-500" : n.type === "warning" ? "bg-yellow-500" : n.type === "error" ? "bg-red-500" : "bg-blue-500"}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-800 leading-snug">{n.message}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{new Date(n.timestamp).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
+                          </div>
+                          {!n.read && <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />}
                         </div>
-                      ))}
+                      ))
+                    }
+                  </div>
+                  <div className="p-2 border-t border-slate-100 text-center">
+                    <p className="text-xs text-slate-400">Se reinicia automáticamente cada 24 h</p>
                   </div>
                 </div>
               )}

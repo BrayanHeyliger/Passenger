@@ -7,6 +7,7 @@ import {
   Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import LeafletMap from "@/components/LeafletMap";
@@ -27,6 +28,8 @@ export default function DriverDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
   const { permission: notifPermission, requestPermission, sendNotification } = usePushNotifications();
+  const { notifications: persistedNotifs, unreadCount, addNotification: addPersistedNotif, markAllRead, clearAll: clearAllNotifs } = useNotificationHistory(user?.role || "driver");
+  const [showNotifications, setShowNotifications] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [pendingTrips, setPendingTrips] = useState<PendingTrip[]>([]);
   const [currentTrip, setCurrentTrip] = useState<PendingTrip | null>(null);
@@ -53,17 +56,22 @@ export default function DriverDashboard() {
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const available = trips.filter(t => t.status === "requested");
     if (available.length > pendingTrips.length) {
+      const newest = available[available.length - 1];
       setNewTripAlert(true);
       setTimeout(() => setNewTripAlert(false), 4000);
-      // Notificación push para nuevo viaje
+      // Persistir notificación + sonido
+      addPersistedNotif(`🚕 Nuevo viaje: ${newest?.pickup} → ${newest?.dropoff} · ${newest?.fare}`, {
+        type: "success", sound: "new_trip", url: "/driver-dashboard",
+      });
+      // Push al sistema operativo
       sendNotification("🚕 ¡Nuevo viaje disponible!", {
-        body: `${available[available.length - 1]?.pickup} → ${available[available.length - 1]?.dropoff}`,
+        body: `${newest?.pickup} → ${newest?.dropoff}`,
         url: "/driver-dashboard",
         tag: "new-trip",
       });
     }
     setPendingTrips(available);
-  }, [isOnline, tripPhase, pendingTrips.length, sendNotification]);
+  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif]);
 
   useEffect(() => {
     const interval = setInterval(checkTrips, 2000);
@@ -82,6 +90,9 @@ export default function DriverDashboard() {
     setTripPhase("accepted");
     setPendingTrips([]);
     toast.success("¡Viaje aceptado!");
+    addPersistedNotif(`✅ Viaje aceptado: ${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, {
+      type: "success", sound: "accepted", url: "/driver-dashboard",
+    });
     sendNotification("✅ Viaje aceptado", { body: `${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, url: "/driver-dashboard", tag: "trip-accepted" });
   };
 
@@ -185,6 +196,42 @@ export default function DriverDashboard() {
                 <Bell size={12} /> ¡Nuevo viaje!
               </div>
             )}
+            {/* Campana con historial de 24h — igual que el cliente */}
+            <div className="relative">
+              <button onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markAllRead(); }} className="relative p-2 rounded-lg hover:bg-slate-100">
+                <Bell size={20} className="text-slate-600" />
+                {unreadCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50">
+                  <div className="p-3 border-b border-slate-200 flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold text-slate-900 text-sm">Notificaciones</h3>
+                      <p className="text-xs text-slate-400">Últimas 24 horas</p>
+                    </div>
+                    <button onClick={clearAllNotifs} className="text-xs text-slate-500 hover:text-red-500 transition-colors">Limpiar</button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {persistedNotifs.length === 0
+                      ? <div className="p-6 text-center"><Bell size={28} className="mx-auto text-slate-200 mb-2" /><p className="text-sm text-slate-400">Sin notificaciones</p></div>
+                      : persistedNotifs.map(n => (
+                        <div key={n.id} className={`p-3 border-b border-slate-100 flex gap-3 items-start ${!n.read ? "bg-blue-50/60" : ""}`}>
+                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.type === "success" ? "bg-green-500" : n.type === "warning" ? "bg-yellow-500" : n.type === "error" ? "bg-red-500" : "bg-blue-500"}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-800 leading-snug">{n.message}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{new Date(n.timestamp).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
+                          </div>
+                          {!n.read && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />}
+                        </div>
+                      ))
+                    }
+                  </div>
+                  <div className="p-2 border-t border-slate-100 text-center">
+                    <p className="text-xs text-slate-400">Se reinicia automáticamente cada 24 h</p>
+                  </div>
+                </div>
+              )}
+            </div>
             {notifPermission !== "granted" && (
               <button onClick={requestPermission} title="Activar notificaciones push" className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 border border-blue-200 text-xs flex items-center gap-1">
                 <Bell size={14} /> Push
