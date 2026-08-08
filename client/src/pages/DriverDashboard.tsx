@@ -630,6 +630,8 @@ export default function DriverDashboard() {
           </div>
         )}
       </main>
+      <SafetyTipsButton audience="drivers" />
     </div>
   );
 }
+import SafetyTipsButton from "@/components/SafetyTipsButton";

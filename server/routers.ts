@@ -7,23 +7,22 @@ import { paymentsRouter } from "./routers/payments";
 import { siteSettingsRouter } from "./routers/siteSettings";
 import { referralsRouter } from "./routers/referrals";
 import { announcementsRouter } from "./routers/announcements";
+import { safetyTipsRouter } from "./routers/safetyTips";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   localAuth: localAuthRouter,
   payments: paymentsRouter,
   siteSettings: siteSettingsRouter,
   referrals: referralsRouter,
   announcements: announcementsRouter,
+  safetyTips: safetyTipsRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 });

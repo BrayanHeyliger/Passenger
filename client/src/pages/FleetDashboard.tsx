@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import SafetyTipsButton from "@/components/SafetyTipsButton";
 import { useLocation } from "wouter";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { Button } from "@/components/ui/button";
@@ -610,6 +611,7 @@ export default function FleetDashboard() {
           </Card>
         </div>
       )}
+      <SafetyTipsButton audience="fleet" />
     </div>
   );
 }

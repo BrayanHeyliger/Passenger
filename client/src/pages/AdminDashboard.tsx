@@ -19,13 +19,13 @@ import {
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
   Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database, HelpCircle
 } from "lucide-react";
-import { Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight, Trophy } from "lucide-react";
+import { Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight, Trophy, Lightbulb, Pencil } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing" | "broadcast";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing" | "broadcast" | "safetyTips";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email" | "vehicles";
 type EditorView = "form" | "preview";
 
@@ -215,6 +215,7 @@ export default function AdminDashboard() {
     { id: "manualBooking", label: "Reserva Manual", icon: Phone },
     { id: "surgePricing", label: "Precio Surge", icon: TrendingUp },
     { id: "broadcast", label: "Broadcast", icon: Send },
+    { id: "safetyTips", label: "Consejos 💡", icon: Lightbulb },
   ];
 
   if (!isAuthenticated) return null;
@@ -1026,6 +1027,11 @@ export default function AdminDashboard() {
           {/* ── BROADCAST ── */}
           {activeTab === "broadcast" && (
             <BroadcastPanel />
+          )}
+
+          {/* ── SAFETY TIPS ── */}
+          {activeTab === "safetyTips" && (
+            <SafetyTipsAdminPanel />
           )}
 
           {/* ── FAQ EDITOR ── */}
@@ -1956,6 +1962,165 @@ function BroadcastPanel() {
           })
         )}
       </div>
+    </div>
+  );
+}
+
+// ── SAFETY TIPS ADMIN PANEL ───────────────────────────────────────────────────
+function SafetyTipsAdminPanel() {
+  const [audience, setAudience] = useState<"clients" | "drivers" | "fleet">("clients");
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({ category: "", title: "", tip: "", icon: "💡", priority: 5 });
+
+  const { data: allTips = [], refetch } = trpc.safetyTips.getAll.useQuery();
+  const createMutation = trpc.safetyTips.create.useMutation();
+  const updateMutation = trpc.safetyTips.update.useMutation();
+  const deleteMutation = trpc.safetyTips.delete.useMutation();
+
+  const filtered = (allTips as any[]).filter((t: any) => t.audience === audience);
+  const categories = Array.from(new Set(filtered.map((t: any) => String(t.category))));
+
+  const audienceConfig = {
+    clients:  { label: "Clientes",    icon: "🧑", color: "bg-blue-500" },
+    drivers:  { label: "Conductores", icon: "🚗", color: "bg-green-500" },
+    fleet:    { label: "Flotillas",   icon: "🏢", color: "bg-purple-500" },
+  };
+
+  const resetForm = () => { setForm({ category: "", title: "", tip: "", icon: "💡", priority: 5 }); setEditingId(null); setShowForm(false); };
+
+  const handleSave = async () => {
+    if (!form.category.trim() || !form.title.trim() || !form.tip.trim()) { toast.error("Completa todos los campos"); return; }
+    if (editingId) {
+      await updateMutation.mutateAsync({ id: editingId, ...form });
+      toast.success("Consejo actualizado ✅");
+    } else {
+      await createMutation.mutateAsync({ audience, ...form });
+      toast.success("Consejo creado ✅");
+    }
+    refetch(); resetForm();
+  };
+
+  const handleEdit = (tip: any) => {
+    setForm({ category: tip.category, title: tip.title, tip: tip.tip, icon: tip.icon, priority: tip.priority });
+    setEditingId(tip.id); setShowForm(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    await deleteMutation.mutateAsync({ id });
+    toast.success("Consejo eliminado"); refetch();
+  };
+
+  const handleToggle = async (tip: any) => {
+    await updateMutation.mutateAsync({ id: tip.id, active: !tip.active });
+    refetch();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2"><Lightbulb size={20} className="text-amber-500" /> Consejos de Seguridad</h2>
+          <p className="text-sm text-slate-500 mt-1">Edita los consejos que aparecen en la bombilla 💡 de cada panel</p>
+        </div>
+        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-amber-500 hover:bg-amber-600 text-white gap-2">
+          <Plus size={16} /> Nuevo Consejo
+        </Button>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        {(["clients", "drivers", "fleet"] as const).map(a => (
+          <button key={a} onClick={() => setAudience(a)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${audience === a ? `${audienceConfig[a].color} text-white` : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+            {audienceConfig[a].icon} {audienceConfig[a].label} ({(allTips as any[]).filter((t: any) => t.audience === a).length})
+          </button>
+        ))}
+      </div>
+
+      {showForm && (
+        <Card className="p-5 border-2 border-amber-200 bg-amber-50/30">
+          <h3 className="font-semibold text-slate-900 mb-4">{editingId ? "Editar" : "Nuevo"} Consejo — {audienceConfig[audience].icon} {audienceConfig[audience].label}</h3>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Categoría *</label>
+                <input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                  placeholder="Ej: Antes del viaje" list="cat-list"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white" />
+                <datalist id="cat-list">{(categories as string[]).map(c => <option key={c} value={c} />)}</datalist>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Ícono (emoji)</label>
+                <input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
+                  placeholder="💡" maxLength={4}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white text-center text-xl" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Título *</label>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="Ej: Verifica el vehículo y conductor"
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Consejo completo *</label>
+              <textarea value={form.tip} onChange={e => setForm(f => ({ ...f, tip: e.target.value }))}
+                placeholder="Escribe el consejo detallado aquí..." rows={3}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white resize-none" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Prioridad (1-10)</label>
+              <input type="number" min={1} max={10} value={form.priority} onChange={e => setForm(f => ({ ...f, priority: parseInt(e.target.value) || 5 }))}
+                className="w-32 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white" />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <Button variant="outline" className="flex-1" onClick={resetForm}>Cancelar</Button>
+              <Button className="flex-1 bg-amber-500 hover:bg-amber-600 text-white" onClick={handleSave}>
+                {editingId ? "Guardar cambios" : "Crear consejo"}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {categories.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Lightbulb size={32} className="mx-auto text-amber-300 mb-3" />
+          <p className="text-slate-500 text-sm">No hay consejos para este grupo aún</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {(categories as string[]).map(cat => (
+            <div key={cat}>
+              <h3 className="font-semibold text-slate-700 text-sm mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> {cat} ({filtered.filter((t: any) => t.category === cat).length})
+              </h3>
+              <div className="space-y-2">
+                {filtered.filter((t: any) => t.category === cat).map((tip: any) => (
+                  <Card key={tip.id} className={`p-4 ${!tip.active ? "opacity-60" : ""}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl flex-shrink-0">{tip.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 text-sm">{tip.title}</p>
+                        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{tip.tip}</p>
+                        <p className="text-xs text-slate-400 mt-1">Prioridad: {tip.priority} · {tip.active ? "✅ Activo" : "⛔ Inactivo"}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button onClick={() => handleToggle(tip)}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${tip.active ? "bg-green-500" : "bg-slate-300"}`}>
+                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${tip.active ? "translate-x-4" : "translate-x-0.5"}`} />
+                        </button>
+                        <button onClick={() => handleEdit(tip)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"><Pencil size={13} /></button>
+                        <button onClick={() => handleDelete(tip.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
