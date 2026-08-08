@@ -25,6 +25,7 @@ function Router() {
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/fleet-dashboard"} component={FleetDashboard} />
       <Route path={"/payments"} component={Payments} />
+      <Route path={"/faq"} component={FAQPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -48,3 +49,4 @@ function App() {
 }
 
 export default App;
+import FAQPage from "./pages/FAQ";

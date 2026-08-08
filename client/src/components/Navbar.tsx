@@ -18,6 +18,7 @@ const navLinks = [
   { label: "Módulos", href: "#modules" },
   { label: "Precios", href: "#pricing" },
   { label: "Contacto", href: "#contact" },
+  { label: "FAQ", href: "/faq" },
 ];
 
 interface NavbarProps {
@@ -42,8 +43,12 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
 
   const handleNavClick = (href: string) => {
     setMobileOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (href.startsWith("/")) {
+      window.location.href = href;
+    } else {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   return (

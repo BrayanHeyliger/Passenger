@@ -1,3 +1,4 @@
+import FAQEditor from "@/components/FAQEditor";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import MessagesInbox from "@/components/MessagesInbox";
@@ -22,7 +23,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "settings";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email";
 type EditorView = "form" | "preview";
 
@@ -216,6 +217,7 @@ export default function AdminDashboard() {
     { id: "editor", label: "Editor Web", icon: Edit3 },
     { id: "analytics", label: "Analytics", icon: BarChart2 },
     { id: "payments", label: "Pagos / API", icon: DollarSign },
+    { id: "faq", label: "Editor FAQ", icon: HelpCircle },
     { id: "settings", label: "Configuración", icon: Settings },
   ];
 
@@ -996,6 +998,12 @@ export default function AdminDashboard() {
                 <Save size={18} /> Guardar configuración de pagos
               </Button>
             </div>
+          )}
+
+
+          {/* ── FAQ EDITOR ── */}
+          {activeTab === "faq" && (
+            <FAQEditor />
           )}
 
           {/* ── SETTINGS ── */}
