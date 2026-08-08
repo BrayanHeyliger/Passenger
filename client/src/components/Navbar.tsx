@@ -12,14 +12,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { useI18n } from "@/contexts/I18nContext";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
-const navLinks = [
-  { label: "Para Clientes", href: "#clientes" },
-  { label: "Para Conductores", href: "#conductores" },
-  { label: "Para Flotillas", href: "#flotilla" },
-  { label: "Precios", href: "#pricing" },
-  { label: "Contacto", href: "#contact" },
-  { label: "FAQ", href: "/faq" },
-];
+// navLinks are now built inside the component using t translations
 
 interface NavbarProps {
   user?: any;
@@ -32,7 +25,15 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
+  const navLinksTranslated = [
+    { label: lang === "en" ? "For Clients" : lang === "fr" ? "Pour Clients" : "Para Clientes", href: "#clientes" },
+    { label: lang === "en" ? "For Drivers" : lang === "fr" ? "Pour Chauffeurs" : "Para Conductores", href: "#conductores" },
+    { label: lang === "en" ? "For Fleets" : lang === "fr" ? "Pour Flottes" : "Para Flotillas", href: "#flotilla" },
+    { label: t.nav.pricing, href: "#pricing" },
+    { label: t.nav.contact, href: "#contact" },
+    { label: "FAQ", href: "/faq" },
+  ];
   const { config } = useSiteConfig();
 
   useEffect(() => {
@@ -89,7 +90,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
+            {navLinksTranslated.map((link) => (
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
@@ -217,7 +218,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
       {mobileOpen && (
         <div className="lg:hidden bg-[oklch(0.13_0.01_250/0.98)] backdrop-blur-xl border-t border-white/10">
           <div className="container py-4 flex flex-col gap-1">
-            {navLinks.map((link) => (
+            {navLinksTranslated.map((link) => (
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}

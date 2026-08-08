@@ -58,6 +58,7 @@ export default function HeroSection() {
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [destCoords,   setDestCoords]   = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<LeafletMapRef | null>(null);
+  const [userCountryCode, setUserCountryCode] = useState<string | undefined>(undefined);
 
   const [regName, setRegName]         = useState("");
   const [regPhone, setRegPhone]       = useState("");
@@ -80,6 +81,7 @@ export default function HeroSection() {
               const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "es" } });
               const data = await res.json();
               if (data.display_name) setPickup(data.display_name.split(",").slice(0, 2).join(",").trim());
+              if (data.address?.country_code) setUserCountryCode(data.address.country_code);
             } catch {}
           });
         }
@@ -103,6 +105,7 @@ export default function HeroSection() {
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "es" } });
           const data = await res.json();
           setPickup(data.display_name?.split(",").slice(0, 2).join(",").trim() || "Mi ubicación actual 📍");
+          if (data.address?.country_code) setUserCountryCode(data.address.country_code);
         } catch {
           setPickup("Mi ubicación actual 📍");
         }
@@ -271,12 +274,13 @@ export default function HeroSection() {
                   {/* Destination */}
                   <div className="mb-4">
                     <NominatimAutocomplete
-                      placeholder="¿A dónde vas?"
-                      value={destination}
-                      onChange={(val) => { setDestination(val); if (!val) setDestCoords(null); }}
-                      onSelect={(addr, lat, lng) => { setDestCoords({ lat, lng }); mapRef.current?.setDropoff(lat, lng, addr); }}
-                      icon={<span className="w-3 h-3 rounded-full border-2 inline-block" style={{ borderColor: "#EF4444" }} />}
-                    />
+                          placeholder="¿A dónde vas?"
+                          value={destination}
+                          onChange={(val) => { setDestination(val); if (!val) setDestCoords(null); }}
+                          onSelect={(addr, lat, lng) => { setDestCoords({ lat, lng }); mapRef.current?.setDropoff(lat, lng, addr); }}
+                          icon={<span className="w-3 h-3 rounded-full border-2 inline-block" style={{ borderColor: "#EF4444" }} />}
+                          countryCode={userCountryCode}
+                        />
                   </div>
 
                   {/* Time selector */}
