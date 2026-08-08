@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { User, Car, ArrowLeft, Mail, Lock, Phone, FileText, Building2, Eye, EyeOff } from "lucide-react";
+import { User, Car, ArrowLeft, Mail, Lock, Phone, FileText, Building2, Eye, EyeOff, MapPin, ChevronRight } from "lucide-react";
 import { useLocalAuth, type UserRole } from "@/contexts/LocalAuthContext";
 import { useI18n } from "@/contexts/I18nContext";
 
@@ -13,6 +13,7 @@ export default function Register() {
   const [, navigate] = useLocation();
   const { register } = useLocalAuth();
   const [registerType, setRegisterType] = useState<RegisterType>("select");
+  const [pendingTrip, setPendingTrip] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +30,19 @@ export default function Register() {
     vehiclePlate: "",
     companyName: "",
   });
+
+  // Check for pending trip from Hero
+  useEffect(() => {
+    const raw = sessionStorage.getItem("pendingTrip");
+    if (raw) {
+      try {
+        const trip = JSON.parse(raw);
+        setPendingTrip(trip);
+        // Auto-select client registration if there's a pending trip
+        setRegisterType("client");
+      } catch { /* ignore */ }
+    }
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -78,6 +92,7 @@ export default function Register() {
     } else if (role === "fleet") {
       navigate("/fleet-dashboard");
     } else {
+      // pendingTrip stays in sessionStorage so ClientDashboard can read it
       navigate("/client-dashboard");
     }
   };
@@ -107,6 +122,17 @@ export default function Register() {
               <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "'Sora', sans-serif" }}>Crear Cuenta</h1>
               <p className="text-white/60">Selecciona cómo quieres registrarte</p>
             </div>
+            {pendingTrip && (
+              <div className="p-4 rounded-2xl flex items-center gap-3" style={{ background: "oklch(0.76 0.18 148 / 0.12)", border: "1px solid oklch(0.76 0.18 148 / 0.3)" }}>
+                <div className="text-2xl flex-shrink-0">🚕</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-semibold text-sm">Viaje pendiente de confirmar</p>
+                  <p className="text-white/50 text-xs truncate">{pendingTrip.pickup} → {pendingTrip.destination}</p>
+                  {pendingTrip.estimate && <p className="text-[oklch(0.76_0.18_148)] text-xs font-bold mt-0.5">${pendingTrip.estimate.price?.toFixed(2)} · {pendingTrip.estimate.km} km</p>}
+                </div>
+                <ChevronRight size={16} className="text-white/40 flex-shrink-0" />
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="p-6 cursor-pointer border-2 border-transparent hover:border-green-500/50 bg-white/5 backdrop-blur-sm transition-all hover:scale-[1.02]" onClick={() => setRegisterType("client")}>
                 <div className="text-center space-y-4">

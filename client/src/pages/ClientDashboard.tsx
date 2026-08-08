@@ -195,6 +195,37 @@ export default function ClientDashboard() {
     }
   }, [selectedVehicle, promoApplied, routeDistanceKm]);
 
+
+  // Load pending trip from sessionStorage (set by HeroSection before registration)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const raw = sessionStorage.getItem("pendingTrip");
+    if (!raw) return;
+    try {
+      const pending = JSON.parse(raw);
+      sessionStorage.removeItem("pendingTrip");
+      if (pending.pickup) setPickupLocation(pending.pickup);
+      if (pending.destination) setDropoffLocation(pending.destination);
+      if (pending.vehicle) setSelectedVehicle(pending.vehicle);
+      if (pending.estimate) {
+        const km = pending.estimate.km || 0;
+        setRouteDistanceKm(km);
+        setEstimatedTime(`${pending.estimate.minutes || 0} min`);
+        setEstimatedDistance(`${km} km`);
+        const rates: Record<string, number> = { economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 };
+        const computed: Record<string, string> = {};
+        Object.entries(rates).forEach(([vid, rate]) => {
+          computed[vid] = `$${(2.5 + km * rate).toFixed(2)}`;
+        });
+        setAllFares(computed);
+        setEstimatedFare(computed[pending.vehicle || "economy"] || null);
+      }
+      toast.success("🚕 ¡Tu viaje está listo! Confirma la solicitud.", { duration: 6000 });
+    } catch {
+      sessionStorage.removeItem("pendingTrip");
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
 
   // Poll for driver acceptance
