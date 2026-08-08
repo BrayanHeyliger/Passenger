@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export type UserRole = "client" | "driver" | "fleet" | "admin";
+export type UserRole = "client" | "driver" | "fleet" | "admin" | "dispatcher";
 
 export interface LocalUser {
   id: number;

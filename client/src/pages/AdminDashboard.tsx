@@ -19,7 +19,7 @@ import {
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
   Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database, HelpCircle
 } from "lucide-react";
-import { Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight, Trophy } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
@@ -1079,6 +1079,8 @@ function ReferralAdminPanel() {
   const [form, setForm] = useState({ userRole: "client" as "client" | "driver", eventType: "", eventLabel: "", rewardType: "credit" as any, rewardValue: 0, rewardLabel: "", rewardDescription: "", triggerCount: 1, isActive: true, sortOrder: 0 });
   const [showForm, setShowForm] = useState(false);
   const [filterRole, setFilterRole] = useState<"all" | "client" | "driver">("all");
+  const [subTab, setSubTab] = useState<"stats" | "rewards">("stats");
+  const { data: stats } = trpc.referrals.getReferralStats.useQuery();
 
   const clientRewards = allRewards?.filter((r: any) => r.userRole === "client") || [];
   const driverRewards = allRewards?.filter((r: any) => r.userRole === "driver") || [];
@@ -1103,111 +1105,221 @@ function ReferralAdminPanel() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Editor de Recompensas</h2>
-          <p className="text-sm text-slate-500">Configura los premios del programa de referidos para clientes y choferes</p>
+          <h2 className="text-xl font-bold text-slate-900">Programa de Referidos</h2>
+          <p className="text-sm text-slate-500">Estadísticas del programa y configuración de recompensas</p>
         </div>
-        <Button onClick={() => { setShowForm(true); setEditingId(null); }} className="bg-green-500 hover:bg-green-600 text-white gap-2">
-          <Plus size={16} /> Nueva Recompensa
-        </Button>
+        {subTab === "rewards" && (
+          <Button onClick={() => { setShowForm(true); setEditingId(null); }} className="bg-green-500 hover:bg-green-600 text-white gap-2">
+            <Plus size={16} /> Nueva Recompensa
+          </Button>
+        )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{allRewards?.length || 0}</p><p className="text-sm text-slate-500">Total recompensas</p></Card>
-        <Card className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{clientRewards.length}</p><p className="text-sm text-slate-500">Para clientes</p></Card>
-        <Card className="p-4 text-center"><p className="text-2xl font-bold text-blue-600">{driverRewards.length}</p><p className="text-sm text-slate-500">Para choferes</p></Card>
-      </div>
-
-      {/* Filter */}
-      <div className="flex gap-2">
-        {(["all", "client", "driver"] as const).map(role => (
-          <button key={role} onClick={() => setFilterRole(role)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterRole === role ? "bg-green-500 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-            {role === "all" ? "Todos" : role === "client" ? "Clientes" : "Choferes"}
+      {/* Sub-tabs */}
+      <div className="flex gap-2 border-b border-slate-200 pb-0">
+        {[{ id: "stats" as const, label: "📊 Estadísticas" }, { id: "rewards" as const, label: "🎁 Recompensas" }].map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id)}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${subTab === t.id ? "border-green-500 text-green-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* Rewards list */}
-      <div className="space-y-3">
-        {filtered.map((r: any) => (
-          <Card key={r.id} className={`p-4 ${!r.isActive ? "opacity-60" : ""}`}>
-            <div className="flex items-start gap-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${rewardTypeColors[r.rewardType] || "bg-slate-100 text-slate-600"}`}>{r.rewardType}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${r.userRole === "client" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>{r.userRole === "client" ? "Cliente" : "Chofer"}</span>
-                  {!r.isActive && <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Inactivo</span>}
-                </div>
-                <p className="font-semibold text-slate-900">{r.rewardLabel}</p>
-                <p className="text-sm text-slate-500">{r.eventLabel}</p>
-                {r.rewardDescription && <p className="text-xs text-slate-400 mt-0.5">{r.rewardDescription}</p>}
-                <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-                  <span>Valor: <strong className="text-slate-700">{r.rewardType === "badge" ? "Badge" : `$${Number(r.rewardValue).toFixed(2)}`}</strong></span>
-                  <span>Trigger: <strong className="text-slate-700">{r.triggerCount} referido(s)</strong></span>
-                </div>
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => handleEdit(r)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"><Edit3 size={14} /></button>
-                <button onClick={() => deleteReward.mutate({ id: r.id })} className="p-2 rounded-lg hover:bg-red-50 text-red-400"><Trash2 size={14} /></button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {/* STATS TAB */}
+      {subTab === "stats" && (
+        <div className="space-y-6">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[
+              { label: "Total referidos", value: stats?.totalReferrals || 0, color: "text-slate-900", sub: "histórico" },
+              { label: "Completados", value: stats?.completedReferrals || 0, color: "text-green-600", sub: "con recompensa" },
+              { label: "Conversión", value: `${stats?.conversionRate || 0}%`, color: "text-blue-600", sub: "tasa de éxito" },
+              { label: "Créditos dist.", value: `$${Number(stats?.totalCreditsDistributed || 0).toFixed(2)}`, color: "text-purple-600", sub: "total entregado" },
+              { label: "Códigos activos", value: stats?.activeCodes || 0, color: "text-orange-600", sub: "usuarios con código" },
+            ].map(kpi => (
+              <Card key={kpi.label} className="p-4 text-center">
+                <p className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</p>
+                <p className="text-xs font-medium text-slate-700 mt-0.5">{kpi.label}</p>
+                <p className="text-xs text-slate-400">{kpi.sub}</p>
+              </Card>
+            ))}
+          </div>
 
-      {/* Form modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">{editingId ? "Editar Recompensa" : "Nueva Recompensa"}</h3>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Para quién</label>
-                  <select value={form.userRole} onChange={e => setForm(f => ({ ...f, userRole: e.target.value as any }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500">
-                    <option value="client">Cliente</option><option value="driver">Chofer</option>
-                  </select>
+          {/* Top Referrers */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Top Clients */}
+            <Card className="p-5">
+              <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <Trophy size={16} className="text-yellow-500" /> Top Clientes Referidores
+              </h3>
+              {(!stats?.topClients || stats.topClients.length === 0) ? (
+                <p className="text-sm text-slate-400 text-center py-4">Sin datos aún</p>
+              ) : (
+                <div className="space-y-2">
+                  {stats.topClients.map((u: any, i: number) => (
+                    <div key={u.userId} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-yellow-400 text-white" : i === 1 ? "bg-slate-300 text-white" : i === 2 ? "bg-orange-400 text-white" : "bg-slate-100 text-slate-500"}`}>{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{u.name || u.email}</p>
+                        <p className="text-xs text-slate-500 font-mono">{u.code}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-green-600">{u.totalReferrals} ref.</p>
+                        <p className="text-xs text-slate-400">${Number(u.totalRewardsEarned || 0).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Tipo de recompensa</label>
-                  <select value={form.rewardType} onChange={e => setForm(f => ({ ...f, rewardType: e.target.value as any }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500">
-                    <option value="credit">Crédito ($)</option><option value="free_trip">Viaje gratis</option><option value="discount">Descuento %</option><option value="badge">Badge</option><option value="cash_bonus">Bono efectivo</option>
-                  </select>
+              )}
+            </Card>
+
+            {/* Top Drivers */}
+            <Card className="p-5">
+              <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <Trophy size={16} className="text-blue-500" /> Top Choferes Referidores
+              </h3>
+              {(!stats?.topDrivers || stats.topDrivers.length === 0) ? (
+                <p className="text-sm text-slate-400 text-center py-4">Sin datos aún</p>
+              ) : (
+                <div className="space-y-2">
+                  {stats.topDrivers.map((u: any, i: number) => (
+                    <div key={u.userId} className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-yellow-400 text-white" : i === 1 ? "bg-slate-300 text-white" : i === 2 ? "bg-orange-400 text-white" : "bg-slate-100 text-slate-500"}`}>{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{u.name || u.email}</p>
+                        <p className="text-xs text-slate-500 font-mono">{u.code}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-blue-600">{u.totalReferrals} ref.</p>
+                        <p className="text-xs text-slate-400">${Number(u.totalRewardsEarned || 0).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Reward breakdown */}
+          {stats?.rewardBreakdown && stats.rewardBreakdown.length > 0 && (
+            <Card className="p-5">
+              <h3 className="font-semibold text-slate-900 mb-4">Recompensas Entregadas por Tipo</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {stats.rewardBreakdown.map((rb: any) => (
+                  <div key={rb.rewardType} className="p-3 bg-slate-50 rounded-xl text-center">
+                    <p className="text-lg font-bold text-slate-900">{rb.count}</p>
+                    <p className="text-xs font-medium text-slate-600 capitalize">{rb.rewardType?.replace("_", " ")}</p>
+                    <p className="text-xs text-slate-400">${Number(rb.totalValue || 0).toFixed(2)}</p>
+                  </div>
+                ))}
               </div>
-              {[
-                { key: "eventType", label: "Tipo de evento (código)", placeholder: "ej: referral_registered" },
-                { key: "eventLabel", label: "Descripción del evento", placeholder: "ej: Referido se registra" },
-                { key: "rewardLabel", label: "Nombre de la recompensa", placeholder: "ej: $2 crédito en wallet" },
-                { key: "rewardDescription", label: "Descripción (opcional)", placeholder: "ej: Tu amigo se registró..." },
-              ].map(f => (
-                <div key={f.key}><label className="text-xs font-medium text-slate-600 mb-1 block">{f.label}</label>
-                  <input value={(form as any)[f.key]} onChange={e => setForm(ff => ({ ...ff, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
-                </div>
-              ))}
-              <div className="grid grid-cols-3 gap-3">
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Valor ($)</label>
-                  <input type="number" value={form.rewardValue} onChange={e => setForm(f => ({ ...f, rewardValue: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
-                </div>
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Trigger (referidos)</label>
-                  <input type="number" value={form.triggerCount} onChange={e => setForm(f => ({ ...f, triggerCount: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
-                </div>
-                <div><label className="text-xs font-medium text-slate-600 mb-1 block">Orden</label>
-                  <input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))} className={`w-10 h-6 rounded-full transition-colors relative ${form.isActive ? "bg-green-500" : "bg-slate-300"}`}>
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isActive ? "translate-x-4" : "translate-x-0.5"}`} />
-                </button>
-                <span className="text-sm text-slate-600">Recompensa activa</span>
-              </div>
-            </div>
-            <div className="flex gap-3 mt-5">
-              <Button variant="outline" className="flex-1" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Button>
-              <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white" onClick={handleSave}>Guardar</Button>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
+      )}
+
+      {/* REWARDS TAB */}
+      {subTab === "rewards" && (
+        <>
+          {/* Original reward cards stats */}
+          <div className="grid grid-cols-3 gap-4">
+            <Card className="p-4 text-center"><p className="text-2xl font-bold text-slate-900">{allRewards?.length || 0}</p><p className="text-sm text-slate-500">Total recompensas</p></Card>
+            <Card className="p-4 text-center"><p className="text-2xl font-bold text-green-600">{clientRewards.length}</p><p className="text-sm text-slate-500">Para clientes</p></Card>
+            <Card className="p-4 text-center"><p className="text-2xl font-bold text-blue-600">{driverRewards.length}</p><p className="text-sm text-slate-500">Para choferes</p></Card>
+          </div>
+
+          {/* Filter */}
+          <div className="flex gap-2">
+            {(["all", "client", "driver"] as const).map(role => (
+              <button key={role} onClick={() => setFilterRole(role)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterRole === role ? "bg-green-500 text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                {role === "all" ? "Todos" : role === "client" ? "Clientes" : "Choferes"}
+              </button>
+            ))}
+          </div>
+
+          {/* Rewards list */}
+          <div className="space-y-3">
+            {filtered.map((r: any) => (
+              <Card key={r.id} className={`p-4 ${!r.isActive ? "opacity-60" : ""}`}>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${rewardTypeColors[r.rewardType] || "bg-slate-100 text-slate-600"}`}>{r.rewardType}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${r.userRole === "client" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>{r.userRole === "client" ? "Cliente" : "Chofer"}</span>
+                      {!r.isActive && <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Inactivo</span>}
+                    </div>
+                    <p className="font-semibold text-slate-900">{r.rewardLabel}</p>
+                    <p className="text-sm text-slate-500">{r.eventLabel}</p>
+                    {r.rewardDescription && <p className="text-xs text-slate-400 mt-0.5">{r.rewardDescription}</p>}
+                    <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                      <span>Valor: <strong className="text-slate-700">{r.rewardType === "badge" ? "Badge" : `$${Number(r.rewardValue).toFixed(2)}`}</strong></span>
+                      <span>Trigger: <strong className="text-slate-700">{r.triggerCount} referido(s)</strong></span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={() => handleEdit(r)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"><Edit3 size={14} /></button>
+                    <button onClick={() => deleteReward.mutate({ id: r.id })} className="p-2 rounded-lg hover:bg-red-50 text-red-400"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+        {/* Form modal */}
+        {showForm && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-lg font-bold text-slate-900 mb-4">{editingId ? "Editar Recompensa" : "Nueva Recompensa"}</h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs font-medium text-slate-600 mb-1 block">Para quién</label>
+                    <select value={form.userRole} onChange={e => setForm(f => ({ ...f, userRole: e.target.value as any }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+                      <option value="client">Cliente</option><option value="driver">Chofer</option>
+                    </select>
+                  </div>
+                  <div><label className="text-xs font-medium text-slate-600 mb-1 block">Tipo de recompensa</label>
+                    <select value={form.rewardType} onChange={e => setForm(f => ({ ...f, rewardType: e.target.value as any }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500">
+                      <option value="credit">Crédito ($)</option><option value="free_trip">Viaje gratis</option><option value="discount">Descuento %</option><option value="badge">Badge</option><option value="cash_bonus">Bono efectivo</option>
+                    </select>
+                  </div>
+                </div>
+                {[
+                  { key: "eventType", label: "Tipo de evento (código)", placeholder: "ej: referral_registered" },
+                  { key: "eventLabel", label: "Descripción del evento", placeholder: "ej: Referido se registra" },
+                  { key: "rewardLabel", label: "Nombre de la recompensa", placeholder: "ej: $2 crédito en wallet" },
+                  { key: "rewardDescription", label: "Descripción (opcional)", placeholder: "ej: Tu amigo se registró..." },
+                ].map(f => (
+                  <div key={f.key}><label className="text-xs font-medium text-slate-600 mb-1 block">{f.label}</label>
+                    <input value={(form as any)[f.key]} onChange={e => setForm(ff => ({ ...ff, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                  </div>
+                ))}
+                <div className="grid grid-cols-3 gap-3">
+                  <div><label className="text-xs font-medium text-slate-600 mb-1 block">Valor ($)</label>
+                    <input type="number" value={form.rewardValue} onChange={e => setForm(f => ({ ...f, rewardValue: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                  </div>
+                  <div><label className="text-xs font-medium text-slate-600 mb-1 block">Trigger (referidos)</label>
+                    <input type="number" value={form.triggerCount} onChange={e => setForm(f => ({ ...f, triggerCount: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                  </div>
+                  <div><label className="text-xs font-medium text-slate-600 mb-1 block">Orden</label>
+                    <input type="number" value={form.sortOrder} onChange={e => setForm(f => ({ ...f, sortOrder: Number(e.target.value) }))} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))} className={`w-10 h-6 rounded-full transition-colors relative ${form.isActive ? "bg-green-500" : "bg-slate-300"}`}>
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.isActive ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </button>
+                  <span className="text-sm text-slate-600">Recompensa activa</span>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <Button variant="outline" className="flex-1" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancelar</Button>
+                <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white" onClick={handleSave}>Guardar</Button>
+              </div>
+            </Card>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

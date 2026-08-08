@@ -191,6 +191,16 @@ export const referralsRouter = router({
       return { ...r, permissions: r.permissions ? JSON.parse(r.permissions) : {} };
     }),
 
+  /** Get dispatcher by email (used in login redirect) */
+  getDispatcherByEmail: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .query(async ({ input }) => {
+      const rows = await query(`SELECT * FROM dispatchers WHERE email = ? LIMIT 1`, [input.email]);
+      if (rows.length === 0) return null;
+      const r = rows[0];
+      return { ...r, permissions: r.permissions ? JSON.parse(r.permissions) : {} };
+    }),
+
   logDispatcherAction: publicProcedure
     .input(z.object({
       dispatcherId: z.number(),
@@ -208,5 +218,60 @@ export const referralsRouter = router({
   // Admin: get all referral history
   getAllReferralHistory: publicProcedure.query(async () => {
     return await query(`SELECT rh.*, rc.code FROM referralHistory rh LEFT JOIN referralCodes rc ON rh.referralCode = rc.code ORDER BY rh.createdAt DESC LIMIT 100`);
+  }),
+
+  /** Admin: get referral program statistics */
+  getReferralStats: publicProcedure.query(async () => {
+    // Total referrals
+    const [totals] = await query(`SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM referralHistory`);
+    // Total credits distributed
+    const [credits] = await query(`SELECT COALESCE(SUM(totalEarned), 0) as totalDistributed FROM referralCredits`);
+    // Top referrers (clients)
+    const topClients = await query(`
+      SELECT rc.userId, rc.userRole, rc.code, rc.totalReferrals, rc.totalRewardsEarned,
+             u.name, u.email
+      FROM referralCodes rc
+      LEFT JOIN users u ON rc.userId = u.id
+      WHERE rc.userRole = 'client' AND rc.totalReferrals > 0
+      ORDER BY rc.totalReferrals DESC LIMIT 10
+    `);
+    // Top referrers (drivers)
+    const topDrivers = await query(`
+      SELECT rc.userId, rc.userRole, rc.code, rc.totalReferrals, rc.totalRewardsEarned,
+             u.name, u.email
+      FROM referralCodes rc
+      LEFT JOIN users u ON rc.userId = u.id
+      WHERE rc.userRole = 'driver' AND rc.totalReferrals > 0
+      ORDER BY rc.totalReferrals DESC LIMIT 10
+    `);
+    // Daily referrals (last 7 days)
+    const dailyTrend = await query(`
+      SELECT DATE(createdAt) as date, COUNT(*) as count
+      FROM referralHistory
+      WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      GROUP BY DATE(createdAt)
+      ORDER BY date ASC
+    `);
+    // Conversion rate by reward type
+    const rewardBreakdown = await query(`
+      SELECT rewardType, COUNT(*) as count, COALESCE(SUM(CAST(rewardEarned AS DECIMAL(10,2))), 0) as totalValue
+      FROM referralHistory
+      WHERE status = 'completed' AND rewardType IS NOT NULL
+      GROUP BY rewardType
+    `);
+    // Total active codes
+    const [activeCodes] = await query(`SELECT COUNT(*) as total FROM referralCodes`);
+
+    return {
+      totalReferrals: Number(totals?.total || 0),
+      completedReferrals: Number(totals?.completed || 0),
+      conversionRate: totals?.total > 0 ? Math.round((totals.completed / totals.total) * 100) : 0,
+      totalCreditsDistributed: Number(credits?.totalDistributed || 0),
+      activeCodes: Number(activeCodes?.total || 0),
+      topClients,
+      topDrivers,
+      dailyTrend,
+      rewardBreakdown,
+    };
   }),
 });

@@ -35,11 +35,30 @@ export default function Login() {
       const user = JSON.parse(stored);
       if (user.role === "admin") {
         navigate("/admin");
+        return;
+      } else if (user.role === "dispatcher") {
+        navigate("/dispatcher");
+        return;
       } else if (user.role === "driver") {
         navigate("/driver-dashboard");
+        return;
       } else if (user.role === "fleet") {
         navigate("/fleet-dashboard");
+        return;
       } else {
+        // Check if this client email is also a dispatcher
+        try {
+          const res = await fetch(
+            `/api/trpc/referrals.getDispatcherByEmail?input=${encodeURIComponent(JSON.stringify({ json: { email } }))}`,
+            { credentials: "include" }
+          );
+          const data = await res.json();
+          const dispatcher = data?.result?.data?.json;
+          if (dispatcher && dispatcher.status === "active") {
+            navigate("/dispatcher");
+            return;
+          }
+        } catch { /* not a dispatcher */ }
         navigate("/client-dashboard");
       }
     }
