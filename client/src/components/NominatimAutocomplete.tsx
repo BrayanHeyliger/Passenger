@@ -38,7 +38,7 @@ export default function NominatimAutocomplete({ placeholder, value, onChange, on
       setLoading(true);
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=1`, {
-          headers: { "Accept-Language": "es", "User-Agent": "WhatsAppTaxiApp/1.0" },
+          headers: { "Accept-Language": "es" },
         });
         const data: Suggestion[] = await res.json();
         setSuggestions(data);
@@ -92,4 +92,3 @@ export default function NominatimAutocomplete({ placeholder, value, onChange, on
     </div>
   );
 }
-

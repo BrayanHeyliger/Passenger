@@ -3,7 +3,7 @@
  * Sin dependencia de Google Maps
  */
 import { useState, useRef, useCallback } from "react";
-import { Navigation, Clock, ChevronRight, Shield, Zap, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Navigation, Clock, ChevronRight, Shield, Zap, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
@@ -25,6 +25,19 @@ const EXTRAS = [
   { id: "music",      label: "Música a gusto",  icon: "🎵", price: 0 },
 ];
 
+// Geocodifica una dirección de texto usando Nominatim (fallback cuando el usuario escribe sin seleccionar sugerencia)
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+      { headers: { "Accept-Language": "es" } }
+    );
+    const data = await res.json();
+    if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  } catch {}
+  return null;
+}
+
 export default function HeroSection() {
   const [, navigate] = useLocation();
   const { config } = useSiteConfig();
@@ -38,6 +51,9 @@ export default function HeroSection() {
   const [step, setStep] = useState<"form" | "estimate" | "register">("form");
   const [estimate, setEstimate] = useState<{ price: number; km: number; minutes: number } | null>(null);
   const [calculating, setCalculating] = useState(false);
+  const [calcError, setCalcError] = useState("");
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState("");
 
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [destCoords,   setDestCoords]   = useState<{ lat: number; lng: number } | null>(null);
@@ -52,43 +68,93 @@ export default function HeroSection() {
 
   const handleMapReady = useCallback((ref: LeafletMapRef) => {
     mapRef.current = ref;
-    // Try to get user location
-    navigator.geolocation?.getCurrentPosition(async (pos) => {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      setPickupCoords({ lat, lng });
-      ref.setPickup(lat, lng, "Mi ubicación");
-      // Reverse geocode with Nominatim
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "es" } });
-        const data = await res.json();
-        if (data.display_name) setPickup(data.display_name.split(",").slice(0, 2).join(","));
-        else setPickup("Mi ubicación actual 📍");
-      } catch { setPickup("Mi ubicación actual 📍"); }
-    });
+    // Solo intentar geolocalización automática si el usuario ya dio permiso antes
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then(result => {
+        if (result.state === "granted") {
+          navigator.geolocation.getCurrentPosition(async (pos) => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            setPickupCoords({ lat, lng });
+            ref.setPickup(lat, lng, "Mi ubicación");
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "es" } });
+              const data = await res.json();
+              if (data.display_name) setPickup(data.display_name.split(",").slice(0, 2).join(",").trim());
+            } catch {}
+          });
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   const handleGetMyLocation = () => {
-    navigator.geolocation?.getCurrentPosition(async (pos) => {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      setPickupCoords({ lat, lng });
-      mapRef.current?.setPickup(lat, lng, "Mi ubicación");
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "es" } });
-        const data = await res.json();
-        setPickup(data.display_name?.split(",").slice(0, 2).join(",") || "Mi ubicación 📍");
-      } catch { setPickup("Mi ubicación 📍"); }
-    }, () => alert("Activa la ubicación en tu navegador"));
+    if (!navigator.geolocation) {
+      setGpsError("Tu navegador no soporta geolocalización");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setPickupCoords({ lat, lng });
+        mapRef.current?.setPickup(lat, lng, "Mi ubicación");
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "es" } });
+          const data = await res.json();
+          setPickup(data.display_name?.split(",").slice(0, 2).join(",").trim() || "Mi ubicación actual 📍");
+        } catch {
+          setPickup("Mi ubicación actual 📍");
+        }
+        setGpsLoading(false);
+      },
+      (err) => {
+        setGpsLoading(false);
+        if (err.code === 1) setGpsError("Permiso denegado. Escribe tu dirección manualmente.");
+        else if (err.code === 2) setGpsError("No se pudo detectar tu ubicación. Escribe tu dirección.");
+        else setGpsError("Error de ubicación. Escribe tu dirección manualmente.");
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   const handleCalculate = async () => {
-    if (!pickup || !destination) return;
+    if (!pickup.trim() || !destination.trim()) return;
     setCalculating(true);
-    let km = 5; let minutes = 12;
-    if (pickupCoords && destCoords) {
-      mapRef.current?.setDropoff(destCoords.lat, destCoords.lng, destination);
-      const route = await mapRef.current?.getRoute();
-      if (route) { km = parseFloat(route.distanceKm.toFixed(1)); minutes = route.durationMin; }
+    setCalcError("");
+
+    // Si no hay coordenadas (usuario escribió sin seleccionar sugerencia), geocodificar
+    let pCoords = pickupCoords;
+    let dCoords = destCoords;
+
+    if (!pCoords) {
+      pCoords = await geocodeAddress(pickup);
+      if (pCoords) {
+        setPickupCoords(pCoords);
+        mapRef.current?.setPickup(pCoords.lat, pCoords.lng, pickup);
+      }
     }
+    if (!dCoords) {
+      dCoords = await geocodeAddress(destination);
+      if (dCoords) {
+        setDestCoords(dCoords);
+        mapRef.current?.setDropoff(dCoords.lat, dCoords.lng, destination);
+      }
+    }
+
+    let km = 5; let minutes = 12;
+    if (pCoords && dCoords) {
+      mapRef.current?.setDropoff(dCoords.lat, dCoords.lng, destination);
+      const route = await mapRef.current?.getRoute();
+      if (route) {
+        km = parseFloat(route.distanceKm.toFixed(1));
+        minutes = route.durationMin;
+      }
+    } else if (!pCoords || !dCoords) {
+      // Estimación con distancia por defecto si no se pueden geocodificar las direcciones
+      km = 5; minutes = 12;
+    }
+
     const v = VEHICLES.find(v => v.id === selectedVehicle) || VEHICLES[0];
     const extrasTotal = selectedExtras.reduce((sum, id) => sum + (EXTRAS.find(e => e.id === id)?.price || 0), 0);
     const price = parseFloat((v.base + km * v.perKm + extrasTotal).toFixed(2));
@@ -110,7 +176,14 @@ export default function HeroSection() {
     e.preventDefault();
     setRegLoading(true); setRegError("");
     const nameParts = regName.trim().split(" ");
-    const result = await register({ firstName: nameParts[0], lastName: nameParts.slice(1).join(" ") || undefined, email: `${regPhone.replace(/\D/g, "")}@taxi.app`, phone: regPhone, password: regPassword, role: "client" });
+    const result = await register({
+      firstName: nameParts[0],
+      lastName: nameParts.slice(1).join(" ") || undefined,
+      email: `${regPhone.replace(/\D/g, "")}@taxi.app`,
+      phone: regPhone,
+      password: regPassword,
+      role: "client"
+    });
     setRegLoading(false);
     if (!result.success) { setRegError(result.error || "Error al registrar"); return; }
     sessionStorage.setItem("pendingTrip", JSON.stringify({ pickup, destination, vehicle: selectedVehicle, extras: selectedExtras, estimate }));
@@ -118,6 +191,7 @@ export default function HeroSection() {
   };
 
   const v = VEHICLES.find(v => v.id === selectedVehicle) || VEHICLES[0];
+  const extrasTotal = selectedExtras.reduce((s, id) => s + (EXTRAS.find(e => e.id === id)?.price || 0), 0);
 
   return (
     <section className="relative min-h-screen flex items-center pt-16 overflow-hidden" style={{ background: "linear-gradient(135deg, oklch(0.10 0.01 250) 0%, oklch(0.14 0.02 200) 100%)" }}>
@@ -127,58 +201,71 @@ export default function HeroSection() {
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8 blur-3xl" style={{ background: "oklch(0.52 0.12 148)" }} />
       </div>
 
-      <div className="container relative z-10 py-12 lg:py-20">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div className="container relative z-10 py-8 lg:py-16">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-start lg:items-center">
 
-          {/* Left: Copy — en móvil aparece primero (order-1), en desktop a la izquierda */}
-          <div className="order-1 lg:order-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-6" style={{ background: "oklch(0.76 0.18 148 / 0.15)", color: "oklch(0.76 0.18 148)" }}>
+          {/* Left: Copy */}
+          <div className="order-1 lg:order-1 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ background: "oklch(0.76 0.18 148 / 0.15)", color: "oklch(0.76 0.18 148)" }}>
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "oklch(0.76 0.18 148)" }} />
               Conductores disponibles ahora
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>
               Tu taxi,<br /><span style={{ color: "oklch(0.76 0.18 148)" }}>en minutos.</span>
             </h1>
-            <p className="text-white/60 text-lg mb-8 leading-relaxed max-w-md">
+            <p className="text-white/60 text-lg mb-6 leading-relaxed max-w-md mx-auto lg:mx-0">
               Sin apps, sin complicaciones. Solo dinos dónde estás y a dónde vas.
             </p>
-            <div className="flex flex-col gap-3 mb-8">
+            <div className="flex flex-col gap-2 mb-6 items-center lg:items-start">
               {[{ icon: Shield, text: "Conductores verificados" }, { icon: Zap, text: "Llegada en 3-8 min" }].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-2 text-white/60 text-sm">
                   <Icon size={15} style={{ color: "oklch(0.76 0.18 148)" }} /> {text}
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-4 text-white/40 text-sm">
+            <div className="flex items-center justify-center lg:justify-start gap-4 text-white/40 text-sm">
               <a href="#conductores" className="hover:text-white/70 transition-colors flex items-center gap-1.5"><span>🚗</span> ¿Eres conductor? Únete</a>
               <span>·</span>
               <a href="#flotilla" className="hover:text-white/70 transition-colors flex items-center gap-1.5"><span>🏢</span> Gestiona tu flotilla</a>
             </div>
           </div>
 
-          {/* Right: Booking card — en móvil aparece segundo (order-2), en desktop a la derecha */}
-          <div className="order-2 lg:order-2">
-            <div className="rounded-3xl p-6 shadow-2xl shadow-black/40" style={{ background: "white" }}>
+          {/* Right: Booking card */}
+          <div className="order-2 lg:order-2 w-full max-w-md mx-auto lg:max-w-none">
+            <div className="rounded-3xl p-5 lg:p-6 shadow-2xl shadow-black/40 bg-white">
+
+              {/* STEP: FORM */}
               {step === "form" && (
                 <>
-                  <h2 className="text-xl font-bold text-slate-900 mb-5" style={{ fontFamily: "'Sora', sans-serif" }}>¿A dónde vas hoy?</h2>
+                  <h2 className="text-lg lg:text-xl font-bold text-slate-900 mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>¿A dónde vas hoy?</h2>
 
                   {/* Pickup */}
                   <div className="mb-3">
                     <div className="flex gap-2">
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <NominatimAutocomplete
                           placeholder="¿Dónde te recogemos?"
                           value={pickup}
-                          onChange={setPickup}
-                          onSelect={(addr, lat, lng) => { setPickupCoords({ lat, lng }); mapRef.current?.setPickup(lat, lng, addr); }}
+                          onChange={(val) => { setPickup(val); if (!val) setPickupCoords(null); }}
+                          onSelect={(addr, lat, lng) => { setPickupCoords({ lat, lng }); setGpsError(""); mapRef.current?.setPickup(lat, lng, addr); }}
                           icon={<span className="w-3 h-3 rounded-full inline-block" style={{ background: "oklch(0.76 0.18 148)" }} />}
                         />
                       </div>
-                      <button onClick={handleGetMyLocation} className="px-3 py-3 rounded-xl border border-slate-200 hover:bg-green-50 transition-colors" title="Usar mi ubicación">
-                        <Navigation size={16} className="text-green-500" />
+                      <button
+                        onClick={handleGetMyLocation}
+                        disabled={gpsLoading}
+                        className="px-3 py-3 rounded-xl border border-slate-200 hover:bg-green-50 transition-colors flex-shrink-0 disabled:opacity-50"
+                        title="Usar mi ubicación actual"
+                      >
+                        {gpsLoading ? <Loader2 size={16} className="text-green-500 animate-spin" /> : <Navigation size={16} className="text-green-500" />}
                       </button>
                     </div>
+                    {gpsError && (
+                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-amber-600">
+                        <AlertCircle size={12} />
+                        <span>{gpsError}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Destination */}
@@ -186,13 +273,13 @@ export default function HeroSection() {
                     <NominatimAutocomplete
                       placeholder="¿A dónde vas?"
                       value={destination}
-                      onChange={setDestination}
+                      onChange={(val) => { setDestination(val); if (!val) setDestCoords(null); }}
                       onSelect={(addr, lat, lng) => { setDestCoords({ lat, lng }); mapRef.current?.setDropoff(lat, lng, addr); }}
                       icon={<span className="w-3 h-3 rounded-full border-2 inline-block" style={{ borderColor: "#EF4444" }} />}
                     />
                   </div>
 
-                  {/* Time */}
+                  {/* Time selector */}
                   <div className="flex gap-2 mb-4">
                     {(["now", "later"] as const).map(t => (
                       <button key={t} onClick={() => setTripTime(t)} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all border ${tripTime === t ? "border-green-500 text-green-700 bg-green-50" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}>
@@ -201,45 +288,58 @@ export default function HeroSection() {
                     ))}
                   </div>
 
-                  {/* Extras */}
+                  {/* Extras — compact scrollable row */}
                   <div className="mb-4">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Requisitos especiales</p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                       {EXTRAS.map(ex => (
                         <button key={ex.id} onClick={() => setSelectedExtras(prev => prev.includes(ex.id) ? prev.filter(x => x !== ex.id) : [...prev, ex.id])}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${selectedExtras.includes(ex.id) ? "border-green-500 bg-green-50 text-green-700" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
+                          className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-all ${selectedExtras.includes(ex.id) ? "border-green-500 bg-green-50 text-green-700" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}>
                           {ex.icon} {ex.label} <span className="text-slate-400">{ex.price > 0 ? `+$${ex.price}` : "+$0"}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Map preview */}
-                  <div className="rounded-2xl overflow-hidden mb-4" style={{ height: 160 }}>
-                    <LeafletMap height="160px" onMapReady={handleMapReady} />
+                  {/* Map preview — smaller on desktop to avoid overflow */}
+                  <div className="rounded-2xl overflow-hidden mb-4" style={{ height: 140 }}>
+                    <LeafletMap height="140px" onMapReady={handleMapReady} />
                   </div>
 
-                  <button onClick={handleCalculate} disabled={!pickup || !destination || calculating}
+                  {calcError && (
+                    <div className="flex items-center gap-1.5 mb-3 text-xs text-red-600 bg-red-50 p-2 rounded-lg">
+                      <AlertCircle size={12} />
+                      <span>{calcError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleCalculate}
+                    disabled={!pickup.trim() || !destination.trim() || calculating}
                     className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
-                    {calculating ? <><Loader2 size={16} className="animate-spin" /> Calculando ruta...</> : <>Ver precios disponibles <ChevronRight size={16} /></>}
+                    style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}
+                  >
+                    {calculating
+                      ? <><Loader2 size={16} className="animate-spin" /> Calculando ruta...</>
+                      : <>Ver precios disponibles <ChevronRight size={16} /></>
+                    }
                   </button>
                   <p className="text-center text-xs text-slate-400 mt-2">Sin cargos hasta confirmar el viaje</p>
                 </>
               )}
 
+              {/* STEP: ESTIMATE */}
               {step === "estimate" && estimate && (
                 <>
-                  <button onClick={() => setStep("form")} className="text-xs text-slate-400 hover:text-slate-600 mb-4 flex items-center gap-1">← Cambiar</button>
-                  <h2 className="text-xl font-bold text-slate-900 mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>Tu viaje estimado</h2>
-                  <p className="text-slate-500 text-sm mb-4">{pickup} → {destination}</p>
-                  <div className="flex gap-3 mb-4 text-sm">
+                  <button onClick={() => setStep("form")} className="text-xs text-slate-400 hover:text-slate-600 mb-3 flex items-center gap-1">← Cambiar</button>
+                  <h2 className="text-lg font-bold text-slate-900 mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>Tu viaje estimado</h2>
+                  <p className="text-slate-500 text-xs mb-3 truncate">{pickup} → {destination}</p>
+                  <div className="flex gap-2 mb-4 text-xs">
                     <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600">📍 {estimate.km} km</span>
                     <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600">⏱ {estimate.minutes} min</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mb-4">
                     {VEHICLES.map(vh => {
-                      const extrasTotal = selectedExtras.reduce((s, id) => s + (EXTRAS.find(e => e.id === id)?.price || 0), 0);
                       const p = (vh.base + estimate.km * vh.perKm + extrasTotal).toFixed(2);
                       return (
                         <button key={vh.id} onClick={() => setSelectedVehicle(vh.id)}
@@ -255,20 +355,21 @@ export default function HeroSection() {
                   <button onClick={handleRequestTrip}
                     className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
                     style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
-                    Pedir {v.emoji} {v.label} · ${(v.base + estimate.km * v.perKm + selectedExtras.reduce((s, id) => s + (EXTRAS.find(e => e.id === id)?.price || 0), 0)).toFixed(2)} <ChevronRight size={16} />
+                    Pedir {v.emoji} {v.label} · ${(v.base + estimate.km * v.perKm + extrasTotal).toFixed(2)} <ChevronRight size={16} />
                   </button>
                 </>
               )}
 
+              {/* STEP: REGISTER */}
               {step === "register" && (
                 <>
-                  <button onClick={() => setStep("estimate")} className="text-xs text-slate-400 hover:text-slate-600 mb-4 flex items-center gap-1">← Volver</button>
-                  <h2 className="text-xl font-bold text-slate-900 mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>Casi listo 🚕</h2>
-                  <p className="text-slate-500 text-sm mb-4">Crea tu cuenta para confirmar el viaje</p>
+                  <button onClick={() => setStep("estimate")} className="text-xs text-slate-400 hover:text-slate-600 mb-3 flex items-center gap-1">← Volver</button>
+                  <h2 className="text-lg font-bold text-slate-900 mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>Casi listo 🚕</h2>
+                  <p className="text-slate-500 text-sm mb-3">Crea tu cuenta para confirmar el viaje</p>
                   {estimate && (
-                    <div className="p-3 rounded-xl mb-4 text-sm" style={{ background: "oklch(0.76 0.18 148 / 0.1)", border: "1px solid oklch(0.76 0.18 148 / 0.3)" }}>
-                      <p className="font-semibold text-slate-800">{v.emoji} {v.label} · ${(v.base + estimate.km * v.perKm + selectedExtras.reduce((s, id) => s + (EXTRAS.find(e => e.id === id)?.price || 0), 0)).toFixed(2)}</p>
-                      <p className="text-slate-500 text-xs">{pickup} → {destination}</p>
+                    <div className="p-3 rounded-xl mb-3 text-sm" style={{ background: "oklch(0.76 0.18 148 / 0.1)", border: "1px solid oklch(0.76 0.18 148 / 0.3)" }}>
+                      <p className="font-semibold text-slate-800">{v.emoji} {v.label} · ${(v.base + estimate.km * v.perKm + extrasTotal).toFixed(2)}</p>
+                      <p className="text-slate-500 text-xs truncate">{pickup} → {destination}</p>
                     </div>
                   )}
                   {regError && <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs text-center">{regError}</div>}
@@ -305,6 +406,7 @@ export default function HeroSection() {
               <p className="text-white/50 text-sm"><span className="text-white font-bold">2,400+</span> clientes activos esta semana</p>
             </div>
           </div>
+
         </div>
       </div>
     </section>
