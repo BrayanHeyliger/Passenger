@@ -16,7 +16,7 @@ import {
   BarChart2, TrendingUp, MapPin, AlertTriangle, Star, Send,
   Shield, Edit3, Save, Globe, Palette, Layers, Sliders,
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
-  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database
+  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database, HelpCircle
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
