@@ -31,6 +31,7 @@ export default function Home() {
       <ContactSection />
       <TestimonialsSection />
       <CTASection />
+      <FAQSection />
       <FooterSection />
       <PWAInstallBanner />
     </div>
@@ -38,3 +39,4 @@ export default function Home() {
 }
 import QuickQuoteSection from "@/components/QuickQuoteSection";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
+import FAQSection from "@/components/FAQSection";

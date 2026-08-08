@@ -9,7 +9,7 @@ import { useSiteConfig } from "@/contexts/SiteConfigContext";
 const footerLinks = {
   Producto: ["Características", "Precios", "Changelog", "Roadmap"],
   Empresa: ["Sobre nosotros", "Blog", "Carreras", "Prensa"],
-  Recursos: ["Documentación", "API Reference", "Guías", "Soporte"],
+  Recursos: ["Documentación", "FAQ", "Guías", "Soporte"],
   Legal: ["Privacidad", "Términos de uso", "Cookies", "GDPR"],
 };
 
@@ -78,9 +78,13 @@ export default function FooterSection() {
               <ul className="flex flex-col gap-2.5">
                 {links.map((link) => (
                   <li key={link}>
-                    <button className="text-white/40 hover:text-white/80 text-sm transition-colors text-left">
+                    <a
+                      href={link === "FAQ" ? "#faq" : link === "Características" ? "#features" : link === "Precios" ? "#pricing" : link === "Soporte" ? "#contact" : "#"}
+                      onClick={link === "FAQ" ? (e) => { e.preventDefault(); document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }); } : undefined}
+                      className="text-white/40 hover:text-white/80 text-sm transition-colors text-left cursor-pointer"
+                    >
                       {link}
-                    </button>
+                    </a>
                   </li>
                 ))}
               </ul>
