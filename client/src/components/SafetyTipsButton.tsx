@@ -58,7 +58,7 @@ export default function SafetyTipsButton({ audience, position = "bottom-right" }
       {/* Floating bulb button */}
       <button
         onClick={() => { setOpen(true); setPulse(false); }}
-        className={`fixed ${posClass} z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95`}
+        className={`wt-safety-btn fixed ${posClass} w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 active:scale-95`}
         style={{ background: "linear-gradient(135deg, #FCD34D, #F59E0B)" }}
         title="Consejos de seguridad"
       >
@@ -75,7 +75,7 @@ export default function SafetyTipsButton({ audience, position = "bottom-right" }
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 flex items-end sm:items-center justify-center p-4" style={{ zIndex: 99999 }} onClick={() => setOpen(false)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div
             className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"

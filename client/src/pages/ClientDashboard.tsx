@@ -359,7 +359,7 @@ export default function ClientDashboard() {
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200 z-20 flex-shrink-0">
+      <header className="wt-header bg-white shadow-sm border-b border-slate-200 flex-shrink-0 relative">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-sm">{user?.name?.[0] || "C"}</div>
@@ -375,7 +375,7 @@ export default function ClientDashboard() {
                 {unreadCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">{unreadCount > 9 ? "9+" : unreadCount}</span>}
               </button>
               {showNotifications && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50">
+                <div className="wt-notification-panel absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl">
                   <div className="p-3 border-b border-slate-200 flex justify-between items-center">
                     <div>
                       <h3 className="font-semibold text-slate-900 text-sm">Notificaciones</h3>
@@ -841,6 +841,8 @@ export default function ClientDashboard() {
           </Button>
         </div>
       )}
+      <SafetyTipsButton audience="clients" />
     </div>
   );
 }
+import SafetyTipsButton from "@/components/SafetyTipsButton";
