@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -90,3 +91,49 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // TODO: add feature queries here as your schema grows.
+let _pool: mysql.Pool | null = null;
+
+// Get a mysql2 promise pool for raw SQL queries
+export async function getRawPool(): Promise<mysql.Pool | null> {
+  if (!_pool && process.env.DATABASE_URL) {
+    try {
+      _pool = mysql.createPool(process.env.DATABASE_URL);
+    } catch (error) {
+      console.warn("[Database] Failed to create pool:", error);
+      _pool = null;
+    }
+  }
+  return _pool;
+}
+
+// Execute a raw SQL query and return rows as plain objects
+export async function rawQuery<T = Record<string, unknown>>(
+  sql: string,
+  params: unknown[] = []
+): Promise<T[]> {
+  const pool = await getRawPool();
+  if (!pool) return [];
+  try {
+    const [rows] = await (pool as any).execute(sql, params);
+    return Array.isArray(rows) ? (rows as T[]) : [];
+  } catch (e) {
+    console.error("[rawQuery] Error:", e);
+    return [];
+  }
+}
+
+// Execute a raw SQL mutation (INSERT/UPDATE/DELETE) and return affected rows
+export async function rawMutate(
+  sql: string,
+  params: unknown[] = []
+): Promise<{ affectedRows: number }> {
+  const pool = await getRawPool();
+  if (!pool) return { affectedRows: 0 };
+  try {
+    const [result] = await (pool as any).execute(sql, params);
+    return { affectedRows: (result as mysql.ResultSetHeader).affectedRows ?? 0 };
+  } catch (e) {
+    console.error("[rawMutate] Error:", e);
+    return { affectedRows: 0 };
+  }
+}

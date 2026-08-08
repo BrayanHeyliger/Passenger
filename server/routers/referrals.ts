@@ -4,15 +4,12 @@
  */
 import { z } from "zod";
 import { router, publicProcedure } from "../_core/trpc";
-import { getDb } from "../db";
+import { rawQuery, rawMutate } from "../db";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 async function query(sql: string, params: any[] = []) {
-  const db = await getDb();
-  if (!db) throw new Error("Base de datos no disponible");
-  const result = await (db as any).$client.query(sql, params);
-  return Array.isArray(result[0]) ? result[0] : (result as any[]);
+  return rawQuery(sql, params);
 }
 
 function generateCode(name: string): string {
@@ -29,13 +26,13 @@ export const referralsRouter = router({
   getMyCode: publicProcedure
     .input(z.object({ userId: z.number(), userRole: z.enum(["client", "driver"]), name: z.string() }))
     .query(async ({ input }) => {
-      const rows = await query(`SELECT * FROM referralCodes WHERE userId = ? AND userRole = ? LIMIT 1`, [input.userId, input.userRole]);
+      const rows = await rawQuery<any>(`SELECT * FROM referralCodes WHERE userId = ? AND userRole = ? LIMIT 1`, [input.userId, input.userRole]);
       if (rows.length > 0) return rows[0];
 
       // Create new code
       const code = generateCode(input.name);
-      await query(`INSERT INTO referralCodes (userId, userRole, code) VALUES (?, ?, ?)`, [input.userId, input.userRole, code]);
-      const createdRows = await query(`SELECT * FROM referralCodes WHERE userId = ? AND userRole = ? LIMIT 1`, [input.userId, input.userRole]);
+      await rawMutate(`INSERT INTO referralCodes (userId, userRole, code) VALUES (?, ?, ?)`, [input.userId, input.userRole, code]);
+      const createdRows = await rawQuery<any>(`SELECT * FROM referralCodes WHERE userId = ? AND userRole = ? LIMIT 1`, [input.userId, input.userRole]);
       return createdRows[0];
     }),
 
@@ -43,7 +40,7 @@ export const referralsRouter = router({
   getMyCredits: publicProcedure
     .input(z.object({ userId: z.number(), userRole: z.enum(["client", "driver"]) }))
     .query(async ({ input }) => {
-      const rows = await query(`SELECT * FROM referralCredits WHERE userId = ? AND userRole = ? LIMIT 1`, [input.userId, input.userRole]);
+      const rows = await rawQuery<any>(`SELECT * FROM referralCredits WHERE userId = ? AND userRole = ? LIMIT 1`, [input.userId, input.userRole]);
       if (rows.length > 0) {
         const row = rows[0];
         return {
@@ -53,7 +50,7 @@ export const referralsRouter = router({
         };
       }
       // Initialize credits record
-      await query(`INSERT INTO referralCredits (userId, userRole, balance, totalEarned, totalUsed, freeTripsCoupon, discountCoupons, badges) VALUES (?, ?, 0, 0, 0, 0, '[]', '[]')`, [input.userId, input.userRole]);
+      await rawMutate(`INSERT INTO referralCredits (userId, userRole, balance, totalEarned, totalUsed, freeTripsCoupon, discountCoupons, badges) VALUES (?, ?, 0, 0, 0, 0, '[]', '[]')`, [input.userId, input.userRole]);
       return { balance: 0, totalEarned: 0, totalUsed: 0, freeTripsCoupon: 0, discountCoupons: [], badges: [] };
     }),
 
@@ -61,38 +58,38 @@ export const referralsRouter = router({
   getMyHistory: publicProcedure
     .input(z.object({ userId: z.number(), userRole: z.enum(["client", "driver"]) }))
     .query(async ({ input }) => {
-      return await query(`SELECT * FROM referralHistory WHERE referrerId = ? AND referrerRole = ? ORDER BY createdAt DESC LIMIT 50`, [input.userId, input.userRole]);
+      return await rawQuery<any>(`SELECT * FROM referralHistory WHERE referrerId = ? AND referrerRole = ? ORDER BY createdAt DESC LIMIT 50`, [input.userId, input.userRole]);
     }),
 
   /** Get all rewards config (for display in panels) */
   getRewards: publicProcedure
     .input(z.object({ userRole: z.enum(["client", "driver"]) }))
     .query(async ({ input }) => {
-      return await query(`SELECT * FROM referralRewards WHERE userRole = ? AND isActive = 1 ORDER BY sortOrder ASC`, [input.userRole]);
+      return await rawQuery<any>(`SELECT * FROM referralRewards WHERE userRole = ? AND isActive = 1 ORDER BY sortOrder ASC`, [input.userRole]);
     }),
 
   /** Apply a referral code during registration */
   applyCode: publicProcedure
     .input(z.object({ code: z.string(), newUserId: z.number(), newUserRole: z.enum(["client", "driver"]) }))
     .mutation(async ({ input }) => {
-      const codeRows = await query(`SELECT * FROM referralCodes WHERE code = ? LIMIT 1`, [input.code.toUpperCase()]);
+      const codeRows = await rawQuery<any>(`SELECT * FROM referralCodes WHERE code = ? LIMIT 1`, [input.code.toUpperCase()]);
       if (codeRows.length === 0) return { success: false, message: "Código no válido" };
 
       const referrer = codeRows[0];
       if (referrer.userId === input.newUserId) return { success: false, message: "No puedes usar tu propio código" };
 
       // Record the referral
-      await query(`INSERT INTO referralHistory (referrerId, referrerRole, referredUserId, referralCode, status, eventType) VALUES (?, ?, ?, ?, 'pending', 'referral_registered')`, [referrer.userId, referrer.userRole, input.newUserId, input.code.toUpperCase()]);
-      await query(`UPDATE referralCodes SET totalReferrals = totalReferrals + 1 WHERE id = ?`, [referrer.id]);
-      const rewardRows = await query(`SELECT * FROM referralRewards WHERE userRole = ? AND eventType = 'referral_registered' AND isActive = 1 LIMIT 1`, [referrer.userRole]);
+      await rawMutate(`INSERT INTO referralHistory (referrerId, referrerRole, referredUserId, referralCode, status, eventType) VALUES (?, ?, ?, ?, 'pending', 'referral_registered')`, [referrer.userId, referrer.userRole, input.newUserId, input.code.toUpperCase()]);
+      await rawMutate(`UPDATE referralCodes SET totalReferrals = totalReferrals + 1 WHERE id = ?`, [referrer.id]);
+      const rewardRows = await rawQuery<any>(`SELECT * FROM referralRewards WHERE userRole = ? AND eventType = 'referral_registered' AND isActive = 1 LIMIT 1`, [referrer.userRole]);
 
       if (rewardRows.length > 0) {
         const reward = rewardRows[0];
         // Add credit to referrer
         const creditVal = reward.rewardType === 'credit' ? Number(reward.rewardValue) : 0;
-        await query(`INSERT INTO referralCredits (userId, userRole, balance, totalEarned, totalUsed, freeTripsCoupon, discountCoupons, badges) VALUES (?, ?, ?, ?, 0, 0, '[]', '[]') ON DUPLICATE KEY UPDATE balance = balance + ?, totalEarned = totalEarned + ?`, [referrer.userId, referrer.userRole, creditVal, creditVal, creditVal, creditVal]);
-        await query(`UPDATE referralHistory SET rewardId = ?, rewardEarned = ?, rewardType = ?, rewardLabel = ?, status = 'completed', completedAt = NOW() WHERE referrerId = ? AND referredUserId = ? AND eventType = 'referral_registered'`, [reward.id, reward.rewardValue, reward.rewardType, reward.rewardLabel, referrer.userId, input.newUserId]);
-        await query(`UPDATE referralCodes SET totalRewardsEarned = totalRewardsEarned + ? WHERE id = ?`, [reward.rewardValue, referrer.id]);
+        await rawMutate(`INSERT INTO referralCredits (userId, userRole, balance, totalEarned, totalUsed, freeTripsCoupon, discountCoupons, badges) VALUES (?, ?, ?, ?, 0, 0, '[]', '[]') ON DUPLICATE KEY UPDATE balance = balance + ?, totalEarned = totalEarned + ?`, [referrer.userId, referrer.userRole, creditVal, creditVal, creditVal, creditVal]);
+        await rawMutate(`UPDATE referralHistory SET rewardId = ?, rewardEarned = ?, rewardType = ?, rewardLabel = ?, status = 'completed', completedAt = NOW() WHERE referrerId = ? AND referredUserId = ? AND eventType = 'referral_registered'`, [reward.id, reward.rewardValue, reward.rewardType, reward.rewardLabel, referrer.userId, input.newUserId]);
+        await rawMutate(`UPDATE referralCodes SET totalRewardsEarned = totalRewardsEarned + ? WHERE id = ?`, [reward.rewardValue, referrer.id]);
       }
 
       return { success: true, message: "¡Código aplicado! Tu amigo recibirá una recompensa." };
@@ -101,7 +98,7 @@ export const referralsRouter = router({
   // ── ADMIN: Rewards management ───────────────────────────────────────────────
 
   getAllRewardsAdmin: publicProcedure.query(async () => {
-    return await query(`SELECT * FROM referralRewards ORDER BY userRole, sortOrder ASC`);
+    return await rawQuery<any>(`SELECT * FROM referralRewards ORDER BY userRole, sortOrder ASC`);
   }),
 
   saveReward: publicProcedure
@@ -120,9 +117,9 @@ export const referralsRouter = router({
     }))
     .mutation(async ({ input }) => {
       if (input.id) {
-        await query(`UPDATE referralRewards SET userRole=?, eventType=?, eventLabel=?, rewardType=?, rewardValue=?, rewardLabel=?, rewardDescription=?, triggerCount=?, isActive=?, sortOrder=? WHERE id=?`, [input.userRole, input.eventType, input.eventLabel, input.rewardType, input.rewardValue, input.rewardLabel, input.rewardDescription || "", input.triggerCount, input.isActive, input.sortOrder, input.id]);
+        await rawMutate(`UPDATE referralRewards SET userRole=?, eventType=?, eventLabel=?, rewardType=?, rewardValue=?, rewardLabel=?, rewardDescription=?, triggerCount=?, isActive=?, sortOrder=? WHERE id=?`, [input.userRole, input.eventType, input.eventLabel, input.rewardType, input.rewardValue, input.rewardLabel, input.rewardDescription || "", input.triggerCount, input.isActive, input.sortOrder, input.id]);
       } else {
-        await query(`INSERT INTO referralRewards (userRole, eventType, eventLabel, rewardType, rewardValue, rewardLabel, rewardDescription, triggerCount, isActive, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [input.userRole, input.eventType, input.eventLabel, input.rewardType, input.rewardValue, input.rewardLabel, input.rewardDescription || "", input.triggerCount, input.isActive, input.sortOrder]);
+        await rawMutate(`INSERT INTO referralRewards (userRole, eventType, eventLabel, rewardType, rewardValue, rewardLabel, rewardDescription, triggerCount, isActive, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [input.userRole, input.eventType, input.eventLabel, input.rewardType, input.rewardValue, input.rewardLabel, input.rewardDescription || "", input.triggerCount, input.isActive, input.sortOrder]);
       }
       return { success: true };
     }),
@@ -130,14 +127,14 @@ export const referralsRouter = router({
   deleteReward: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await query(`DELETE FROM referralRewards WHERE id = ?`, [input.id]);
+      await rawMutate(`DELETE FROM referralRewards WHERE id = ?`, [input.id]);
       return { success: true };
     }),
 
   // ── ADMIN: Dispatcher management ────────────────────────────────────────────
 
   getDispatchers: publicProcedure.query(async () => {
-    const rows = await query(`SELECT * FROM dispatchers ORDER BY createdAt DESC`);
+    const rows = await rawQuery<any>(`SELECT * FROM dispatchers ORDER BY createdAt DESC`);
     return rows.map((r: any) => ({ ...r, permissions: r.permissions ? JSON.parse(r.permissions) : {} }));
   }),
 
@@ -166,11 +163,11 @@ export const referralsRouter = router({
     .mutation(async ({ input }) => {
       const permsJson = JSON.stringify(input.permissions);
       if (input.id) {
-        await query(`UPDATE dispatchers SET name=?, email=?, phone=?, status=?, permissions=?, assignedZone=? WHERE id=?`, [input.name, input.email, input.phone || "", input.status, permsJson, input.assignedZone || "", input.id]);
+        await rawMutate(`UPDATE dispatchers SET name=?, email=?, phone=?, status=?, permissions=?, assignedZone=? WHERE id=?`, [input.name, input.email, input.phone || "", input.status, permsJson, input.assignedZone || "", input.id]);
       } else {
         // Create user account for dispatcher
         const userId = input.userId || Math.floor(Math.random() * 90000) + 10000;
-        await query(`INSERT INTO dispatchers (userId, name, email, phone, status, permissions, assignedZone, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [userId, input.name, input.email, input.phone || "", input.status, permsJson, input.assignedZone || "", input.createdBy]);
+        await rawMutate(`INSERT INTO dispatchers (userId, name, email, phone, status, permissions, assignedZone, createdBy) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [userId, input.name, input.email, input.phone || "", input.status, permsJson, input.assignedZone || "", input.createdBy]);
       }
       return { success: true };
     }),
@@ -178,14 +175,14 @@ export const referralsRouter = router({
   deleteDispatcher: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await query(`DELETE FROM dispatchers WHERE id = ?`, [input.id]);
+      await rawMutate(`DELETE FROM dispatchers WHERE id = ?`, [input.id]);
       return { success: true };
     }),
 
   getDispatcherByUserId: publicProcedure
     .input(z.object({ userId: z.number() }))
     .query(async ({ input }) => {
-      const rows = await query(`SELECT * FROM dispatchers WHERE userId = ? AND status = 'active' LIMIT 1`, [input.userId]);
+      const rows = await rawQuery<any>(`SELECT * FROM dispatchers WHERE userId = ? AND status = 'active' LIMIT 1`, [input.userId]);
       if (rows.length === 0) return null;
       const r = rows[0];
       return { ...r, permissions: r.permissions ? JSON.parse(r.permissions) : {} };
@@ -195,7 +192,7 @@ export const referralsRouter = router({
   getDispatcherByEmail: publicProcedure
     .input(z.object({ email: z.string().email() }))
     .query(async ({ input }) => {
-      const rows = await query(`SELECT * FROM dispatchers WHERE email = ? LIMIT 1`, [input.email]);
+      const rows = await rawQuery<any>(`SELECT * FROM dispatchers WHERE email = ? LIMIT 1`, [input.email]);
       if (rows.length === 0) return null;
       const r = rows[0];
       return { ...r, permissions: r.permissions ? JSON.parse(r.permissions) : {} };
@@ -211,23 +208,23 @@ export const referralsRouter = router({
       clientId: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      await query(`INSERT INTO dispatcherLogs (dispatcherId, action, details, tripId, driverId, clientId) VALUES (?, ?, ?, ?, ?, ?)`, [input.dispatcherId, input.action, JSON.stringify(input.details || {}), input.tripId || null, input.driverId || null, input.clientId || null]);
+      await rawMutate(`INSERT INTO dispatcherLogs (dispatcherId, action, details, tripId, driverId, clientId) VALUES (?, ?, ?, ?, ?, ?)`, [input.dispatcherId, input.action, JSON.stringify(input.details || {}), input.tripId || null, input.driverId || null, input.clientId || null]);
       return { success: true };
     }),
 
   // Admin: get all referral history
   getAllReferralHistory: publicProcedure.query(async () => {
-    return await query(`SELECT rh.*, rc.code FROM referralHistory rh LEFT JOIN referralCodes rc ON rh.referralCode = rc.code ORDER BY rh.createdAt DESC LIMIT 100`);
+    return await rawQuery<any>(`SELECT rh.*, rc.code FROM referralHistory rh LEFT JOIN referralCodes rc ON rh.referralCode = rc.code ORDER BY rh.createdAt DESC LIMIT 100`);
   }),
 
   /** Admin: get referral program statistics */
   getReferralStats: publicProcedure.query(async () => {
     // Total referrals
-    const [totals] = await query(`SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM referralHistory`);
+    const totalsRows = await rawQuery<any>(`SELECT COUNT(*) as total, SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) as completed FROM referralHistory`);
     // Total credits distributed
-    const [credits] = await query(`SELECT COALESCE(SUM(totalEarned), 0) as totalDistributed FROM referralCredits`);
+    const creditsRows = await rawQuery<any>(`SELECT COALESCE(SUM(totalEarned), 0) as totalDistributed FROM referralCredits`);
     // Top referrers (clients)
-    const topClients = await query(`
+    const topClients = await rawQuery<any>(`
       SELECT rc.userId, rc.userRole, rc.code, rc.totalReferrals, rc.totalRewardsEarned,
              u.name, u.email
       FROM referralCodes rc
@@ -236,7 +233,7 @@ export const referralsRouter = router({
       ORDER BY rc.totalReferrals DESC LIMIT 10
     `);
     // Top referrers (drivers)
-    const topDrivers = await query(`
+    const topDrivers = await rawQuery<any>(`
       SELECT rc.userId, rc.userRole, rc.code, rc.totalReferrals, rc.totalRewardsEarned,
              u.name, u.email
       FROM referralCodes rc
@@ -245,7 +242,7 @@ export const referralsRouter = router({
       ORDER BY rc.totalReferrals DESC LIMIT 10
     `);
     // Daily referrals (last 7 days)
-    const dailyTrend = await query(`
+    const dailyTrend = await rawQuery<any>(`
       SELECT DATE(createdAt) as date, COUNT(*) as count
       FROM referralHistory
       WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)
@@ -253,21 +250,24 @@ export const referralsRouter = router({
       ORDER BY date ASC
     `);
     // Conversion rate by reward type
-    const rewardBreakdown = await query(`
+    const rewardBreakdown = await rawQuery<any>(`
       SELECT rewardType, COUNT(*) as count, COALESCE(SUM(CAST(rewardEarned AS DECIMAL(10,2))), 0) as totalValue
       FROM referralHistory
       WHERE status = 'completed' AND rewardType IS NOT NULL
       GROUP BY rewardType
     `);
     // Total active codes
-    const [activeCodes] = await query(`SELECT COUNT(*) as total FROM referralCodes`);
+    const activeCodesRows = await rawQuery<any>(`SELECT COUNT(*) as total FROM referralCodes`);
 
+    const totals = totalsRows[0] ?? { total: 0, completed: 0 };
+    const credits = creditsRows[0] ?? { totalDistributed: 0 };
+    const activeCodes = activeCodesRows[0] ?? { total: 0 };
     return {
-      totalReferrals: Number(totals?.total || 0),
-      completedReferrals: Number(totals?.completed || 0),
-      conversionRate: totals?.total > 0 ? Math.round((totals.completed / totals.total) * 100) : 0,
-      totalCreditsDistributed: Number(credits?.totalDistributed || 0),
-      activeCodes: Number(activeCodes?.total || 0),
+      totalReferrals: Number((totals as any)?.total || 0),
+      completedReferrals: Number((totals as any)?.completed || 0),
+      conversionRate: (totals as any)?.total > 0 ? Math.round(((totals as any).completed / (totals as any).total) * 100) : 0,
+      totalCreditsDistributed: Number((credits as any)?.totalDistributed || 0),
+      activeCodes: Number((activeCodes as any)?.total || 0),
       topClients,
       topDrivers,
       dailyTrend,
