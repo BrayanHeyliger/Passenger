@@ -65,6 +65,53 @@ export default function ForFleetSection() {
             </div>
           </div>
         </div>
+
+        {/* Fleet photo section */}
+        <div className="mt-12 grid lg:grid-cols-2 gap-10 items-center">
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
+            <img
+              src="/manus-storage/landing_flotilla_9d84fc4e.jpg"
+              alt="Empresario gestionando su flotilla de taxis"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4">
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-3 flex items-center gap-3 shadow-lg">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "oklch(0.52 0.12 148 / 0.15)" }}>
+                  <BarChart3 size={18} style={{ color: "oklch(0.35 0.12 148)" }} />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Panel en tiempo real</p>
+                  <p className="font-extrabold text-slate-900">Control total de tu flotilla</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <h3 className="text-2xl lg:text-3xl font-extrabold text-slate-900" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Todo lo que necesitas para<br />
+              <span style={{ color: "oklch(0.52 0.12 148)" }}>escalar tu negocio.</span>
+            </h3>
+            <p className="text-slate-500 leading-relaxed">
+              Desde el primer conductor hasta una flota de cientos, tu panel crece contigo. Sin costos extra, sin complicaciones técnicas.
+            </p>
+            <div className="space-y-3">
+              {[
+                "✅ Panel de control con mapa en tiempo real",
+                "✅ Reportes de ingresos por conductor",
+                "✅ Gestión de documentos y aprobaciones",
+                "✅ Configuración de tarifas y comisiones",
+                "✅ Mensajería directa con conductores",
+                "✅ Soporte técnico incluido",
+              ].map(item => (
+                <p key={item} className="text-slate-700 text-sm font-medium">{item}</p>
+              ))}
+            </div>
+            <a href="/register" onClick={(e) => { e.preventDefault(); sessionStorage.setItem("registerRole","fleet"); window.location.href="/register"; }} className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]" style={{ background: "oklch(0.52 0.12 148)", color: "white" }}>
+              Crear mi flotilla ahora <ChevronRight size={16} />
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   );

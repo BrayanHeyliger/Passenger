@@ -25,7 +25,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email" | "vehicles";
 type EditorView = "form" | "preview";
 
@@ -212,6 +212,8 @@ export default function AdminDashboard() {
     { id: "settings", label: "Configuración", icon: Settings },
     { id: "referrals", label: "Referidos", icon: Gift },
     { id: "dispatchers", label: "Dispatchers", icon: UserCog },
+    { id: "manualBooking", label: "Reserva Manual", icon: Phone },
+    { id: "surgePricing", label: "Precio Surge", icon: TrendingUp },
   ];
 
   if (!isAuthenticated) return null;
@@ -1009,6 +1011,17 @@ export default function AdminDashboard() {
           )}
 
           {/* ── FAQ EDITOR ── */}
+          {/* ── RESERVA MANUAL ── */}
+          {activeTab === "manualBooking" && (
+            <ManualBookingPanel drivers={drivers} />
+          )}
+
+          {/* ── SURGE PRICING ── */}
+          {activeTab === "surgePricing" && (
+            <SurgePricingPanel />
+          )}
+
+          {/* ── FAQ EDITOR ── */}
           {activeTab === "faq" && (
             <FAQEditor />
           )}
@@ -1437,6 +1450,304 @@ function DispatcherAdminPanel() {
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── MANUAL BOOKING PANEL ─────────────────────────────────────────────────────
+function ManualBookingPanel({ drivers }: { drivers: any[] }) {
+  const [form, setForm] = useState({
+    clientName: "", clientPhone: "", pickup: "", dropoff: "",
+    vehicleType: "economy", scheduledAt: "", notes: "", driverId: "",
+  });
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const vehicleTypes = [
+    { id: "economy", label: "🚗 Económico", price: "$8–$15" },
+    { id: "comfort", label: "🚙 Confort", price: "$12–$22" },
+    { id: "premium", label: "🏎️ Premium", price: "$20–$40" },
+    { id: "suv", label: "🚐 SUV", price: "$25–$50" },
+  ];
+
+  const handleSubmit = () => {
+    if (!form.clientName || !form.clientPhone || !form.pickup || !form.dropoff) {
+      toast.error("Completa los campos obligatorios");
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      const newBooking = {
+        id: `MB-${Date.now()}`,
+        ...form,
+        status: form.driverId ? "assigned" : "pending",
+        createdAt: new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+        driver: form.driverId ? drivers.find(d => d.id === form.driverId)?.name || "—" : "Sin asignar",
+      };
+      setBookings(prev => [newBooking, ...prev]);
+      setForm({ clientName: "", clientPhone: "", pickup: "", dropoff: "", vehicleType: "economy", scheduledAt: "", notes: "", driverId: "" });
+      setLoading(false);
+      toast.success(`✅ Reserva ${newBooking.id} creada${form.driverId ? " y asignada" : " — pendiente de conductor"}`);
+    }, 800);
+  };
+
+  const statusColors: Record<string, string> = { pending: "bg-yellow-100 text-yellow-700", assigned: "bg-blue-100 text-blue-700", completed: "bg-green-100 text-green-700", cancelled: "bg-red-100 text-red-700" };
+  const statusLabels: Record<string, string> = { pending: "Pendiente", assigned: "Asignado", completed: "Completado", cancelled: "Cancelado" };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">Reserva Manual de Viaje</h2>
+        <p className="text-sm text-slate-500 mt-1">Crea viajes manualmente para clientes que llaman por teléfono o no pueden usar la app</p>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Form */}
+        <Card className="p-6 space-y-4">
+          <h3 className="font-semibold text-slate-900 flex items-center gap-2"><Phone size={16} className="text-green-600" /> Datos del viaje</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Nombre del cliente *</label>
+              <input value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} placeholder="Ej: María García" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Teléfono *</label>
+              <input value={form.clientPhone} onChange={e => setForm(f => ({ ...f, clientPhone: e.target.value }))} placeholder="+1 407 000 0000" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1 block">Dirección de recogida *</label>
+            <input value={form.pickup} onChange={e => setForm(f => ({ ...f, pickup: e.target.value }))} placeholder="Ej: Calle 5 #123, Centro" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1 block">Destino *</label>
+            <input value={form.dropoff} onChange={e => setForm(f => ({ ...f, dropoff: e.target.value }))} placeholder="Ej: Aeropuerto Internacional" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1 block">Tipo de vehículo</label>
+            <div className="grid grid-cols-2 gap-2">
+              {vehicleTypes.map(v => (
+                <button key={v.id} onClick={() => setForm(f => ({ ...f, vehicleType: v.id }))}
+                  className={`p-2.5 rounded-xl border text-left transition-colors ${form.vehicleType === v.id ? "border-green-500 bg-green-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                  <p className="text-sm font-medium text-slate-900">{v.label}</p>
+                  <p className="text-xs text-slate-500">{v.price}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Programar para (opcional)</label>
+              <input type="datetime-local" value={form.scheduledAt} onChange={e => setForm(f => ({ ...f, scheduledAt: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Asignar conductor (opcional)</label>
+              <select value={form.driverId} onChange={e => setForm(f => ({ ...f, driverId: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none">
+                <option value="">Auto-asignar</option>
+                {drivers.filter(d => d.status === "active" && d.online).map(d => (
+                  <option key={d.id} value={d.id}>{d.name} — {d.vehicle}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1 block">Notas internas</label>
+            <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Ej: Cliente con silla de ruedas, necesita ayuda..." rows={2} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none" />
+          </div>
+
+          <Button onClick={handleSubmit} disabled={loading} className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold gap-2">
+            {loading ? <><Loader2 size={16} className="animate-spin" /> Creando reserva...</> : <><Phone size={16} /> Crear Reserva Manual</>}
+          </Button>
+        </Card>
+
+        {/* Recent bookings */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900">Reservas Manuales Recientes</h3>
+          {bookings.length === 0 ? (
+            <Card className="p-8 text-center">
+              <Phone size={32} className="mx-auto text-slate-300 mb-3" />
+              <p className="text-slate-500 text-sm">No hay reservas manuales aún</p>
+              <p className="text-slate-400 text-xs mt-1">Las reservas creadas aquí aparecerán en esta lista</p>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {bookings.map(b => (
+                <Card key={b.id} className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">{b.clientName}</p>
+                      <p className="text-xs text-slate-500">{b.clientPhone}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[b.status]}`}>{statusLabels[b.status]}</span>
+                      <span className="text-xs text-slate-400">{b.createdAt}</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p>📍 <strong>Recogida:</strong> {b.pickup}</p>
+                    <p>🏁 <strong>Destino:</strong> {b.dropoff}</p>
+                    <p>🚗 <strong>Vehículo:</strong> {vehicleTypes.find(v => v.id === b.vehicleType)?.label} · <strong>Conductor:</strong> {b.driver}</p>
+                    {b.notes && <p>📝 {b.notes}</p>}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={() => setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status: "completed" } : x))} className="text-xs px-3 py-1.5 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200">✅ Completar</button>
+                    <button onClick={() => setBookings(prev => prev.map(x => x.id === b.id ? { ...x, status: "cancelled" } : x))} className="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-700 font-medium hover:bg-red-200">❌ Cancelar</button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SURGE PRICING PANEL ──────────────────────────────────────────────────────
+function SurgePricingPanel() {
+  const [surgeEnabled, setSurgeEnabled] = useState(false);
+  const [rules, setRules] = useState([
+    { id: 1, name: "Hora pico mañana", days: ["Lun", "Mar", "Mié", "Jue", "Vie"], startTime: "07:00", endTime: "09:30", multiplier: 1.5, active: true },
+    { id: 2, name: "Hora pico tarde", days: ["Lun", "Mar", "Mié", "Jue", "Vie"], startTime: "17:00", endTime: "20:00", multiplier: 1.5, active: true },
+    { id: 3, name: "Viernes y sábado noche", days: ["Vie", "Sáb"], startTime: "22:00", endTime: "03:00", multiplier: 2.0, active: true },
+    { id: 4, name: "Domingo madrugada", days: ["Dom"], startTime: "00:00", endTime: "06:00", multiplier: 1.3, active: false },
+  ]);
+  const [showForm, setShowForm] = useState(false);
+  const [newRule, setNewRule] = useState({ name: "", startTime: "08:00", endTime: "10:00", multiplier: 1.5, days: [] as string[] });
+  const allDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+  const multiplierColor = (m: number) => m >= 2 ? "text-red-600 bg-red-50" : m >= 1.5 ? "text-orange-600 bg-orange-50" : "text-yellow-600 bg-yellow-50";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Precio Surge / Tarifa Dinámica</h2>
+          <p className="text-sm text-slate-500 mt-1">Aumenta automáticamente las tarifas en horas de alta demanda</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-slate-700">{surgeEnabled ? "Activo" : "Inactivo"}</span>
+          <button onClick={() => { setSurgeEnabled(!surgeEnabled); toast.success(surgeEnabled ? "Precio surge desactivado" : "Precio surge activado"); }}
+            className={`w-14 h-7 rounded-full transition-colors relative ${surgeEnabled ? "bg-green-500" : "bg-slate-300"}`}>
+            <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${surgeEnabled ? "translate-x-7" : "translate-x-0.5"}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Info banner */}
+      <Card className={`p-4 border-2 ${surgeEnabled ? "border-green-300 bg-green-50" : "border-slate-200 bg-slate-50"}`}>
+        <div className="flex items-start gap-3">
+          <TrendingUp size={20} className={surgeEnabled ? "text-green-600 mt-0.5" : "text-slate-400 mt-0.5"} />
+          <div>
+            <p className="font-semibold text-slate-900 text-sm">{surgeEnabled ? "✅ Precio surge activo" : "⏸️ Precio surge pausado"}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{surgeEnabled ? "Las tarifas se multiplican automáticamente según las reglas configuradas abajo." : "Activa el interruptor para aplicar tarifas dinámicas en los horarios definidos."}</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Rules list */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900">Reglas de Precio Surge</h3>
+          <Button onClick={() => setShowForm(true)} className="bg-green-500 hover:bg-green-600 text-white gap-2 text-sm" size="sm">
+            <Plus size={14} /> Nueva Regla
+          </Button>
+        </div>
+
+        {rules.map(rule => (
+          <Card key={rule.id} className={`p-4 ${!rule.active ? "opacity-60" : ""}`}>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="font-semibold text-slate-900 text-sm">{rule.name}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${multiplierColor(rule.multiplier)}`}>×{rule.multiplier}</span>
+                  {!rule.active && <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Inactivo</span>}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <span>🕐 {rule.startTime} – {rule.endTime}</span>
+                  <span>📅 {rule.days.join(", ")}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setRules(prev => prev.map(r => r.id === rule.id ? { ...r, active: !r.active } : r))}
+                  className={`w-10 h-6 rounded-full transition-colors relative ${rule.active ? "bg-green-500" : "bg-slate-300"}`}>
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${rule.active ? "translate-x-4" : "translate-x-0.5"}`} />
+                </button>
+                <button onClick={() => { setRules(prev => prev.filter(r => r.id !== rule.id)); toast.success("Regla eliminada"); }}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-red-400">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* New rule form */}
+      {showForm && (
+        <Card className="p-5 border-2 border-green-200 bg-green-50/50">
+          <h4 className="font-semibold text-slate-900 mb-4">Nueva Regla de Surge</h4>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Nombre de la regla</label>
+              <input value={newRule.name} onChange={e => setNewRule(r => ({ ...r, name: e.target.value }))} placeholder="Ej: Viernes noche" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Hora inicio</label>
+                <input type="time" value={newRule.startTime} onChange={e => setNewRule(r => ({ ...r, startTime: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Hora fin</label>
+                <input type="time" value={newRule.endTime} onChange={e => setNewRule(r => ({ ...r, endTime: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Multiplicador</label>
+                <select value={newRule.multiplier} onChange={e => setNewRule(r => ({ ...r, multiplier: Number(e.target.value) }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white">
+                  {[1.2, 1.3, 1.5, 1.75, 2.0, 2.5, 3.0].map(m => <option key={m} value={m}>×{m} ({Math.round((m-1)*100)}% más)</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-2 block">Días de la semana</label>
+              <div className="flex gap-2 flex-wrap">
+                {allDays.map(day => (
+                  <button key={day} onClick={() => setNewRule(r => ({ ...r, days: r.days.includes(day) ? r.days.filter(d => d !== day) : [...r.days, day] }))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${newRule.days.includes(day) ? "bg-green-500 text-white" : "bg-white border border-slate-200 text-slate-600"}`}>
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Cancelar</Button>
+              <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white" onClick={() => {
+                if (!newRule.name || newRule.days.length === 0) { toast.error("Completa el nombre y selecciona al menos un día"); return; }
+                setRules(prev => [...prev, { id: Date.now(), ...newRule, active: true }]);
+                setNewRule({ name: "", startTime: "08:00", endTime: "10:00", multiplier: 1.5, days: [] });
+                setShowForm(false);
+                toast.success("Regla de surge creada");
+              }}>Guardar Regla</Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* How it works */}
+      <Card className="p-5 bg-slate-50">
+        <h4 className="font-semibold text-slate-900 mb-3">¿Cómo funciona el Precio Surge?</h4>
+        <div className="grid sm:grid-cols-3 gap-4 text-sm text-slate-600">
+          <div className="flex gap-2"><span className="text-lg">🕐</span><p><strong>Horario activo:</strong> El sistema detecta si la hora actual coincide con alguna regla activa.</p></div>
+          <div className="flex gap-2"><span className="text-lg">💰</span><p><strong>Precio multiplicado:</strong> La tarifa base se multiplica automáticamente. Ej: $10 × 1.5 = $15.</p></div>
+          <div className="flex gap-2"><span className="text-lg">📱</span><p><strong>Visible al cliente:</strong> El cliente ve el precio surge antes de confirmar su viaje con un aviso claro.</p></div>
+        </div>
+      </Card>
     </div>
   );
 }

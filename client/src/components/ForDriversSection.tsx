@@ -24,23 +24,28 @@ export default function ForDriversSection() {
 
         {/* Main layout */}
         <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
-          {/* Left: earnings card */}
-          <div className="rounded-3xl p-8" style={{ background: "oklch(0.16 0.02 200)", border: "1px solid oklch(0.76 0.18 148 / 0.2)" }}>
-            <p className="text-white/50 text-sm uppercase tracking-widest font-semibold mb-2">Ejemplo de ganancias</p>
-            <p className="text-5xl font-extrabold mb-1" style={{ color: "oklch(0.76 0.18 148)", fontFamily: "'Sora', sans-serif" }}>$800 – $1,500</p>
-            <p className="text-white/50 text-sm mb-6">por semana trabajando a tu ritmo</p>
-            <div className="space-y-3">
-              {[
-                { label: "Viajes cortos (5 km)", value: "~$8 c/u" },
-                { label: "Viajes al aeropuerto", value: "~$35 c/u" },
-                { label: "Horas pico (mañana/tarde)", value: "+50% tarifa" },
-                { label: "Bonos por calificación 5★", value: "Extras semanales" },
-              ].map(r => (
-                <div key={r.label} className="flex justify-between items-center py-2 border-b border-white/10">
-                  <span className="text-white/70 text-sm">{r.label}</span>
-                  <span className="font-bold text-sm" style={{ color: "oklch(0.76 0.18 148)" }}>{r.value}</span>
+          {/* Left: photo + earnings overlay */}
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
+            <img
+              src="/manus-storage/landing_conductores_a37cc2d1.jpg"
+              alt="Conductor feliz ganando con WhatsApp Taxi"
+              className="w-full h-full object-cover"
+            />
+            {/* Earnings overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-4 right-4">
+              <div className="rounded-2xl px-5 py-4" style={{ background: "oklch(0.10 0.01 250 / 0.9)", backdropFilter: "blur(12px)", border: "1px solid oklch(0.76 0.18 148 / 0.3)" }}>
+                <p className="text-white/50 text-xs uppercase tracking-widest font-semibold mb-1">Ejemplo de ganancias semanales</p>
+                <p className="text-3xl font-extrabold mb-2" style={{ color: "oklch(0.76 0.18 148)", fontFamily: "'Sora', sans-serif" }}>$800 – $1,500</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ label: "Viajes cortos", value: "~$8 c/u" }, { label: "Al aeropuerto", value: "~$35 c/u" }, { label: "Horas pico", value: "+50% tarifa" }, { label: "Bonos 5★", value: "Extras semanales" }].map(r => (
+                    <div key={r.label} className="flex justify-between items-center py-1 border-b border-white/10">
+                      <span className="text-white/60 text-xs">{r.label}</span>
+                      <span className="font-bold text-xs" style={{ color: "oklch(0.76 0.18 148)" }}>{r.value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 

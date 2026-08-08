@@ -23,7 +23,31 @@ export default function ForClientsSection() {
         </div>
 
         {/* Benefits grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        {/* Hero image + benefits layout */}
+        <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+          {/* Photo */}
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
+            <img
+              src="/manus-storage/landing_clientes_fc4e76ec.jpg"
+              alt="Pasajera feliz usando WhatsApp Taxi"
+              className="w-full h-full object-cover"
+            />
+            {/* Overlay badge */}
+            <div className="absolute bottom-4 left-4 right-4">
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-3 flex items-center gap-3 shadow-lg">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "oklch(0.76 0.18 148 / 0.15)" }}>
+                  <Star size={18} style={{ color: "oklch(0.52 0.12 148)" }} />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Calificación promedio</p>
+                  <p className="font-extrabold text-slate-900">4.9 ★ · +2,400 viajes hoy</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Benefits */}
+          <div className="grid sm:grid-cols-2 gap-5">
           {[
             { icon: CreditCard, color: "#25D366", title: "Precios que cuidan tu bolsillo", desc: "Tarifas transparentes desde el primer momento. Sabes cuánto pagas antes de subir al taxi." },
             { icon: Shield, color: "#3B82F6", title: "Conductores verificados", desc: "Cada conductor pasa por un proceso de verificación de identidad y antecedentes. Tu seguridad primero." },
@@ -38,6 +62,7 @@ export default function ForClientsSection() {
               <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
             </div>
           ))}
+          </div>
         </div>
 
         {/* Social proof strip */}
