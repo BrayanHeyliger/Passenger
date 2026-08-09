@@ -403,8 +403,8 @@ export default function HeroSection() {
             {/* Social proof */}
             <div className="flex items-center justify-center gap-3 mt-4">
               <div className="flex -space-x-2">
-                {["🧑","👩","👨","🧑‍🦱"].map((e, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white/20 flex items-center justify-center text-sm" style={{ background: "oklch(0.20 0.02 200)" }}>{e}</div>
+                {["/manus-storage/avatar1_c813ee08.jpg", "/manus-storage/avatar2_b26d0545.jpg", "/manus-storage/avatar3_46cc7298.jpg", "/manus-storage/avatar4_6f0fea6f.jpg"].map((src, i) => (
+                  <img key={i} src={src} alt="Cliente" className="w-8 h-8 rounded-full border-2 object-cover object-center" style={{ borderColor: "oklch(0.14 0.02 200)" }} />
                 ))}
               </div>
               <p className="text-white/50 text-sm"><span className="text-white font-bold">2,400+</span> clientes activos esta semana</p>
