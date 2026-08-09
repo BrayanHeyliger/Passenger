@@ -18,13 +18,13 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <Navbar user={user} isAuthenticated={isAuthenticated} onLogout={logout} onLogin={() => window.location.href = "/login"} />
-      <ParcelPromoBar />
       <HeroSection />
       <ForClientsSection />
       <ForDriversSection />
       <ForFleetSection />
       <PricingSection />
       <TestimonialsSection />
+      <ParcelPromoBar />
       <ContactSection />
       <FooterSection />
       <PWAInstallBanner />
