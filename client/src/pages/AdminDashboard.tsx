@@ -400,7 +400,7 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
                               <button onClick={() => setEditingDriver(d)} className="p-1.5 rounded-lg hover:bg-purple-50 text-purple-500" title="Permisos"><Shield size={14} /></button>
-                              <button onClick={() => window.location.href = `tel:${d.phone}`} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Llamar"><Phone size={14} /></button>
+                              <button onClick={() => { setActiveTab("messages"); }} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500" title="Enviar mensaje"><MessageCircle size={14} /></button>
                               {d.status === "active" && <button onClick={() => handleDriverAction(d.id, "suspend")} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500" title="Suspender"><UserX size={14} /></button>}
                               {(d.status === "suspended" || d.status === "inactive") && <button onClick={() => handleDriverAction(d.id, "activate")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Activar"><UserCheck size={14} /></button>}
                               {d.status === "pending" && <button onClick={() => handleDriverAction(d.id, "approve")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600" title="Aprobar"><CheckCircle size={14} /></button>}
@@ -437,7 +437,7 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${c.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{c.status === "active" ? "Activo" : "Suspendido"}</span></td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
-                              <button onClick={() => window.location.href = `tel:${c.phone}`} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Llamar"><Phone size={14} /></button>
+                              <button onClick={() => { setActiveTab("messages"); }} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500" title="Enviar mensaje"><MessageCircle size={14} /></button>
                               <button onClick={() => { setActiveTab("messages"); setMessageForm(f => ({ ...f, to: "specific", subject: `Mensaje para ${c.name}` })); }} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500" title="Mensaje"><MessageCircle size={14} /></button>
                               {c.status === "active" ? <button onClick={() => handleClientAction(c.id, "suspend")} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500" title="Suspender"><UserX size={14} /></button> : <button onClick={() => handleClientAction(c.id, "activate")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Activar"><UserCheck size={14} /></button>}
                             </div>

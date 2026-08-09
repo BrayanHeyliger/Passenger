@@ -81,7 +81,7 @@ export default function DispatcherDashboard() {
     const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const updated = trips.map((t: any) =>
       t.id === selectedTrip.id
-        ? { ...t, status: "accepted", driver: { name: driver.name, vehicle: driver.vehicle, plate: driver.plate, rating: 4.8, phone: "+15550101" }, estimatedTime: "5 min" }
+        ? { ...t, status: "accepted", driver: { name: driver.name, vehicle: driver.vehicle, plate: driver.plate, rating: 4.8, phone: "" }, estimatedTime: "5 min" }
         : t
     );
     localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
@@ -269,18 +269,14 @@ export default function DispatcherDashboard() {
                   <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
                     <span>Viajes hoy: <strong className="text-slate-800">{driver.trips}</strong></span>
                   </div>
-                  {permissions.contactUsers && (
-                    <div className="flex gap-2">
+                 {permissions.contactUsers && (
+                   <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs"
-                        onClick={() => window.location.href = `tel:+15550101`}>
-                        <Phone size={12} /> Llamar
+                        onClick={() => alert("Usa el chat interno del panel del conductor para contactarlo de forma segura.")}>
+                        <MessageCircle size={12} /> Chat Seguro
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs"
-                        onClick={() => window.open(`https://wa.me/15550101`, "_blank")}>
-                        <MessageCircle size={12} /> WhatsApp
-                      </Button>
-                    </div>
-                  )}
+                   </div>
+                 )}
                 </Card>
               ))}
             </div>

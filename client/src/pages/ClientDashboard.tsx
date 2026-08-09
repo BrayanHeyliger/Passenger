@@ -140,7 +140,7 @@ export default function ClientDashboard() {
       const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
       const myTrip = trips.find((t: any) => t.clientId === user?.id && t.status === "requested");
       if (myTrip) {
-        const updatedTrip = { ...myTrip, status: "accepted", driver: { name: "Carlos M.", vehicle: "Toyota Corolla", plate: "ABC-123", rating: 4.8, phone: "+15550101" }, estimatedTime: "4 min" };
+        const updatedTrip = { ...myTrip, status: "accepted", driver: { name: "Carlos M.", vehicle: "Toyota Corolla", plate: "ABC-123", rating: 4.8, phone: "" }, estimatedTime: "4 min" };
         const updated = trips.map((t: any) => t.id === myTrip.id ? updatedTrip : t);
         localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
         setCurrentTrip(updatedTrip);
