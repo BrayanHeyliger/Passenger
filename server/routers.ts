@@ -8,6 +8,7 @@ import { siteSettingsRouter } from "./routers/siteSettings";
 import { referralsRouter } from "./routers/referrals";
 import { announcementsRouter } from "./routers/announcements";
 import { safetyTipsRouter } from "./routers/safetyTips";
+import { parcelsRouter } from "./routers/parcels";
 
 export const appRouter = router({
   system: systemRouter,
@@ -17,6 +18,7 @@ export const appRouter = router({
   referrals: referralsRouter,
   announcements: announcementsRouter,
   safetyTips: safetyTipsRouter,
+  parcels: parcelsRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
