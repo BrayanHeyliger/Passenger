@@ -10,6 +10,7 @@
  import TestimonialsSection from "@/components/TestimonialsSection";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import { ParcelPromoBar } from "@/components/ParcelPromoBar";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useLocalAuth();
@@ -17,6 +18,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <Navbar user={user} isAuthenticated={isAuthenticated} onLogout={logout} onLogin={() => window.location.href = "/login"} />
+      <ParcelPromoBar />
       <HeroSection />
       <ForClientsSection />
       <ForDriversSection />

@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import ReferralPanel from "@/components/ReferralPanel";
 
 type TripStatus = "idle" | "searching" | "accepted" | "in_progress" | "completed" | "rating";
-type ActivePanel = "request" | "history" | "scheduled" | "promo" | "referrals";
+type ActivePanel = "request" | "history" | "scheduled" | "promo" | "referrals" | "parcels";
 
 interface TripNotification { id: string; message: string; time: string; type: "info" | "success" | "warning"; }
 interface TripHistory { id: string; date: string; from: string; to: string; fare: string; driver: string; rating: number; }
@@ -477,6 +477,7 @@ export default function ClientDashboard() {
             <div className="flex border-b border-slate-200 flex-shrink-0">
               {[
                 { id: "request" as ActivePanel, label: "Viaje", icon: Car },
+                { id: "parcels" as ActivePanel, label: "Paquetes", icon: Briefcase },
                 { id: "scheduled" as ActivePanel, label: "Programar", icon: Calendar },
                 { id: "history" as ActivePanel, label: "Historial", icon: History },
                 { id: "promo" as ActivePanel, label: "Promos", icon: Tag },
@@ -755,6 +756,25 @@ export default function ClientDashboard() {
             )}
 
             {/* BUSCANDO */}
+
+            {/* PAQUETES */}
+            {tripStatus === "idle" && activePanel === "parcels" && (
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <Briefcase size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Envío de Paquetes</h2>
+                    <p className="text-xs text-slate-500">Entrega rápida y segura en minutos</p>
+                  </div>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                  <p className="text-sm text-blue-800 font-medium">📦 Módulo de paquetería disponible</p>
+                  <p className="text-xs text-blue-600 mt-1">Envía paquetes con rastreo en tiempo real</p>
+                </div>
+              </div>
+            )}
             {tripStatus === "searching" && (
               <div className="p-5 flex flex-col items-center gap-4 justify-center h-full">
                 <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
