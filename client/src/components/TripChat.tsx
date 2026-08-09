@@ -11,9 +11,11 @@ interface TripChatProps {
   role: "client" | "driver";
   otherPartyName: string;
   className?: string;
+  forceOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function TripChat({ tripId, userId, userName, role, otherPartyName, className }: TripChatProps) {
+export function TripChat({ tripId, userId, userName, role, otherPartyName, className, forceOpen, onOpenChange }: TripChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
@@ -81,7 +83,19 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     typingDebounceRef.current = setTimeout(() => sendTyping(userName), 300);
   };
 
+  // Sync with external forceOpen prop
+  useEffect(() => {
+    if (forceOpen !== undefined && forceOpen !== isOpen) {
+      setIsOpen(forceOpen);
+      if (forceOpen) {
+        setUnreadCount(0);
+        setTimeout(() => inputRef.current?.focus(), 150);
+      }
+    }
+  }, [forceOpen]);
+
   const handleOpen = () => {
+    onOpenChange?.(true);
     setIsOpen(true);
     setUnreadCount(0);
     setTimeout(() => inputRef.current?.focus(), 100);
@@ -263,7 +277,7 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
 
       {/* Floating button */}
       <button
-        onClick={isOpen ? () => setIsOpen(false) : handleOpen}
+        onClick={isOpen ? () => { setIsOpen(false); onOpenChange?.(false); } : handleOpen}
         className={cn(
           "w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 relative",
           callIncoming ? "bg-green-500 animate-bounce shadow-green-500/50" : "bg-green-500 hover:bg-green-600 shadow-green-500/30"
@@ -287,4 +301,3 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     </div>
   );
 }
-

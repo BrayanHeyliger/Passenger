@@ -197,18 +197,18 @@ export default function HeroSection() {
   const extrasTotal = selectedExtras.reduce((s, id) => s + (EXTRAS.find(e => e.id === id)?.price || 0), 0);
 
   return (
-    <section className="relative min-h-screen flex items-start pt-16 overflow-x-hidden" style={{ background: "linear-gradient(135deg, oklch(0.10 0.01 250) 0%, oklch(0.14 0.02 200) 100%)" }}>
+    <section className="relative w-full flex flex-col pt-16 overflow-x-hidden" style={{ background: "linear-gradient(135deg, oklch(0.10 0.01 250) 0%, oklch(0.14 0.02 200) 100%)" }}>
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl" style={{ background: "oklch(0.76 0.18 148)" }} />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8 blur-3xl" style={{ background: "oklch(0.52 0.12 148)" }} />
       </div>
 
-      <div className="container relative z-10 py-6 lg:py-16">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-16 items-start">
+      <div className="container relative z-10 py-6 pb-10 lg:py-16">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 lg:gap-16 lg:items-start">
 
           {/* Left: Copy */}
-          <div className="order-1 lg:order-1 text-center lg:text-left">
+          <div className="order-2 lg:order-1 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ background: "oklch(0.76 0.18 148 / 0.15)", color: "oklch(0.76 0.18 148)" }}>
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "oklch(0.76 0.18 148)" }} />
               Conductores disponibles ahora
@@ -234,8 +234,8 @@ export default function HeroSection() {
           </div>
 
           {/* Right: Booking card */}
-          <div className="order-2 lg:order-2 w-full max-w-md mx-auto lg:max-w-none">
-            <div className="rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-black/40 bg-white">
+          <div className="order-1 lg:order-2 w-full max-w-sm mx-auto sm:max-w-md lg:max-w-none">
+            <div className="rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-black/40 bg-white overflow-hidden">
 
               {/* STEP: FORM */}
               {step === "form" && (

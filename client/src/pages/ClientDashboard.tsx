@@ -39,6 +39,9 @@ export default function ClientDashboard() {
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [tripStatus, setTripStatus] = useState<TripStatus>("idle");
   const [currentTrip, setCurrentTrip] = useState<any>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [userViewbox, setUserViewbox] = useState<[number, number, number, number] | undefined>(undefined);
+  const [userCountryCode, setUserCountryCode] = useState<string | undefined>(undefined);
   const [showNotifications, setShowNotifications] = useState(false);
   const [estimatedFare, setEstimatedFare] = useState<string | null>(null);
   const [estimatedTime, setEstimatedTime] = useState<string | null>(null);
@@ -223,10 +226,14 @@ export default function ClientDashboard() {
     navigator.geolocation?.getCurrentPosition(async (pos) => {
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setPickupCoords(coords);
+      // Build a ~30km bounding box around the user's GPS position for destination search bias
+      const delta = 0.27; // ~30km
+      setUserViewbox([coords.lng - delta, coords.lat - delta, coords.lng + delta, coords.lat + delta]);
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`, { headers: { "Accept-Language": "es" } });
         const data = await res.json();
         if (data.display_name) setPickupLocation(data.display_name.split(",").slice(0, 2).join(","));
+        if (data.address?.country_code) setUserCountryCode(data.address.country_code);
       } catch {}
     });
   }, []);
@@ -325,9 +332,7 @@ export default function ClientDashboard() {
   };
 
   const handleMessageDriver = () => {
-    // Scroll al chat interno — no exponemos el número personal del conductor
-    document.getElementById("trip-chat-anchor")?.scrollIntoView({ behavior: "smooth" });
-    toast.info("💬 Escríbele al conductor por el chat seguro de abajo");
+    setChatOpen(true);
   };
 
   const handleSOS = () => {
@@ -444,6 +449,8 @@ export default function ClientDashboard() {
               userName={user?.name || "Cliente"}
               role="client"
               otherPartyName={currentTrip.driver?.name || "Conductor"}
+              forceOpen={chatOpen}
+              onOpenChange={setChatOpen}
             />
             </div>
           )}
@@ -531,6 +538,8 @@ export default function ClientDashboard() {
                   onSelect={handleDropoffSelect}
                   placeholder="¿A dónde vas?"
                   icon={<span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />}
+                  countryCode={userCountryCode}
+                  viewbox={userViewbox}
                 />
 
                 {/* Tipo de vehículo */}
@@ -670,7 +679,7 @@ export default function ClientDashboard() {
                   <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
                 <NominatimAutocomplete value={pickupLocation} onChange={setPickupLocation} onSelect={handlePickupSelect} placeholder="¿Dónde te recogemos?" icon={<span className="w-3 h-3 rounded-full inline-block bg-green-500" />} />
-                <NominatimAutocomplete value={dropoffLocation} onChange={setDropoffLocation} onSelect={handleDropoffSelect} placeholder="¿A dónde vas?" icon={<span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />} />
+                <NominatimAutocomplete value={dropoffLocation} onChange={setDropoffLocation} onSelect={handleDropoffSelect} placeholder="¿A dónde vas?" icon={<span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />} countryCode={userCountryCode} viewbox={userViewbox} />
                 <Button onClick={() => { if (scheduledDate && scheduledTime && pickupLocation && dropoffLocation) { handleRequestTrip(); setActivePanel("request"); } else { toast.error("Completa todos los campos"); } }}
                   className="w-full py-3 font-bold" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
                   <Calendar size={15} className="mr-2" /> Programar Viaje
