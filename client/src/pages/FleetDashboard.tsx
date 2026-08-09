@@ -339,7 +339,7 @@ export default function FleetDashboard() {
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-sm">{d.name[0]}</div>
                                 {d.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />}
                               </div>
-                              <div><p className="font-semibold text-slate-900">{d.name}</p><p className="text-xs text-slate-500">{d.phone}</p></div>
+                              <div><p className="font-semibold text-slate-900">{d.name}</p><p className="text-xs text-slate-500">{d.vehicle}</p></div>
                             </div>
                           </td>
                           <td className="px-4 py-3"><p className="text-slate-900">{d.vehicle}</p><p className="text-xs text-slate-500 font-mono">{d.plate}</p></td>
@@ -350,7 +350,7 @@ export default function FleetDashboard() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
                               <button onClick={() => setSelectedDriver(d)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500" title="Ver detalles"><Eye size={14} /></button>
-                              <button onClick={() => window.location.href = `tel:${d.phone}`} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Llamar"><Phone size={14} /></button>
+                              <button onClick={() => { setActiveChatTrip(`fleet-driver-${d.id}`); toast.info(`💬 Chat con ${d.name.split(" ")[0]} abierto`); }} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Contactar por chat"><MessageCircle size={14} /></button>
                               <button onClick={() => { setActiveChatTrip(`fleet-driver-${d.id}`); toast.info(`Chat con ${d.name.split(" ")[0]} abierto`); }} className="p-1.5 rounded-lg hover:bg-purple-50 text-purple-500" title="Chat"><MessageCircle size={14} /></button>
                               {d.status === "active" && <button onClick={() => handleDriverAction(d.id, "suspend")} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500" title="Suspender"><UserX size={14} /></button>}
                               {(d.status === "suspended" || d.status === "inactive") && <button onClick={() => handleDriverAction(d.id, "activate")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Activar"><UserCheck size={14} /></button>}
@@ -394,14 +394,14 @@ export default function FleetDashboard() {
                               <div><p className="font-semibold text-slate-900">{c.name}</p><p className="text-xs text-slate-500">Desde {c.joinDate}</p></div>
                             </div>
                           </td>
-                          <td className="px-4 py-3"><p className="text-slate-900">{c.phone}</p><p className="text-xs text-slate-500">{c.email}</p></td>
+                          <td className="px-4 py-3"><p className="text-slate-900 text-sm">{c.email}</p><p className="text-xs text-slate-500">Cliente registrado</p></td>
                           <td className="px-4 py-3 font-medium text-slate-900">{c.trips}</td>
                           <td className="px-4 py-3 font-semibold text-green-600">{c.spent}</td>
                           <td className="px-4 py-3"><div className="flex items-center gap-1"><Star size={13} className="text-yellow-500 fill-yellow-500" /><span className="font-semibold text-slate-900">{c.rating}</span></div></td>
                           <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${c.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{c.status === "active" ? "Activo" : "Suspendido"}</span></td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1">
-                              <button onClick={() => window.location.href = `tel:${c.phone}`} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Llamar"><Phone size={14} /></button>
+                              <button onClick={() => toast.info("💬 Usa el chat interno para contactar al cliente")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Contactar"><MessageCircle size={14} /></button>
                               {c.status === "active"
                                 ? <button onClick={() => handleClientAction(c.id, "suspend")} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500" title="Suspender"><UserX size={14} /></button>
                                 : <button onClick={() => handleClientAction(c.id, "activate")} className="p-1.5 rounded-lg hover:bg-green-50 text-green-500" title="Activar"><UserCheck size={14} /></button>
@@ -589,7 +589,7 @@ export default function FleetDashboard() {
             </div>
             <div className="space-y-2 text-sm">
               {[
-                { label: "Teléfono", value: selectedDriver.phone },
+                { label: "Teléfono", value: "••••••••" },
                 { label: "Email", value: selectedDriver.email },
                 { label: "Vehículo", value: selectedDriver.vehicle },
                 { label: "Placa", value: selectedDriver.plate },
@@ -605,7 +605,7 @@ export default function FleetDashboard() {
               ))}
             </div>
             <div className="flex gap-2 mt-4">
-              <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white gap-2 text-sm" onClick={() => window.location.href = `tel:${selectedDriver.phone}`}><Phone size={14} /> Llamar</Button>
+              <Button className="flex-1 bg-green-500 hover:bg-green-600 text-white gap-2 text-sm" onClick={() => { setActiveChatTrip(`fleet-driver-${selectedDriver.id}`); setSelectedDriver(null); }}><MessageCircle size={14} /> Chat Seguro</Button>
               <Button variant="outline" className="flex-1 gap-2 text-sm" onClick={() => { setActiveChatTrip(`fleet-driver-${selectedDriver.id}`); setSelectedDriver(null); }}><MessageCircle size={14} /> Chat</Button>
             </div>
           </Card>

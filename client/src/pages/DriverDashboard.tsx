@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import LeafletMap from "@/components/LeafletMap";
 import ReferralPanel from "@/components/ReferralPanel";
 
+import { TripChat } from "@/components/TripChat";
+import SafetyTipsButton from "@/components/SafetyTipsButton";
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
 
@@ -141,12 +143,15 @@ export default function DriverDashboard() {
   };
 
   const handleCallPassenger = () => {
-    toast.info("Llamando al pasajero...");
-    window.location.href = "tel:+15551001";
+    // El número del pasajero es privado — usar el chat interno
+    toast.info("💬 Usa el chat seguro para contactar al pasajero");
+    document.getElementById("driver-chat-anchor")?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleMessagePassenger = () => {
-    window.open("https://wa.me/15551001?text=Hola, soy tu conductor. Estoy en camino.", "_blank");
+    // No exponemos el número del pasajero — usar chat interno
+    toast.info("💬 Escríbele al pasajero por el chat seguro de abajo");
+    document.getElementById("driver-chat-anchor")?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleSOS = () => {
@@ -425,11 +430,11 @@ export default function DriverDashboard() {
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" className="flex-1 gap-1 text-xs text-green-600 border-green-200"
-                          onClick={() => { const phone = currentTrip.clientName; window.open(`tel:${phone}`, "_self"); }}>
+                          onClick={handleCallPassenger}>
                           <Phone size={12} /> Llamar cliente
                         </Button>
                         <Button variant="outline" size="sm" className="flex-1 gap-1 text-xs text-green-600 border-green-200"
-                          onClick={() => window.open(`https://wa.me/?text=Hola ${currentTrip.clientName}, soy tu conductor. Ya voy en camino.`, "_blank")}>
+                          onClick={handleMessagePassenger}>
                           <MessageCircle size={12} /> WhatsApp
                         </Button>
                       </div>
@@ -630,8 +635,19 @@ export default function DriverDashboard() {
           </div>
         )}
       </main>
+      {/* Chat seguro — visible cuando hay viaje activo */}
+      {currentTrip && (currentTrip.status === "accepted" || currentTrip.status === "in_progress") && (
+        <div id="driver-chat-anchor" className="fixed bottom-20 right-4 z-[9990]">
+          <TripChat
+            tripId={currentTrip.id}
+            userId={user?.id != null ? String(user.id) : "driver"}
+            userName={user?.name || "Conductor"}
+            role="driver"
+            otherPartyName={currentTrip.clientName || "Pasajero"}
+          />
+        </div>
+      )}
       <SafetyTipsButton audience="drivers" />
     </div>
   );
 }
-import SafetyTipsButton from "@/components/SafetyTipsButton";

@@ -320,13 +320,14 @@ export default function ClientDashboard() {
   };
 
   const handleCallDriver = () => {
-    const phone = currentTrip?.driver?.phone || "+15550101";
-    window.location.href = `tel:${phone}`;
+    // Abrir chat interno en lugar de llamada directa — el teléfono del conductor es privado
+    toast.info("💬 Usa el chat para contactar al conductor de forma segura");
   };
 
   const handleMessageDriver = () => {
-    const phone = (currentTrip?.driver?.phone || "+15550101").replace(/\D/g, "");
-    window.open(`https://wa.me/${phone}?text=Hola, soy tu pasajero. Ya estoy listo.`, "_blank");
+    // Scroll al chat interno — no exponemos el número personal del conductor
+    document.getElementById("trip-chat-anchor")?.scrollIntoView({ behavior: "smooth" });
+    toast.info("💬 Escríbele al conductor por el chat seguro de abajo");
   };
 
   const handleSOS = () => {
@@ -436,6 +437,7 @@ export default function ClientDashboard() {
           />
           {/* Chat flotante — visible cuando hay viaje activo */}
           {(tripStatus === "accepted" || tripStatus === "in_progress") && currentTrip && (
+            <div id="trip-chat-anchor">
             <TripChat
               tripId={currentTrip.id}
               userId={user?.id != null ? String(user.id) : "client"}
@@ -443,6 +445,7 @@ export default function ClientDashboard() {
               role="client"
               otherPartyName={currentTrip.driver?.name || "Conductor"}
             />
+            </div>
           )}
           {/* Status overlay en el mapa */}
           {tripStatus === "searching" && (
@@ -791,8 +794,8 @@ export default function ClientDashboard() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleCallDriver} className="bg-green-600 hover:bg-green-700 text-white gap-2 text-sm"><Phone size={15} /> Llamar</Button>
-                  <Button onClick={handleMessageDriver} className="bg-[#25D366] hover:bg-[#1ebe57] text-white gap-2 text-sm"><MessageCircle size={15} /> WhatsApp</Button>
+                  <Button onClick={handleMessageDriver} className="bg-green-600 hover:bg-green-700 text-white gap-2 text-sm"><MessageCircle size={15} /> Chat Seguro</Button>
+                  <Button onClick={handleSOS} variant="outline" className="gap-2 text-sm text-red-500 border-red-200"><AlertTriangle size={15} /> SOS</Button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <Button variant="outline" size="sm" onClick={handleShareTrip} className="gap-1 text-xs"><Share2 size={12} /> Compartir</Button>
