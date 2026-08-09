@@ -16,6 +16,7 @@ import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import ReferralPanel from "@/components/ReferralPanel";
+import { ParcelTracking, type ParcelOrder } from "@/components/ParcelTracking";
 
 type TripStatus = "idle" | "searching" | "accepted" | "in_progress" | "completed" | "rating";
 type ActivePanel = "request" | "history" | "scheduled" | "promo" | "referrals" | "parcels";
@@ -71,6 +72,10 @@ export default function ClientDashboard() {
   });
   const [showBidMode, setShowBidMode] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
+  const [parcelOrders, setParcelOrders] = useState<ParcelOrder[]>([]);
+  const [selectedParcel, setSelectedParcel] = useState<ParcelOrder | null>(null);
+  const [showParcelTracking, setShowParcelTracking] = useState(false);
+  const PARCELS_KEY = "wt_parcel_orders";
 
   const mapRef = useRef<LeafletMapRef | null>(null);
   const driverAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -755,6 +760,73 @@ export default function ClientDashboard() {
               </div>
             )}
 
+            {/* BUSCANDO */}
+
+                        {/* PAQUETES */}
+            {tripStatus === "idle" && activePanel === "parcels" && !showParcelTracking && (
+              <div className="p-4 flex flex-col gap-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <Briefcase size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Envío de Paquetes</h2>
+                    <p className="text-xs text-slate-500">Entrega rápida y segura en minutos</p>
+                  </div>
+                </div>
+                
+                {parcelOrders.length === 0 ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                    <p className="text-sm text-blue-800 font-medium">📦 No hay paquetes activos</p>
+                    <p className="text-xs text-blue-600 mt-1">Crea un nuevo envío desde el formulario en el Hero</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {parcelOrders.map(order => (
+                      <Card key={order.id} className="p-3 cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setSelectedParcel(order); setShowParcelTracking(true); }}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-slate-900">Código: {order.trackingCode}</p>
+                            <p className="text-xs text-slate-500 truncate">{order.pickupAddress}</p>
+                            <p className="text-xs text-slate-500 truncate">→ {order.dropoffAddress}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                              order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                              order.status === "accepted" ? "bg-blue-100 text-blue-800" :
+                              order.status === "in_transit" ? "bg-orange-100 text-orange-800" :
+                              order.status === "delivered" ? "bg-green-100 text-green-800" :
+                              "bg-red-100 text-red-800"
+                            }`}>
+                              {order.status === "pending" ? "⏳" :
+                               order.status === "accepted" ? "🚗" :
+                               order.status === "in_transit" ? "📦" :
+                               order.status === "delivered" ? "✅" : "❌"}
+                            </span>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PARCEL TRACKING */}
+            {tripStatus === "idle" && activePanel === "parcels" && showParcelTracking && selectedParcel && (
+              <div className="p-4 flex flex-col gap-4">
+                <button
+                  onClick={() => setShowParcelTracking(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600 mb-2 flex items-center gap-1"
+                >
+                  ← Volver
+                </button>
+                <ParcelTracking
+                  order={selectedParcel}
+                  onClose={() => setShowParcelTracking(false)}
+                />
+              </div>
+            )}
             {/* BUSCANDO */}
 
             {/* PAQUETES */}

@@ -9,6 +9,7 @@ import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
+import { HeroParcelForm } from "@/components/HeroParcelForm";
 
 const VEHICLES = [
   { id: "economy", label: "Económico", emoji: "🚗", base: 6,  perKm: 0.9, eta: "3 min", seats: 4 },
@@ -66,6 +67,7 @@ export default function HeroSection() {
   const [showPassword, setShowPassword] = useState(false);
   const [regLoading, setRegLoading]   = useState(false);
   const [regError, setRegError]       = useState("");
+  const [serviceType, setServiceType] = useState<"trip" | "parcel">("trip");
 
   const handleMapReady = useCallback((ref: LeafletMapRef) => {
     mapRef.current = ref;
@@ -237,8 +239,32 @@ export default function HeroSection() {
           <div className="order-1 lg:order-2 w-full max-w-sm mx-auto sm:max-w-md lg:max-w-none">
             <div className="rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-black/40 bg-white overflow-hidden">
 
+              {/* Toggle Viaje/Paquete */}
+              <div className="flex gap-2 mb-4 bg-slate-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setServiceType("trip")}
+                  className={`flex-1 py-2 px-3 rounded-md font-semibold text-sm transition-all ${
+                    serviceType === "trip"
+                      ? "bg-white text-green-600 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  🚗 Viaje
+                </button>
+                <button
+                  onClick={() => setServiceType("parcel")}
+                  className={`flex-1 py-2 px-3 rounded-md font-semibold text-sm transition-all ${
+                    serviceType === "parcel"
+                      ? "bg-white text-green-600 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  📦 Paquete
+                </button>
+              </div>
+
               {/* STEP: FORM */}
-              {step === "form" && (
+              {step === "form" && serviceType === "trip" && (
                 <>
                   <h2 className="text-lg lg:text-xl font-bold text-slate-900 mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>¿A dónde vas hoy?</h2>
 
@@ -362,6 +388,19 @@ export default function HeroSection() {
                     Pedir {v.emoji} {v.label} · ${(v.base + estimate.km * v.perKm + extrasTotal).toFixed(2)} <ChevronRight size={16} />
                   </button>
                 </>
+              )}
+
+              {/* PARCEL FORM */}
+              {step === "form" && serviceType === "parcel" && (
+                <HeroParcelForm
+                  onNavigateToDashboard={() => {
+                    if (isAuthenticated) {
+                      navigate("/client-dashboard?tab=parcels");
+                    } else {
+                      setStep("register");
+                    }
+                  }}
+                />
               )}
 
               {/* STEP: REGISTER */}

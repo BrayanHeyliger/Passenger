@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { X } from "lucide-react";
 
 export function ParcelPromoBar() {
+  const [, navigate] = useLocation();
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("parcelPromo_dismissed") === "true";
@@ -68,12 +70,7 @@ export function ParcelPromoBar() {
 
             <button
               onClick={() => {
-                const element = document.getElementById("parcel-booking-section");
-                if (element) {
-                  element.scrollIntoView({ behavior: "smooth" });
-                } else {
-                  window.location.href = "/client-dashboard?tab=parcels";
-                }
+                navigate("/client-dashboard?tab=parcels");
               }}
               className="inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-105 mt-2"
             >
