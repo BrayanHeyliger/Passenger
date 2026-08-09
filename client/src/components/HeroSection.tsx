@@ -197,15 +197,15 @@ export default function HeroSection() {
   const extrasTotal = selectedExtras.reduce((s, id) => s + (EXTRAS.find(e => e.id === id)?.price || 0), 0);
 
   return (
-    <section className="relative min-h-screen flex items-center pt-16 overflow-hidden" style={{ background: "linear-gradient(135deg, oklch(0.10 0.01 250) 0%, oklch(0.14 0.02 200) 100%)" }}>
+    <section className="relative min-h-screen flex items-start pt-16 overflow-x-hidden" style={{ background: "linear-gradient(135deg, oklch(0.10 0.01 250) 0%, oklch(0.14 0.02 200) 100%)" }}>
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl" style={{ background: "oklch(0.76 0.18 148)" }} />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8 blur-3xl" style={{ background: "oklch(0.52 0.12 148)" }} />
       </div>
 
-      <div className="container relative z-10 py-8 lg:py-16">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-start lg:items-center">
+      <div className="container relative z-10 py-6 lg:py-16">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-16 items-start">
 
           {/* Left: Copy */}
           <div className="order-1 lg:order-1 text-center lg:text-left">
@@ -235,7 +235,7 @@ export default function HeroSection() {
 
           {/* Right: Booking card */}
           <div className="order-2 lg:order-2 w-full max-w-md mx-auto lg:max-w-none">
-            <div className="rounded-3xl p-5 lg:p-6 shadow-2xl shadow-black/40 bg-white">
+            <div className="rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-black/40 bg-white">
 
               {/* STEP: FORM */}
               {step === "form" && (
@@ -306,8 +306,8 @@ export default function HeroSection() {
                   </div>
 
                   {/* Map preview — smaller on desktop to avoid overflow */}
-                  <div className="rounded-2xl overflow-hidden mb-4" style={{ height: 140 }}>
-                    <LeafletMap height="140px" onMapReady={handleMapReady} />
+                  <div className="rounded-2xl overflow-hidden mb-4 hidden sm:block" style={{ height: 130 }}>
+                    <LeafletMap height="130px" onMapReady={handleMapReady} />
                   </div>
 
                   {calcError && (

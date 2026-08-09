@@ -78,6 +78,32 @@ async function startServer() {
       io.to(roomId).emit("trip_status_update", { status, data, time: new Date().toISOString() });
     });
 
+    // ── WebRTC Voice Call Signaling ────────────────────────────────────────────
+    // call_offer: caller sends SDP offer to the other party in the room
+    socket.on("call_offer", ({ roomId, offer, from, callerName }: { roomId: string; offer: RTCSessionDescriptionInit; from: string; callerName: string }) => {
+      socket.to(roomId).emit("call_incoming", { offer, from, callerName });
+    });
+
+    // call_answer: callee sends SDP answer back to caller
+    socket.on("call_answer", ({ roomId, answer, from }: { roomId: string; answer: RTCSessionDescriptionInit; from: string }) => {
+      socket.to(roomId).emit("call_answered", { answer, from });
+    });
+
+    // call_ice: exchange ICE candidates
+    socket.on("call_ice", ({ roomId, candidate, from }: { roomId: string; candidate: RTCIceCandidateInit; from: string }) => {
+      socket.to(roomId).emit("call_ice_candidate", { candidate, from });
+    });
+
+    // call_end: either party hangs up
+    socket.on("call_end", ({ roomId, from }: { roomId: string; from: string }) => {
+      socket.to(roomId).emit("call_ended", { from });
+    });
+
+    // call_reject: callee rejects incoming call
+    socket.on("call_reject", ({ roomId, from }: { roomId: string; from: string }) => {
+      socket.to(roomId).emit("call_rejected", { from });
+    });
+
     socket.on("disconnect", () => {
       console.log(`[Socket.io] Client disconnected: ${socket.id}`);
     });

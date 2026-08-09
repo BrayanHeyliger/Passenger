@@ -20,7 +20,7 @@ import {
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
   Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database, HelpCircle
 } from "lucide-react";
-import { Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight, Trophy, Lightbulb, Pencil } from "lucide-react";
+import { Home, Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight, Trophy, Lightbulb, Pencil } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
@@ -263,6 +263,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3">
             <LanguageSelectorLight />
             <AdminNotificationBell />
+            <Button variant="outline" size="sm" className="gap-2 text-sm" onClick={() => navigate("/")}><Home size={14} /> Inicio</Button>
             <Button variant="outline" size="sm" className="gap-2 text-sm"><RefreshCw size={14} /> Actualizar</Button>
           </div>
         </header>

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, MessageCircle, X, Minimize2, Wifi, WifiOff } from "lucide-react";
+import { Send, MessageCircle, X, Minimize2, Wifi, WifiOff, Phone, PhoneOff, PhoneIncoming, PhoneMissed } from "lucide-react";
 import { useSocket } from "@/hooks/useSocket";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface TripChatProps {
   tripId: string | null;
@@ -20,7 +21,11 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
   const inputRef = useRef<HTMLInputElement>(null);
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { messages, isConnected, typingUser, sendMessage, sendTyping } = useSocket({
+  const {
+    messages, isConnected, typingUser, sendMessage, sendTyping,
+    callState, incomingCallerName, pendingOfferRef,
+    startCall, answerCall, endCall, rejectCall,
+  } = useSocket({
     roomId: tripId,
     userId,
     role,
@@ -44,6 +49,17 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
       }
     }
   }, [messages]);
+
+  // Show toast when incoming call arrives
+  useEffect(() => {
+    if (callState === "incoming") {
+      setIsOpen(true);
+      toast.info(`📞 ${incomingCallerName} te está llamando...`, { duration: 15000 });
+    }
+    if (callState === "ended") {
+      toast.info("📵 Llamada finalizada");
+    }
+  }, [callState, incomingCallerName]);
 
   const handleSend = useCallback(() => {
     if (!inputText.trim()) return;
@@ -71,14 +87,38 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
+  const handleStartCall = async () => {
+    if (!isConnected) { toast.error("No hay conexión activa"); return; }
+    try {
+      await startCall(userName);
+      toast.info(`📞 Llamando a ${otherPartyName}...`);
+    } catch {
+      toast.error("No se pudo iniciar la llamada. Verifica el micrófono.");
+    }
+  };
+
+  const handleAnswerCall = async () => {
+    if (!pendingOfferRef.current) return;
+    try {
+      await answerCall(pendingOfferRef.current);
+      pendingOfferRef.current = null;
+    } catch {
+      toast.error("No se pudo contestar la llamada.");
+    }
+  };
+
   if (!tripId) return null;
 
+  const callActive = callState === "active";
+  const callCalling = callState === "calling";
+  const callIncoming = callState === "incoming";
+
   return (
-    <div className={cn("fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3", className)}>
+    <div className={cn("fixed bottom-6 right-6 z-[9990] flex flex-col items-end gap-3", className)}>
       {/* Chat window */}
       {isOpen && (
         <div className="w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
-          style={{ height: "420px" }}>
+          style={{ height: "460px" }}>
 
           {/* Header */}
           <div className="bg-gradient-to-r from-green-600 to-green-500 px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -89,17 +129,68 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
               <div>
                 <p className="text-white font-semibold text-sm">{otherPartyName}</p>
                 <div className="flex items-center gap-1">
-                  {isConnected
-                    ? <><Wifi size={10} className="text-green-200" /><span className="text-green-200 text-xs">En línea</span></>
-                    : <><WifiOff size={10} className="text-red-300" /><span className="text-red-300 text-xs">Conectando...</span></>
+                  {callActive
+                    ? <><span className="w-1.5 h-1.5 rounded-full bg-green-200 animate-pulse inline-block" /><span className="text-green-200 text-xs">En llamada</span></>
+                    : isConnected
+                      ? <><Wifi size={10} className="text-green-200" /><span className="text-green-200 text-xs">En línea</span></>
+                      : <><WifiOff size={10} className="text-red-300" /><span className="text-red-300 text-xs">Conectando...</span></>
                   }
                 </div>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
-              <Minimize2 size={16} />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Call button */}
+              {callState === "idle" && (
+                <button onClick={handleStartCall} title="Llamar" className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">
+                  <Phone size={15} />
+                </button>
+              )}
+              {(callCalling || callActive) && (
+                <button onClick={endCall} title="Colgar" className="p-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors animate-pulse">
+                  <PhoneOff size={15} />
+                </button>
+              )}
+              <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <Minimize2 size={16} />
+              </button>
+            </div>
           </div>
+
+          {/* Incoming call banner */}
+          {callIncoming && (
+            <div className="bg-green-50 border-b border-green-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <PhoneIncoming size={16} className="text-green-600 animate-bounce" />
+                <div>
+                  <p className="text-sm font-semibold text-green-800">{incomingCallerName} llama</p>
+                  <p className="text-xs text-green-600">Llamada de voz segura</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleAnswerCall} className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-full flex items-center gap-1 transition-colors">
+                  <Phone size={12} /> Contestar
+                </button>
+                <button onClick={rejectCall} className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-full flex items-center gap-1 transition-colors">
+                  <PhoneMissed size={12} /> Rechazar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Calling / active call banner */}
+          {(callCalling || callActive) && (
+            <div className={cn("px-4 py-2 flex items-center justify-between flex-shrink-0 border-b", callActive ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200")}>
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full", callActive ? "bg-green-500 animate-pulse" : "bg-amber-500 animate-bounce")} />
+                <p className={cn("text-xs font-medium", callActive ? "text-green-700" : "text-amber-700")}>
+                  {callCalling ? `Llamando a ${otherPartyName}...` : `En llamada con ${otherPartyName}`}
+                </p>
+              </div>
+              <button onClick={endCall} className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1">
+                <PhoneOff size={12} /> Colgar
+              </button>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50">
@@ -107,6 +198,7 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <MessageCircle size={32} className="text-slate-300 mb-2" />
                 <p className="text-xs text-slate-400">Inicia la conversación con {otherPartyName}</p>
+                <p className="text-xs text-slate-300 mt-1">📞 Pulsa el teléfono para llamar</p>
               </div>
             )}
             {messages.map((msg) => {
@@ -126,8 +218,6 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
                 </div>
               );
             })}
-
-            {/* Typing indicator */}
             {typingUser && typingUser !== userName && (
               <div className="flex justify-start">
                 <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-sm px-3 py-2 shadow-sm">
@@ -174,21 +264,27 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
       {/* Floating button */}
       <button
         onClick={isOpen ? () => setIsOpen(false) : handleOpen}
-        className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 shadow-xl shadow-green-500/30 flex items-center justify-center transition-all hover:scale-105 active:scale-95 relative"
+        className={cn(
+          "w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 relative",
+          callIncoming ? "bg-green-500 animate-bounce shadow-green-500/50" : "bg-green-500 hover:bg-green-600 shadow-green-500/30"
+        )}
       >
         {isOpen
           ? <X size={22} className="text-white" />
-          : <MessageCircle size={22} className="text-white" />
+          : callIncoming
+            ? <PhoneIncoming size={22} className="text-white" />
+            : <MessageCircle size={22} className="text-white" />
         }
         {!isOpen && unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-bounce">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
-        {!isOpen && isConnected && (
+        {!isOpen && isConnected && callState === "idle" && (
           <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-300 border-2 border-white rounded-full" />
         )}
       </button>
     </div>
   );
 }
+
