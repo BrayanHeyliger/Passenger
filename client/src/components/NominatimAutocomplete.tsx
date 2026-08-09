@@ -61,7 +61,7 @@ export default function NominatimAutocomplete({
         // If we have a viewbox, add it for geographic bias
         if (viewbox) {
           params.set("viewbox", viewbox.join(","));
-          params.set("bounded", "0"); // Don't strictly limit, just bias
+          params.set("bounded", "1"); // Strictly limit to viewbox
         }
 
         const res = await fetch(
@@ -69,23 +69,8 @@ export default function NominatimAutocomplete({
           { headers: { "Accept-Language": "es,en;q=0.9" } }
         );
         const data: Suggestion[] = await res.json();
-
-        // If we got results with country filter, use them
-        // Otherwise fall back to global search (so user is never stuck)
-        if (data.length > 0 || !countryCode) {
-          setSuggestions(data);
-          setOpen(data.length > 0);
-        } else {
-          // Fallback: search without country restriction
-          const fallbackParams = new URLSearchParams({ format: "json", q, limit: "5", addressdetails: "1" });
-          const fallbackRes = await fetch(
-            `https://nominatim.openstreetmap.org/search?${fallbackParams.toString()}`,
-            { headers: { "Accept-Language": "es,en;q=0.9" } }
-          );
-          const fallbackData: Suggestion[] = await fallbackRes.json();
-          setSuggestions(fallbackData);
-          setOpen(fallbackData.length > 0);
-        }
+        setSuggestions(data);
+        setOpen(data.length > 0);
       } catch {
         setSuggestions([]);
       } finally {

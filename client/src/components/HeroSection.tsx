@@ -60,6 +60,7 @@ export default function HeroSection() {
   const [destCoords,   setDestCoords]   = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<LeafletMapRef | null>(null);
   const [userCountryCode, setUserCountryCode] = useState<string | undefined>(undefined);
+  const [destViewbox, setDestViewbox] = useState<[number, number, number, number] | undefined>(undefined);
 
   const [regName, setRegName]         = useState("");
   const [regPhone, setRegPhone]       = useState("");
@@ -84,6 +85,8 @@ export default function HeroSection() {
               const data = await res.json();
               if (data.display_name) setPickup(data.display_name.split(",").slice(0, 2).join(",").trim());
               if (data.address?.country_code) setUserCountryCode(data.address.country_code);
+              const radius = 0.45;
+              setDestViewbox([lng - radius, lat - radius, lng + radius, lat + radius]);
             } catch {}
           });
         }
@@ -108,6 +111,8 @@ export default function HeroSection() {
           const data = await res.json();
           setPickup(data.display_name?.split(",").slice(0, 2).join(",").trim() || "Mi ubicación actual 📍");
           if (data.address?.country_code) setUserCountryCode(data.address.country_code);
+          const radius = 0.45;
+          setDestViewbox([lng - radius, lat - radius, lng + radius, lat + radius]);
         } catch {
           setPickup("Mi ubicación actual 📍");
         }
@@ -306,6 +311,7 @@ export default function HeroSection() {
                           onSelect={(addr, lat, lng) => { setDestCoords({ lat, lng }); mapRef.current?.setDropoff(lat, lng, addr); }}
                           icon={<span className="w-3 h-3 rounded-full border-2 inline-block" style={{ borderColor: "#EF4444" }} />}
                           countryCode={userCountryCode}
+                          viewbox={destViewbox}
                         />
                   </div>
 
