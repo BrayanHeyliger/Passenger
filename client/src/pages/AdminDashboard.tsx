@@ -1,5 +1,6 @@
 import { VehiclesExtrasEditor } from "@/components/VehiclesExtrasEditor";
 import FAQEditor from "@/components/FAQEditor";
+import { AdminParcelStats } from "@/components/AdminParcelStats";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -18,7 +19,7 @@ import {
   BarChart2, TrendingUp, MapPin, AlertTriangle, Star, Send,
   Shield, Edit3, Save, Globe, Palette, Layers, Sliders,
   CheckCircle, XCircle, Clock, Mail, Smartphone, FileText,
-  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database, HelpCircle
+  Monitor, ChevronRight, Download, RefreshCw, RotateCcw, ExternalLink, Upload, ImageIcon, Loader2, Database, HelpCircle, Package
 } from "lucide-react";
 import { Home, Gift, UserCog, Plus, Trash2, ToggleLeft, ToggleRight, Trophy, Lightbulb, Pencil } from "lucide-react";
 import {
@@ -26,7 +27,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing" | "broadcast" | "safetyTips";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing" | "broadcast" | "safetyTips" | "parcels";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email" | "vehicles";
 type EditorView = "form" | "preview";
 
@@ -217,6 +218,7 @@ export default function AdminDashboard() {
     { id: "surgePricing", label: "Precio Surge", icon: TrendingUp },
     { id: "broadcast", label: "Broadcast", icon: Send },
     { id: "safetyTips", label: "Consejos 💡", icon: Lightbulb },
+    { id: "parcels", label: "Paquetes 📦", icon: Package },
   ];
 
   if (!isAuthenticated) return null;
@@ -1031,6 +1033,14 @@ export default function AdminDashboard() {
           {/* ── SAFETY TIPS ── */}
           {activeTab === "safetyTips" && (
             <SafetyTipsAdminPanel />
+          )}
+
+          {/* ── PAQUETES ── */}
+          {activeTab === "parcels" && (
+            <div className="space-y-6">
+              <h1 className="text-2xl font-bold text-slate-900">Gestión de Paquetes</h1>
+              <AdminParcelStats />
+            </div>
           )}
 
           {/* ── FAQ EDITOR ── */}

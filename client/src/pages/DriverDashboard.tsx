@@ -16,6 +16,7 @@ import ReferralPanel from "@/components/ReferralPanel";
 
 import { TripChat } from "@/components/TripChat";
 import SafetyTipsButton from "@/components/SafetyTipsButton";
+import { DriverParcelPanel } from "@/components/DriverParcelPanel";
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
 
@@ -44,7 +45,7 @@ export default function DriverDashboard() {
   const [otpInput, setOtpInput] = useState("");
   const [otpCode] = useState("4821"); // Demo OTP
   const [passengerRating, setPassengerRating] = useState(0);
-  const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "referrals" | "profile" | "docs">("trips");
+  const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "referrals" | "profile" | "docs" | "parcels">("trips");
   const [earningsHistory] = useState<EarningsEntry[]>([
     { date: "Hoy", trips: completedCount, earnings },
     { date: "Ayer", trips: 8, earnings: 145.50 },
@@ -257,6 +258,7 @@ export default function DriverDashboard() {
           {[
             { id: "trips" as const, label: "Viajes", icon: Car },
             { id: "earnings" as const, label: "Ganancias", icon: DollarSign },
+            { id: "parcels" as const, label: "Paquetes", icon: FileText },
             { id: "referrals" as const, label: "Referidos", icon: Gift },
             { id: "profile" as const, label: "Perfil", icon: Shield },
             { id: "docs" as const, label: "Documentos", icon: FileText },
@@ -571,6 +573,14 @@ export default function DriverDashboard() {
                 ))}
               </div>
             </Card>
+          </div>
+        )}
+
+        {/* TAB: PAQUETES */}
+        {activeTab === "parcels" && (
+          <div className="space-y-6 max-w-4xl">
+            <h1 className="text-2xl font-bold text-slate-900">Entregas de Paquetes</h1>
+            <DriverParcelPanel />
           </div>
         )}
 

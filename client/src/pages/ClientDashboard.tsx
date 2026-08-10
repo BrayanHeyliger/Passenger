@@ -17,6 +17,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import ReferralPanel from "@/components/ReferralPanel";
 import { ParcelTracking, type ParcelOrder } from "@/components/ParcelTracking";
+import { ParcelHistory } from "@/components/ParcelHistory";
 
 type TripStatus = "idle" | "searching" | "accepted" | "in_progress" | "completed" | "rating";
 type ActivePanel = "request" | "history" | "scheduled" | "promo" | "referrals" | "parcels";
@@ -829,7 +830,7 @@ export default function ClientDashboard() {
             )}
             {/* BUSCANDO */}
 
-            {/* PAQUETES */}
+            {/* PAQUETES - HISTORIAL */}
             {tripStatus === "idle" && activePanel === "parcels" && (
               <div className="p-4 flex flex-col gap-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -837,14 +838,11 @@ export default function ClientDashboard() {
                     <Briefcase size={16} className="text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">Envío de Paquetes</h2>
-                    <p className="text-xs text-slate-500">Entrega rápida y segura en minutos</p>
+                    <h2 className="text-lg font-bold text-slate-900">Historial de Paquetes</h2>
+                    <p className="text-xs text-slate-500">Tus entregas recientes</p>
                   </div>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-                  <p className="text-sm text-blue-800 font-medium">📦 Módulo de paquetería disponible</p>
-                  <p className="text-xs text-blue-600 mt-1">Envía paquetes con rastreo en tiempo real</p>
-                </div>
+                <ParcelHistory />
               </div>
             )}
             {tripStatus === "searching" && (
