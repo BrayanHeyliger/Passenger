@@ -44,6 +44,6 @@
 - [x] Auditar la versión reconstruida contra la composición dark premium aprobada e identificar elementos faltantes.
 - [x] Restaurar los elementos visuales y funcionales faltantes antes de una nueva publicación.
 - [x] Comparar la versión local con el preview de referencia `product-improvements=1` y restaurar todas las diferencias aprobadas.
-- [ ] Confirmar el paquete dark premium aprobado como actualización final y preparar su commit de GitHub.
-- [ ] Enviar la actualización final al repositorio autorizado BrayanHeyliger/Passenger.
+- [x] Confirmar el paquete dark premium aprobado como actualización final y preparar su commit de GitHub.
+- [x] Enviar la actualización final al repositorio autorizado BrayanHeyliger/Passenger.
 - [ ] Preparar la activación de la versión final en el subdominio permanente saytaxi.manus.space.
