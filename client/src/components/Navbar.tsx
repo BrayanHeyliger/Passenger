@@ -10,7 +10,6 @@ import { Menu, X, User, Car, LogOut, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useI18n } from "@/contexts/I18nContext";
-import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 // navLinks are now built inside the component using t translations
 
@@ -34,7 +33,6 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
     { label: t.nav.contact, href: "#contact" },
     { label: "FAQ", href: "/faq" },
   ];
-  const { config } = useSiteConfig();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -67,25 +65,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
             href="/"
             className="flex items-center gap-3 group"
           >
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 shadow-lg shadow-green-500/20">
-              <img
-                src={config.logoUrl || "/manus-storage/logo-icon_34950e08.png"}
-                alt="WhatsApp Taxi Logo"
-                className="w-full h-full object-cover"
-                style={{ background: config.primaryColor }}
-              />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span
-                className="text-white font-bold text-base tracking-tight"
-                style={{ fontFamily: `'${config.fontFamily}', sans-serif` }}
-              >
-                {config.siteTitle.split(" ")[0]}<span style={{ color: config.primaryColor }}>{config.siteTitle.split(" ").slice(1).join(" ")}</span>
-              </span>
-              <span className="text-white/50 text-[10px] font-medium tracking-widest uppercase">
-                SaaS Platform
-              </span>
-            </div>
+            <img src="/saytaxi-brand.svg" alt="SayTaxi Mobility Platform" className="h-10 w-auto max-w-[180px] rounded-xl shadow-lg shadow-emerald-500/10" />
           </a>
 
           {/* Desktop Nav */}

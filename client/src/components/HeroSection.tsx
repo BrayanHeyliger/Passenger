@@ -3,13 +3,15 @@
  * Sin dependencia de Google Maps
  */
 import { useState, useRef, useCallback } from "react";
-import { Navigation, Clock, ChevronRight, Shield, Zap, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { MapPin, Navigation, Clock, ChevronRight, ShieldCheck, Tag, Radio, Eye, EyeOff, Loader2, AlertCircle, CarFront, LockKeyhole } from "lucide-react";
 import { useLocation } from "wouter";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { HeroParcelForm } from "@/components/HeroParcelForm";
+import "./HeroSectionCompact.css";
+import "./BookingProgress.css";
 
 const VEHICLES = [
   { id: "economy", label: "Económico", emoji: "🚗", base: 6,  perKm: 0.9, eta: "3 min", seats: 4 },
@@ -28,14 +30,17 @@ const EXTRAS = [
 
 // Geocodifica una dirección de texto usando Nominatim (fallback cuando el usuario escribe sin seleccionar sugerencia)
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 3500);
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
-      { headers: { "Accept-Language": "es" } }
+      { headers: { "Accept-Language": "es" }, signal: controller.signal }
     );
     const data = await res.json();
     if (data && data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   } catch {}
+  finally { window.clearTimeout(timeout); }
   return null;
 }
 
@@ -44,8 +49,8 @@ export default function HeroSection() {
   const { config } = useSiteConfig();
   const { isAuthenticated, register } = useLocalAuth();
 
-  const [pickup, setPickup]           = useState("");
-  const [destination, setDestination] = useState("");
+  const [pickup, setPickup]           = useState("Av. Reforma 222, Juárez, Cuauhtémoc, CDMX");
+  const [destination, setDestination] = useState("Aeropuerto Internacional de la Ciudad de México (AICM)");
   const [tripTime, setTripTime]       = useState<"now" | "later">("now");
   const [selectedVehicle, setSelectedVehicle] = useState("economy");
   const [selectedExtras, setSelectedExtras]   = useState<string[]>([]);
@@ -72,6 +77,14 @@ export default function HeroSection() {
 
   const handleMapReady = useCallback((ref: LeafletMapRef) => {
     mapRef.current = ref;
+    const showcasePickup = { lat: 19.4270, lng: -99.1677 };
+    const showcaseDestination = { lat: 19.4363, lng: -99.0719 };
+    setPickupCoords(showcasePickup);
+    setDestCoords(showcaseDestination);
+    ref.setPickup(showcasePickup.lat, showcasePickup.lng, "Av. Reforma 222");
+    ref.setDropoff(showcaseDestination.lat, showcaseDestination.lng, "Aeropuerto AICM");
+    void ref.getRoute();
+    ref.setVehiclePosition(19.4312, -99.1284, "Conductor disponible");
     // Solo intentar geolocalización automática si el usuario ya dio permiso antes
     if (navigator.permissions) {
       navigator.permissions.query({ name: "geolocation" }).then(result => {
@@ -80,6 +93,8 @@ export default function HeroSection() {
             const { latitude: lat, longitude: lng } = pos.coords;
             setPickupCoords({ lat, lng });
             ref.setPickup(lat, lng, "Mi ubicación");
+            ref.setDropoff(showcaseDestination.lat, showcaseDestination.lng, "Aeropuerto AICM");
+            void ref.getRoute();
             try {
               const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { headers: { "Accept-Language": "es" } });
               const data = await res.json();
@@ -133,50 +148,44 @@ export default function HeroSection() {
     setCalculating(true);
     setCalcError("");
 
-    // Si no hay coordenadas (usuario escribió sin seleccionar sugerencia), geocodificar
-    let pCoords = pickupCoords;
-    let dCoords = destCoords;
-
-    if (!pCoords) {
-      pCoords = await geocodeAddress(pickup);
-      if (pCoords) {
-        setPickupCoords(pCoords);
-        mapRef.current?.setPickup(pCoords.lat, pCoords.lng, pickup);
-      }
-    }
-    if (!dCoords) {
-      dCoords = await geocodeAddress(destination);
-      if (dCoords) {
-        setDestCoords(dCoords);
-        mapRef.current?.setDropoff(dCoords.lat, dCoords.lng, destination);
-      }
-    }
-
-    let km = 5; let minutes = 12;
-    if (pCoords && dCoords) {
-      mapRef.current?.setDropoff(dCoords.lat, dCoords.lng, destination);
-      const route = await mapRef.current?.getRoute();
-      if (route) {
-        km = parseFloat(route.distanceKm.toFixed(1));
-        minutes = route.durationMin;
-      }
-    } else if (!pCoords || !dCoords) {
-      // Estimación con distancia por defecto si no se pueden geocodificar las direcciones
-      km = 5; minutes = 12;
-    }
-
+    // Mostrar una estimación local inmediatamente: el proveedor de mapa nunca bloquea la reserva.
     const v = VEHICLES.find(v => v.id === selectedVehicle) || VEHICLES[0];
     const extrasTotal = selectedExtras.reduce((sum, id) => sum + (EXTRAS.find(e => e.id === id)?.price || 0), 0);
-    const price = parseFloat((v.base + km * v.perKm + extrasTotal).toFixed(2));
-    setEstimate({ price, km, minutes });
+    const fallbackKm = 5;
+    const fallbackMinutes = 12;
+    const fallbackPrice = parseFloat((v.base + fallbackKm * v.perKm + extrasTotal).toFixed(2));
+    setEstimate({ price: fallbackPrice, km: fallbackKm, minutes: fallbackMinutes });
     setStep("estimate");
     setCalculating(false);
+
+    // Enriquecer en segundo plano si el mapa consigue coordenadas y ruta.
+    let pCoords = pickupCoords;
+    let dCoords = destCoords;
+    if (!pCoords) pCoords = await geocodeAddress(pickup);
+    if (!dCoords) dCoords = await geocodeAddress(destination);
+    if (pCoords) {
+      setPickupCoords(pCoords);
+      mapRef.current?.setPickup(pCoords.lat, pCoords.lng, pickup);
+    }
+    if (dCoords) {
+      setDestCoords(dCoords);
+      mapRef.current?.setDropoff(dCoords.lat, dCoords.lng, destination);
+    }
+    if (pCoords && dCoords) {
+      const route = await mapRef.current?.getRoute();
+      if (route) {
+        const km = parseFloat(route.distanceKm.toFixed(1));
+        const minutes = route.durationMin;
+        const price = parseFloat((v.base + km * v.perKm + extrasTotal).toFixed(2));
+        setEstimate({ price, km, minutes });
+      }
+    }
   };
 
   const handleRequestTrip = () => {
     if (isAuthenticated) {
       sessionStorage.setItem("pendingTrip", JSON.stringify({ pickup, destination, vehicle: selectedVehicle, extras: selectedExtras, estimate }));
-      navigate("/client-dashboard");
+      navigate("/marketplace");
     } else {
       setStep("register");
     }
@@ -197,55 +206,67 @@ export default function HeroSection() {
     setRegLoading(false);
     if (!result.success) { setRegError(result.error || "Error al registrar"); return; }
     sessionStorage.setItem("pendingTrip", JSON.stringify({ pickup, destination, vehicle: selectedVehicle, extras: selectedExtras, estimate }));
-    navigate("/client-dashboard");
+    navigate("/marketplace");
   };
 
   const v = VEHICLES.find(v => v.id === selectedVehicle) || VEHICLES[0];
   const extrasTotal = selectedExtras.reduce((s, id) => s + (EXTRAS.find(e => e.id === id)?.price || 0), 0);
+  const bookingProgressIndex = step === "form" ? 0 : step === "estimate" ? 1 : 2;
+  const previewQuote = (v.base + 5 * v.perKm + extrasTotal).toFixed(2);
 
   return (
-    <section className="relative w-full flex flex-col pt-16 overflow-x-hidden" style={{ background: "linear-gradient(135deg, oklch(0.10 0.01 250) 0%, oklch(0.14 0.02 200) 100%)" }}>
+    <section className="passenger-redesign-hero passenger-reference-hero relative w-full flex flex-col overflow-x-hidden" style={{ background: "#050b0d" }}>
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl" style={{ background: "oklch(0.76 0.18 148)" }} />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8 blur-3xl" style={{ background: "oklch(0.52 0.12 148)" }} />
       </div>
 
-      <div className="container relative z-10 py-6 pb-10 lg:py-16">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 lg:gap-16 lg:items-start">
+      <div className="container passenger-reference-container relative z-10 py-6 pb-10 lg:py-10">
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12 lg:items-start">
 
           {/* Left: Copy */}
-          <div className="order-2 lg:order-1 text-center lg:text-left">
+          <div className="order-2 lg:order-1 passenger-reference-copy text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5" style={{ background: "oklch(0.76 0.18 148 / 0.15)", color: "oklch(0.76 0.18 148)" }}>
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "oklch(0.76 0.18 148)" }} />
               Conductores disponibles ahora
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>
-              Tu taxi,<br /><span style={{ color: "oklch(0.76 0.18 148)" }}>en minutos.</span>
+              Conecta con<br /><span style={{ color: "oklch(0.76 0.18 148)" }}>conductores locales verificados.</span>
             </h1>
             <p className="text-white/60 text-lg mb-6 leading-relaxed max-w-md mx-auto lg:mx-0">
-              Sin apps, sin complicaciones. Solo dinos dónde estás y a dónde vas.
+              Elige quién te lleva, ve tiempos reales y reserva con confianza desde una experiencia premium y transparente.
             </p>
-            <div className="flex flex-col gap-2 mb-6 items-center lg:items-start">
-              {[{ icon: Shield, text: "Conductores verificados" }, { icon: Zap, text: "Llegada en 3-8 min" }].map(({ icon: Icon, text }) => (
+            <div className="flex flex-wrap gap-x-5 gap-y-2 mb-6 items-center lg:items-start">
+              {[{ icon: ShieldCheck, text: "Conductores verificados" }, { icon: Tag, text: "Sin cargos ocultos" }, { icon: Radio, text: "Seguimiento en vivo" }].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-2 text-white/60 text-sm">
                   <Icon size={15} style={{ color: "oklch(0.76 0.18 148)" }} /> {text}
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-center lg:justify-start gap-4 text-white/40 text-sm">
-              <a href="#conductores" className="hover:text-white/70 transition-colors flex items-center gap-1.5"><span>🚗</span> ¿Eres conductor? Únete</a>
-              <span>·</span>
-              <a href="#flotilla" className="hover:text-white/70 transition-colors flex items-center gap-1.5"><span>🏢</span> Gestiona tu flotilla</a>
+            <div className="passenger-reference-cta-row flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-6">
+              <a href="/register" className="passenger-reference-primary-cta inline-flex items-center justify-center gap-2"><CarFront size={18} /> Empieza a ganar – Suscríbete</a>
+              <button type="button" onClick={() => navigate("/marketplace")} className="passenger-reference-secondary-cta inline-flex items-center justify-center gap-2"><MapPin size={15} className="text-rose-300" /> Buscar conductor</button>
             </div>
+            <div className="passenger-reference-social-proof flex items-center justify-center lg:justify-start gap-2 text-white/55 text-sm"><ShieldCheck size={15} className="text-emerald-400" /><span>Reserva con precio estimado, ruta visible y controles de seguridad.</span></div>
           </div>
 
           {/* Right: Booking card */}
-          <div className="order-1 lg:order-2 w-full max-w-sm mx-auto sm:max-w-md lg:max-w-none">
-            <div className="rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-black/40 bg-white overflow-hidden">
+          <div className="order-1 lg:order-2 w-full max-w-sm mx-auto sm:max-w-md lg:max-w-none passenger-reference-booking-wrap">
+            <div className="passenger-booking-card passenger-reference-card passenger-mobile-compact-card rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-black/40 overflow-hidden">
+
+              {/* Guided booking progress — approved Passenger mockup */}
+              <div className="passenger-stepper passenger-mobile-compact-progress flex items-center justify-between mb-5 px-1" aria-label="Progreso de reserva">
+                {["Ruta", "Conductor", "Pago", "Confirmación"].map((label, index) => (
+                  <div key={label} className={`passenger-step ${index === bookingProgressIndex ? "is-active" : ""} ${index < bookingProgressIndex ? "is-complete" : ""}`} aria-current={index === bookingProgressIndex ? "step" : undefined}>
+                    <span className="passenger-step-dot">{index + 1}</span>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
 
               {/* Toggle Viaje/Paquete */}
-              <div className="flex gap-2 mb-4 bg-slate-100 p-1 rounded-lg">
+              <div className="passenger-service-toggle flex gap-2 mb-4 p-1 rounded-lg passenger-reference-service-toggle passenger-reference-optional-controls">
                 <button
                   onClick={() => setServiceType("trip")}
                   className={`flex-1 py-2 px-3 rounded-md font-semibold text-sm transition-all ${
@@ -271,7 +292,7 @@ export default function HeroSection() {
               {/* STEP: FORM */}
               {step === "form" && serviceType === "trip" && (
                 <>
-                  <h2 className="text-lg lg:text-xl font-bold text-slate-900 mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>¿A dónde vas hoy?</h2>
+                  <h2 className="passenger-mobile-compact-title text-lg lg:text-xl font-bold text-slate-900 mb-4" style={{ fontFamily: "'Sora', sans-serif" }}>¿Dónde te recogemos?</h2>
 
                   {/* Pickup */}
                   <div className="mb-3">
@@ -304,6 +325,7 @@ export default function HeroSection() {
 
                   {/* Destination */}
                   <div className="mb-4">
+                    <p className="passenger-reference-field-label">¿A dónde vas?</p>
                     <NominatimAutocomplete
                           placeholder="¿A dónde vas?"
                           value={destination}
@@ -315,8 +337,13 @@ export default function HeroSection() {
                         />
                   </div>
 
+                  <div className="passenger-quick-quote mb-4" aria-live="polite">
+                    <div><span>Estimación inicial</span><strong>Desde ${previewQuote}</strong></div>
+                    <p><Clock size={13} /> ~12 min · Precio final según ruta real</p>
+                  </div>
+
                   {/* Time selector */}
-                  <div className="flex gap-2 mb-4">
+                  <div className="flex gap-2 mb-4 passenger-reference-optional-controls">
                     {(["now", "later"] as const).map(t => (
                       <button key={t} onClick={() => setTripTime(t)} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all border ${tripTime === t ? "border-green-500 text-green-700 bg-green-50" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}>
                         <Clock size={13} /> {t === "now" ? "Ahora" : "Programar"}
@@ -325,7 +352,7 @@ export default function HeroSection() {
                   </div>
 
                   {/* Extras — compact scrollable row */}
-                  <div className="mb-4">
+                  <div className="mb-4 passenger-reference-extras passenger-reference-optional-controls">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Requisitos especiales</p>
                     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                       {EXTRAS.map(ex => (
@@ -338,8 +365,8 @@ export default function HeroSection() {
                   </div>
 
                   {/* Map preview — smaller on desktop to avoid overflow */}
-                  <div className="rounded-2xl overflow-hidden mb-4 hidden sm:block" style={{ height: 130 }}>
-                    <LeafletMap height="130px" onMapReady={handleMapReady} />
+                  <div className="passenger-reference-map rounded-2xl overflow-hidden mb-4" style={{ height: "clamp(160px, 34vw, 228px)" }}>
+                    <LeafletMap height="100%" onMapReady={handleMapReady} />
                   </div>
 
                   {calcError && (
@@ -349,6 +376,11 @@ export default function HeroSection() {
                     </div>
                   )}
 
+                  <div className="passenger-reference-trip-summary" aria-label="Resumen del viaje">
+                    <div><strong><CarFront size={16} className="mr-1 inline" /> Economy</strong><span>Hasta 4 pasajeros</span></div>
+                    <div><strong><Clock size={16} className="mr-1 inline" /> 25–30 min</strong><span>Tiempo estimado</span></div>
+                    <div><strong><ShieldCheck size={16} className="mr-1 inline" /> Viaje seguro</strong><span>Seguimiento en vivo</span></div>
+                  </div>
                   <button
                     onClick={handleCalculate}
                     disabled={!pickup.trim() || !destination.trim() || calculating}
@@ -357,10 +389,10 @@ export default function HeroSection() {
                   >
                     {calculating
                       ? <><Loader2 size={16} className="animate-spin" /> Calculando ruta...</>
-                      : <>Ver precios disponibles <ChevronRight size={16} /></>
+                      : <>Continuar <ChevronRight size={16} /></>
                     }
                   </button>
-                  <p className="text-center text-xs text-slate-400 mt-2">Sin cargos hasta confirmar el viaje</p>
+                  <p className="passenger-reference-protected text-center text-xs text-slate-400 mt-2"><LockKeyhole size={13} className="mr-1 inline" /> Tus datos están protegidos</p>
                 </>
               )}
 
@@ -379,11 +411,11 @@ export default function HeroSection() {
                       const p = (vh.base + estimate.km * vh.perKm + extrasTotal).toFixed(2);
                       return (
                         <button key={vh.id} onClick={() => setSelectedVehicle(vh.id)}
-                          className={`p-3 rounded-xl border-2 text-left transition-all ${selectedVehicle === vh.id ? "border-green-500 bg-green-50" : "border-slate-200 hover:border-slate-300"}`}>
-                          <p className="text-lg">{vh.emoji}</p>
-                          <p className="text-xs font-semibold text-slate-700">{vh.label}</p>
-                          <p className="text-base font-extrabold text-slate-900">${p}</p>
-                          <p className="text-xs text-slate-400">{vh.eta}</p>
+                          className={`passenger-vehicle-option p-3 rounded-xl border-2 text-left transition-all ${selectedVehicle === vh.id ? "is-selected" : "border-slate-200 hover:border-slate-300"}`}>
+                          <p className="passenger-vehicle-option-icon text-lg">{vh.emoji}</p>
+                          <p className="passenger-vehicle-option-label text-xs font-semibold">{vh.label}</p>
+                          <p className="passenger-vehicle-option-price text-base font-extrabold">${p}</p>
+                          <p className="passenger-vehicle-option-eta text-xs">{vh.eta}</p>
                         </button>
                       );
                     })}
@@ -399,6 +431,9 @@ export default function HeroSection() {
               {/* PARCEL FORM */}
               {step === "form" && serviceType === "parcel" && (
                 <HeroParcelForm
+                  onSubmit={(data) => {
+                    sessionStorage.setItem("pendingParcel", JSON.stringify(data));
+                  }}
                   onNavigateToDashboard={() => {
                     if (isAuthenticated) {
                       navigate("/client-dashboard?tab=parcels");
@@ -445,15 +480,7 @@ export default function HeroSection() {
               )}
             </div>
 
-            {/* Social proof */}
-            <div className="flex items-center justify-center gap-3 mt-4">
-              <div className="flex -space-x-2">
-                {["/manus-storage/avatar1_c813ee08.jpg", "/manus-storage/avatar2_b26d0545.jpg", "/manus-storage/avatar3_46cc7298.jpg", "/manus-storage/avatar4_6f0fea6f.jpg"].map((src, i) => (
-                  <img key={i} src={src} alt="Cliente" className="w-8 h-8 rounded-full border-2 object-cover object-center" style={{ borderColor: "oklch(0.14 0.02 200)" }} />
-                ))}
-              </div>
-              <p className="text-white/50 text-sm"><span className="text-white font-bold">2,400+</span> clientes activos esta semana</p>
-            </div>
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-center text-xs text-white/50">Tu información de solicitud se muestra solo durante este flujo y bajo tu control.</div>
           </div>
 
         </div>

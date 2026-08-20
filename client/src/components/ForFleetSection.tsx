@@ -1,4 +1,21 @@
-import { BarChart3, Users, Settings, ChevronRight, TrendingUp, Globe, Headphones } from "lucide-react";
+import { useState } from "react";
+import { BarChart3, Users, Settings, ChevronRight, TrendingUp, Globe, Headphones, Calculator, DollarSign } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { useI18n } from "@/contexts/I18nContext";
+import { calculateFleetRoi, DRIVER_STEPS, PRO_MONTHLY_PRICE } from "@/lib/fleetRoi";
+import { FleetGuidedDemo } from "@/components/FleetGuidedDemo";
+
+type CalculatorCopy = {
+  eyebrow: string;
+  question: string;
+  estimateLabel: string;
+  investmentLabel: string;
+  netLabel: string;
+  planLabel: string;
+  insight: (drivers: number, commissions: string) => string;
+  formula: string;
+  disclaimer: string;
+};
 
 export default function ForFleetSection() {
   const { lang } = useI18n();
@@ -20,6 +37,17 @@ export default function ForFleetSection() {
       roiLabel: "El negocio que ya funciona",
       roiTitle: 'Con solo 10 conductores activos puedes generar más de <span style="color:oklch(0.76 0.18 148)">$3,000 al mes</span> en comisiones.',
       roiSub: "Basado en un promedio de 15 viajes/día por conductor a $20 con 10% de comisión.",
+      calculator: {
+        eyebrow: "Calculadora de oportunidad",
+        question: "¿Cuántos conductores tienes?",
+        estimateLabel: "Comisiones mensuales estimadas",
+        investmentLabel: "Inversión mensual",
+        netLabel: "Potencial después del plan",
+        planLabel: "Plan Pro",
+        insight: (drivers: number, commissions: string) => `Con ${drivers} conductores, podrías generar alrededor de $${commissions} USD/mes en comisiones.`,
+        formula: "Ejemplo: 5 viajes/día × $20 × 10% de comisión × 30 días.",
+        disclaimer: "Estimación ilustrativa; los resultados reales dependen de la demanda, tarifas, zona y operación de tu flotilla.",
+      },
       roiCta: "Crear mi flotilla ahora",
       stats: [{ v: "5 min", l: "Para configurar" }, { v: "$0", l: "Costo inicial" }, { v: "∞", l: "Conductores" }, { v: "24/7", l: "Disponibilidad" }],
       photoLabel: "Panel en tiempo real",
@@ -46,6 +74,17 @@ export default function ForFleetSection() {
       roiLabel: "The business that already works",
       roiTitle: 'With just 10 active drivers you can generate more than <span style="color:oklch(0.76 0.18 148)">$3,000 per month</span> in commissions.',
       roiSub: "Based on an average of 15 trips/day per driver at $20 with 10% commission.",
+      calculator: {
+        eyebrow: "Opportunity calculator",
+        question: "How many drivers do you have?",
+        estimateLabel: "Estimated monthly commissions",
+        investmentLabel: "Monthly investment",
+        netLabel: "Potential after the plan",
+        planLabel: "Pro Plan",
+        insight: (drivers: number, commissions: string) => `With ${drivers} drivers, you could generate around $${commissions} USD/month in commissions.`,
+        formula: "Example: 5 trips/day × $20 × 10% commission × 30 days.",
+        disclaimer: "Illustrative estimate; actual results depend on demand, fares, service area and your fleet operation.",
+      },
       roiCta: "Create my fleet now",
       stats: [{ v: "5 min", l: "To configure" }, { v: "$0", l: "Initial cost" }, { v: "∞", l: "Drivers" }, { v: "24/7", l: "Availability" }],
       photoLabel: "Real-time panel",
@@ -72,6 +111,17 @@ export default function ForFleetSection() {
       roiLabel: "L'entreprise qui fonctionne déjà",
       roiTitle: 'Avec seulement 10 chauffeurs actifs vous pouvez générer plus de <span style="color:oklch(0.76 0.18 148)">3 000 $ par mois</span> en commissions.',
       roiSub: "Basé sur une moyenne de 15 trajets/jour par chauffeur à 20 $ avec 10% de commission.",
+      calculator: {
+        eyebrow: "Calculateur d'opportunité",
+        question: "Combien de chauffeurs avez-vous ?",
+        estimateLabel: "Commissions mensuelles estimées",
+        investmentLabel: "Investissement mensuel",
+        netLabel: "Potentiel après le plan",
+        planLabel: "Plan Pro",
+        insight: (drivers: number, commissions: string) => `Avec ${drivers} chauffeurs, vous pourriez générer environ $${commissions} USD/mois en commissions.`,
+        formula: "Exemple : 5 trajets/jour × 20 $ × 10% de commission × 30 jours.",
+        disclaimer: "Estimation illustrative ; les résultats réels dépendent de la demande, des tarifs, de la zone et de votre activité.",
+      },
       roiCta: "Créer ma flotte maintenant",
       stats: [{ v: "5 min", l: "Pour configurer" }, { v: "0 $", l: "Coût initial" }, { v: "∞", l: "Chauffeurs" }, { v: "24/7", l: "Disponibilité" }],
       photoLabel: "Panneau en temps réel",
@@ -136,6 +186,7 @@ export default function ForFleetSection() {
                 <span dangerouslySetInnerHTML={{ __html: c.roiTitle }} />
               </h3>
               <p className="text-white/50 text-sm mb-6">{c.roiSub}</p>
+              <FleetRoiCalculator copy={c.calculator} lang={lang} />
               <a href="/register" onClick={(e) => { e.preventDefault(); sessionStorage.setItem("registerRole","fleet"); window.location.href="/register"; }} className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
                 Crear mi flotilla ahora <ChevronRight size={16} />
               </a>
@@ -151,11 +202,13 @@ export default function ForFleetSection() {
           </div>
         </div>
 
+        <FleetGuidedDemo />
+
         {/* Fleet photo section */}
         <div className="mt-12 grid lg:grid-cols-2 gap-10 items-center">
           <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
             <img
-              src="/manus-storage/landing_flotilla_9d84fc4e.jpg"
+              src="/assets-storage/landing_flotilla_9d84fc4e.jpg"
               alt="Empresario gestionando su flotilla de taxis"
               className="w-full h-full object-cover"
             />
@@ -196,4 +249,60 @@ export default function ForFleetSection() {
     </section>
   );
 }
-import { useI18n } from "@/contexts/I18nContext";
+
+function FleetRoiCalculator({ copy, lang }: { copy: CalculatorCopy; lang: string }) {
+  const [driverStep, setDriverStep] = useState(1);
+  const drivers = DRIVER_STEPS[driverStep];
+  const { monthlyCommissions, potentialAfterPlan } = calculateFleetRoi(drivers);
+  const locale = lang === "fr" ? "fr-FR" : lang === "en" ? "en-US" : "es-MX";
+  const formatUsd = (value: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
+
+  return (
+    <div className="mb-6 rounded-2xl border border-emerald-300/20 bg-black/20 p-5 text-left shadow-inner shadow-emerald-300/5">
+      <div className="mb-4 flex items-center gap-2 text-emerald-200">
+        <Calculator size={16} />
+        <span className="text-[11px] font-bold uppercase tracking-[0.16em]">{copy.eyebrow}</span>
+      </div>
+
+      <div className="flex items-end justify-between gap-4">
+        <p className="text-sm font-semibold text-white">{copy.question}</p>
+        <output className="rounded-full bg-emerald-300 px-3 py-1 text-sm font-extrabold text-slate-950" aria-live="polite">
+          {drivers}
+        </output>
+      </div>
+
+      <Slider
+        aria-label={copy.question}
+        className="mt-5 [&_[data-slot=slider-track]]:bg-white/15 [&_[data-slot=slider-range]]:bg-emerald-300 [&_[data-slot=slider-thumb]]:border-emerald-200 [&_[data-slot=slider-thumb]]:bg-slate-950"
+        min={0}
+        max={DRIVER_STEPS.length - 1}
+        step={1}
+        value={[driverStep]}
+        onValueChange={([nextStep]) => setDriverStep(nextStep)}
+      />
+      <div className="mt-2 flex justify-between px-0.5 text-[11px] font-semibold text-white/45" aria-hidden="true">
+        {DRIVER_STEPS.map(step => <span key={step}>{step}</span>)}
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-emerald-300/15 bg-emerald-300/10 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-100/60">{copy.estimateLabel}</p>
+          <p className="mt-1 text-xl font-extrabold text-emerald-200" style={{ fontFamily: "'Sora', sans-serif" }}>${formatUsd(monthlyCommissions)}</p>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/45">{copy.investmentLabel}</p>
+          <p className="mt-1 text-xl font-extrabold text-white" style={{ fontFamily: "'Sora', sans-serif" }}>${PRO_MONTHLY_PRICE}</p>
+          <p className="mt-0.5 text-[10px] text-white/45">{copy.planLabel}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5">
+        <span className="text-xs font-semibold text-white/65">{copy.netLabel}</span>
+        <span className="inline-flex items-center gap-1 text-sm font-extrabold text-emerald-200"><DollarSign size={14} />{formatUsd(potentialAfterPlan)}</span>
+      </div>
+      <p className="mt-4 text-sm leading-relaxed text-white/75">{copy.insight(drivers, formatUsd(monthlyCommissions))}</p>
+      <p className="mt-2 text-xs leading-relaxed text-white/45">{copy.formula}</p>
+      <p className="mt-2 text-[11px] leading-relaxed text-white/35">{copy.disclaimer}</p>
+    </div>
+  );
+}

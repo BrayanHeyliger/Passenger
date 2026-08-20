@@ -1,0 +1,49 @@
+# Project TODO
+
+- [x] Añadir la opción RealTime al panel de Administración de SayTaxi.
+- [x] Integrar el monitoreo dark premium de Socket.IO dentro de la navegación administrativa.
+- [x] Conectar el panel RealTime al endpoint local seguro del servicio de tiempo real.
+- [x] Validar la navegación administrativa y el estado de monitoreo sin publicar en Netlify.
+- [x] Emitir token RealTime de corta duración al iniciar sesión y pasarlo al monitor administrativo cuando exista la clave compartida.
+- [ ] Configurar la misma clave `SAYTAXI_REALTIME_JWT_SECRET` en Passenger antes de publicar para activar tokens firmados en producción.
+- [x] Añadir badges de Pago Seguro, SSL Encriptado y Conductores Verificados al footer.
+- [x] Añadir métodos de pago locales y badges de confianza cerca de los CTAs de pago.
+- [x] Validar la legibilidad dark premium de badges y métodos de pago en local.
+- [x] Verificar la adaptabilidad móvil de los badges de seguridad y métodos de pago en la pantalla de pagos.
+- [x] Añadir una calculadora ROI interactiva en la sección de empresas con selector de conductores, resultado de comisiones estimadas y coste del plan Pro.
+- [x] Validar los cálculos y la adaptación móvil de la calculadora ROI en local.
+- [x] Preparar una propuesta visual de un index más breve y con mayor jerarquía de lectura, sin aplicar cambios al código productivo.
+- [x] Entregar un enlace directo y accesible para abrir la propuesta visual del index resumido.
+- [x] Crear un demo web navegable del index SayTaxi resumido, aislado de la landing productiva.
+- [x] Validar navegación, selector ROI y adaptación móvil del demo antes de entregar su enlace temporal.
+- [x] Crear una segunda propuesta navegable de index con contenido intermedio: más completa que el demo inicial y menos densa que la landing original.
+- [x] Validar y entregar el demo intermedio sin modificar la landing productiva.
+- [x] Condensar los bloques extensos de pasajeros y conductores en tarjetas narrativas dark premium, conservando CTAs y flujos existentes.
+- [x] Validar la nueva composición de tarjetas en escritorio y móvil sin publicar en Netlify.
+- [x] Diagnosticar y restaurar el enlace local de preview de Passenger para compartir una URL accesible.
+- [x] Añadir microinteracciones sutiles y respetuosas de movimiento reducido a las tarjetas narrativas dark premium.
+- [x] Compactar el formulario móvil de pedir taxi manteniendo visibles el mapa, la ruta y el CTA principal.
+- [x] Validar las mejoras de tarjetas y reserva en escritorio y móvil sin publicar en Netlify.
+- [x] Añadir animaciones simples de entrada y realce a la landing dark premium, respetando movimiento reducido.
+- [x] Validar que las animaciones no afecten rendimiento, mapa ni flujos de reserva locales.
+- [ ] Mejorar el progreso de viaje y reforzar la cotización inicial del pasajero con estados claros.
+- [ ] Añadir comparador interactivo de planes y centro de seguridad a la landing.
+- [ ] Crear una demostración guiada de flotilla y una línea de actividad para conductor.
+- [ ] Mejorar el modo de viaje activo nocturno y añadir un selector de casos de uso.
+- [ ] Entregar una captura visual al completar cada bloque funcional solicitado.
+- [x] Validar en local los nuevos componentes, interacción y responsive sin publicar en Netlify.
+- [ ] Verificar configuración de producción, build y requisitos pendientes antes de publicar SayTaxi en Netlify.
+- [ ] Publicar en Netlify la versión local actualizada con las mejoras dark premium y de producto.
+- [ ] Validar la versión publicada de SayTaxi y entregar el enlace final.
+- [x] Preparar una versión compartible temporal de SayTaxi para compartir y verificar su carga pública.
+- [ ] Activar el subdominio permanente solicitado `saytaxi.manus.space` desde la configuración de dominios del proyecto Manus.
+- [x] Reconstruir el enlace compartible usando la última composición dark premium aprobada, excluyendo la copia restaurada base.
+- [x] Preparar una ruta permanente para compartir la versión Passenger — Mobility Platform señalada por el usuario.
+- [x] Integrar el conjunto aprobado de mejoras dark premium y de producto en la versión permanente Passenger.
+- [ ] Validar y publicar en Netlify la actualización permanente de Passenger.
+- [x] Auditar la versión reconstruida contra la composición dark premium aprobada e identificar elementos faltantes.
+- [x] Restaurar los elementos visuales y funcionales faltantes antes de una nueva publicación.
+- [x] Comparar la versión local con el preview de referencia `product-improvements=1` y restaurar todas las diferencias aprobadas.
+- [ ] Confirmar el paquete dark premium aprobado como actualización final y preparar su commit de GitHub.
+- [ ] Enviar la actualización final al repositorio autorizado BrayanHeyliger/Passenger.
+- [ ] Preparar la activación de la versión final en el subdominio permanente saytaxi.manus.space.

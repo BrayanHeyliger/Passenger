@@ -36,17 +36,15 @@ export interface RegisterData {
 const LocalAuthContext = createContext<LocalAuthContextType | null>(null);
 const STORAGE_KEY = "wt_user";
 
-// Call tRPC via raw fetch to avoid React hook conflicts
-async function callTrpc(procedure: string, input: unknown): Promise<any> {
-  const res = await fetch("/api/trpc/" + procedure, {
+async function callAuth(action: "login" | "register", input: Record<string, unknown>): Promise<any> {
+  const res = await fetch("/api/auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ json: input }),
+    body: JSON.stringify({ action, ...input }),
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message || "Error del servidor");
-  return data.result?.data?.json ?? data.result?.data;
+  if (!res.ok || data.error) throw new Error(data.error || "Error del servidor");
+  return data.user;
 }
 
 export function LocalAuthProvider({ children }: { children: ReactNode }) {
@@ -66,7 +64,7 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const result = await callTrpc("localAuth.login", { email, password });
+      const result = await callAuth("login", { email, password });
       const userData: LocalUser = {
         id: result.id,
         name: result.name,
@@ -84,7 +82,7 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
     try {
-      const result = await callTrpc("localAuth.register", {
+      const result = await callAuth("register", {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,

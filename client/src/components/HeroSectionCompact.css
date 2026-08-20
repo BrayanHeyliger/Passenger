@@ -1,0 +1,39 @@
+/* Mobile booking density pass: retains the map, route and CTA while reducing vertical weight. */
+@media (max-width: 640px) {
+  .passenger-mobile-compact-card {
+    padding: .82rem !important;
+    border-radius: 1.25rem !important;
+  }
+  .passenger-mobile-compact-progress {
+    margin-bottom: .65rem !important;
+  }
+  .passenger-mobile-compact-progress .passenger-step {
+    min-width: 0 !important;
+    font-size: .52rem !important;
+  }
+  .passenger-mobile-compact-progress .passenger-step-dot {
+    width: 1.52rem !important;
+    height: 1.52rem !important;
+    font-size: .66rem !important;
+  }
+  .passenger-mobile-compact-progress::before { top: .75rem !important; }
+  .passenger-mobile-compact-card .passenger-service-toggle { margin-bottom: .65rem !important; }
+  .passenger-mobile-compact-card .passenger-service-toggle button { padding: .43rem .55rem !important; font-size: .74rem !important; }
+  .passenger-mobile-compact-title { display: none; }
+  .passenger-mobile-compact-card .mb-3 { margin-bottom: .55rem !important; }
+  .passenger-mobile-compact-card .mb-4 { margin-bottom: .7rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-field-label { margin-bottom: .28rem !important; font-size: .72rem !important; }
+  .passenger-mobile-compact-card input { min-height: 2.35rem !important; font-size: .74rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-optional-controls { margin-bottom: .6rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-optional-controls button { padding: .36rem .6rem !important; border-radius: .6rem !important; font-size: .68rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-extras > p { display: none; }
+  .passenger-mobile-compact-card .passenger-reference-extras > div { gap: .35rem !important; padding-bottom: 0 !important; }
+  .passenger-mobile-compact-card .passenger-reference-extras button { padding: .28rem .48rem !important; font-size: .62rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-map { height: 7.25rem !important; min-height: 0 !important; margin-bottom: .55rem !important; border-radius: .85rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-trip-summary { margin-bottom: .65rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-trip-summary div { padding: .48rem .34rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-trip-summary strong { font-size: .67rem !important; }
+  .passenger-mobile-compact-card .passenger-reference-trip-summary span { display: none !important; }
+  .passenger-mobile-compact-card .passenger-reference-protected { display: none; }
+  .passenger-mobile-compact-card > :is(button, .w-full.py-3\.5) { min-height: 2.65rem; padding-top: .65rem !important; padding-bottom: .65rem !important; }
+}

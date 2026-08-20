@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,11 +12,13 @@ import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import LeafletMap from "@/components/LeafletMap";
+import { useSocket } from "@/hooks/useSocket";
 import ReferralPanel from "@/components/ReferralPanel";
 
 import { TripChat } from "@/components/TripChat";
 import SafetyTipsButton from "@/components/SafetyTipsButton";
 import { DriverParcelPanel } from "@/components/DriverParcelPanel";
+import { DriverActivityTimeline } from "@/components/DriverActivityTimeline";
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
 
@@ -46,6 +48,14 @@ export default function DriverDashboard() {
   const [otpCode] = useState("4821"); // Demo OTP
   const [passengerRating, setPassengerRating] = useState(0);
   const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "referrals" | "profile" | "docs" | "parcels">("trips");
+  const driverMapRef = useRef<import("@/components/LeafletMap").LeafletMapRef | null>(null);
+  const gpsRoomId = currentTrip ? `trip-${currentTrip.id}` : null;
+  const { sendDriverLocation } = useSocket({
+    roomId: gpsRoomId,
+    userId: user?.id != null ? String(user.id) : "driver-demo",
+    role: "driver",
+    enabled: Boolean(gpsRoomId && (tripPhase === "accepted" || tripPhase === "in_progress")),
+  });
   const [earningsHistory] = useState<EarningsEntry[]>([
     { date: "Hoy", trips: completedCount, earnings },
     { date: "Ayer", trips: 8, earnings: 145.50 },
@@ -100,6 +110,41 @@ export default function DriverDashboard() {
     });
     sendNotification("✅ Viaje aceptado", { body: `${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, url: "/driver-dashboard", tag: "trip-accepted" });
   };
+
+  useEffect(() => {
+    if (!driverMapRef.current || !currentTrip || !(tripPhase === "accepted" || tripPhase === "in_progress")) return;
+    driverMapRef.current.setPickup(19.4270, -99.1677, currentTrip.pickup || "Punto de recogida");
+    driverMapRef.current.setDropoff(19.4363, -99.0719, currentTrip.dropoff || "Destino");
+    void driverMapRef.current.getRoute();
+  }, [currentTrip?.id, tripPhase]);
+
+  useEffect(() => {
+    if (!currentTrip || !gpsRoomId || !(tripPhase === "accepted" || tripPhase === "in_progress")) return;
+    if (!navigator.geolocation) {
+      toast.error("Este dispositivo no ofrece ubicación GPS para el viaje");
+      return;
+    }
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, heading, speed, accuracy } = position.coords;
+        const stage = tripPhase === "in_progress" ? "in_trip" : "approaching";
+        driverMapRef.current?.setVehiclePosition(latitude, longitude, stage === "in_trip" ? "Compartiendo GPS hacia destino" : "Compartiendo GPS hacia recogida");
+        driverMapRef.current?.followVehicle(latitude, longitude);
+        sendDriverLocation({
+          tripId: currentTrip.id,
+          lat: latitude,
+          lng: longitude,
+          heading,
+          speed,
+          accuracy,
+          stage,
+        });
+      },
+      () => toast.error("No se pudo leer el GPS. Revisa los permisos de ubicación."),
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 12000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [currentTrip?.id, gpsRoomId, tripPhase, sendDriverLocation]);
 
   const handleArrived = () => {
     setTripPhase("otp_verify");
@@ -184,12 +229,12 @@ export default function DriverDashboard() {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="premium-driver-dashboard min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+      <header className="premium-driver-header bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">{user?.name?.[0] || "D"}</div>
+            <img src="/saytaxi-mark.svg" alt="SayTaxi" className="h-10 w-10 shrink-0 rounded-xl" />
             <div>
               <p className="font-semibold text-slate-900 text-sm">{user?.name}</p>
               <p className="text-xs text-slate-500">Panel de Conductor</p>
@@ -253,7 +298,7 @@ export default function DriverDashboard() {
       </header>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="premium-driver-tabs bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 flex">
           {[
             { id: "trips" as const, label: "Viajes", icon: Car },
@@ -499,6 +544,7 @@ export default function DriverDashboard() {
                 <p className="text-3xl font-bold text-green-600">${earnings.toFixed(2)}</p>
                 <p className="text-sm text-green-700 mt-1">{completedCount} viajes completados</p>
               </Card>
+              <DriverActivityTimeline isOnline={isOnline} tripPhase={tripPhase} completedCount={completedCount} earnings={earnings} />
               {/* Mapa de ubicación */}
               <Card className="overflow-hidden p-0">
                 <div className="px-4 pt-4 pb-2 flex items-center justify-between">
@@ -512,22 +558,26 @@ export default function DriverDashboard() {
                     height="100%"
                     className="absolute inset-0 w-full h-full"
                     onMapReady={(ref) => {
-                      // LeafletMap auto-centers on user location
+                      driverMapRef.current = ref;
                       if (currentTrip && (tripPhase === "accepted" || tripPhase === "in_progress")) {
-                        // Show route for active trip using OSRM
-                        navigator.geolocation?.getCurrentPosition(async (pos) => {
-                          const { latitude: lat, longitude: lng } = pos.coords;
+                        const setupRoute = async (lat: number, lng: number) => {
                           ref.setPickup(lat, lng, "Mi posición");
-                          // Geocode destination with Nominatim
+                          ref.setVehiclePosition(lat, lng, "Vehículo del conductor");
                           try {
                             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(currentTrip.dropoff)}&limit=1`);
                             const data = await res.json();
-                            if (data[0]) {
-                              ref.setDropoff(parseFloat(data[0].lat), parseFloat(data[0].lon), currentTrip.dropoff);
-                              ref.getRoute();
-                            }
-                          } catch {}
-                        });
+                            const destination = data[0] ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : { lat: 19.4363, lng: -99.0719 };
+                            ref.setDropoff(destination.lat, destination.lng, currentTrip.dropoff);
+                            await ref.getRoute();
+                          } catch {
+                            ref.setDropoff(19.4363, -99.0719, currentTrip.dropoff);
+                            await ref.getRoute();
+                          }
+                        };
+                        navigator.geolocation?.getCurrentPosition(
+                          (pos) => setupRoute(pos.coords.latitude, pos.coords.longitude),
+                          () => setupRoute(19.4270, -99.1677),
+                        );
                       }
                     }}
                   />

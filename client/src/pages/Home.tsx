@@ -7,28 +7,29 @@
  import PricingSection from "@/components/PricingSection";
  import ContactSection from "@/components/ContactSection";
  import FooterSection from "@/components/FooterSection";
- import TestimonialsSection from "@/components/TestimonialsSection";
-import PWAInstallBanner from "@/components/PWAInstallBanner";
-import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import { ParcelPromoBar } from "@/components/ParcelPromoBar";
+import SafetyCenterSection from "@/components/SafetyCenterSection";
+import PlanComparatorSection from "@/components/PlanComparatorSection";
+ import UseCaseExplorer from "@/components/UseCaseExplorer";
+import { useLocalAuth } from "@/contexts/LocalAuthContext";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useLocalAuth();
 
   return (
-    <div className="min-h-screen">
+    <div className="passenger-home min-h-screen">
       <Navbar user={user} isAuthenticated={isAuthenticated} onLogout={logout} onLogin={() => window.location.href = "/login"} />
       <HeroSection />
       <ForClientsSection />
       <ForDriversSection />
+      <SafetyCenterSection />
       <ForFleetSection />
       <PricingSection />
-      <TestimonialsSection />
+      <PlanComparatorSection />
+      <UseCaseExplorer />
       <ParcelPromoBar />
       <ContactSection />
       <FooterSection />
-      <PWAInstallBanner />
-      <WhatsAppFloatingButton />
     </div>
   );
 }

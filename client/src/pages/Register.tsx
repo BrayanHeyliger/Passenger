@@ -6,6 +6,8 @@ import { User, Car, ArrowLeft, Mail, Lock, Phone, FileText, Building2, Eye, EyeO
 import { useLocalAuth, type UserRole } from "@/contexts/LocalAuthContext";
 import { useI18n } from "@/contexts/I18nContext";
 import { trpc } from "@/lib/trpc";
+import { useEffect, useState } from "react";
+import { SayTaxiBrand } from "@/components/SayTaxiBrand";
 
 type RegisterType = "select" | "client" | "driver" | "fleet";
 
@@ -145,17 +147,7 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[oklch(0.13_0.01_250)] to-[oklch(0.08_0.02_250)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <a href="/" className="inline-flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-green-500/20">
-              <img src="/manus-storage/logo-icon_34950e08.png" alt="Logo" className="w-full h-full object-cover" style={{ background: "oklch(0.76 0.18 148)" }} />
-            </div>
-            <span className="text-white font-bold text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-              WhatsApp<span className="text-[oklch(0.76_0.18_148)]">Taxi</span>
-            </span>
-          </a>
-        </div>
+        <div className="text-center mb-8"><a href="/"><SayTaxiBrand /></a></div>
 
         {/* Selección de tipo */}
         {registerType === "select" && (

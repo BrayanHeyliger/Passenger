@@ -1,6 +1,7 @@
 import { VehiclesExtrasEditor } from "@/components/VehiclesExtrasEditor";
 import FAQEditor from "@/components/FAQEditor";
 import { AdminParcelStats } from "@/components/AdminParcelStats";
+import AdminRealtimePanel from "@/components/AdminRealtimePanel";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -27,7 +28,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 
-type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing" | "broadcast" | "safetyTips" | "parcels";
+type Tab = "overview" | "godsEye" | "drivers" | "clients" | "trips" | "messages" | "permissions" | "editor" | "analytics" | "payments" | "faq" | "settings" | "referrals" | "dispatchers" | "manualBooking" | "surgePricing" | "broadcast" | "safetyTips" | "parcels" | "realtime";
 type EditorSection = "hero" | "colors" | "contact" | "footer" | "meta" | "features" | "pricing" | "testimonials" | "email" | "vehicles";
 type EditorView = "form" | "preview";
 
@@ -82,16 +83,16 @@ const statusLabels: Record<string, string> = {
 };
 
 const defaultSiteConfig = {
-  siteTitle: "WhatsApp Taxi SaaS", tagline: "Gestiona tu flota desde WhatsApp",
-  heroTitle: "Gestiona tu flota desde WhatsApp. Sin apps. Sin complicaciones.",
-  heroDesc: "La plataforma SaaS que convierte WhatsApp en tu central de taxis. Recibe pedidos, asigna conductores y gestiona tarifas — todo desde un bot inteligente.",
+  siteTitle: "SayTaxi Mobility Platform", tagline: "Movilidad clara para pasajeros, conductores y flotillas",
+  heroTitle: "Conecta pasajeros y conductores con una experiencia clara.",
+  heroDesc: "La plataforma de movilidad que unifica reservas, asignación, seguimiento y operación de flotillas.",
   ctaText: "Empezar gratis", primaryColor: "#25D366", secondaryColor: "#0d1117",
-  accentColor: "#128C7E", fontFamily: "Sora", contactEmail: "soporte@whatsapptaxi.com",
-  contactPhone: "+1 800 TAXI BOT", contactAddress: "Ciudad de México, México",
-  footerText: "© 2025 WhatsApp Taxi SaaS. Todos los derechos reservados.",
+  accentColor: "#128C7E", fontFamily: "Sora", contactEmail: "soporte@saytaxi.app",
+  contactPhone: "+1 800 SAYTAXI", contactAddress: "Ciudad de México, México",
+  footerText: "© 2026 SayTaxi Mobility Platform. Todos los derechos reservados.",
   footerLinks: "Privacidad | Términos | Soporte",
-  metaDescription: "Plataforma SaaS para empresas de taxi. Recibe pedidos por WhatsApp.",
-  metaKeywords: "taxi, whatsapp, saas, flota, conductor",
+  metaDescription: "Plataforma de movilidad para pasajeros, conductores y flotillas.",
+  metaKeywords: "taxi, movilidad, saas, flotilla, conductor",
   showAnimations: true, showPricing: true, showTestimonials: false,
   maintenanceMode: false, allowRegistration: true, requireEmailVerification: false,
   commissionRate: "20", basefare: "2.50", pricePerKm: "1.20",
@@ -219,6 +220,7 @@ export default function AdminDashboard() {
     { id: "broadcast", label: "Broadcast", icon: Send },
     { id: "safetyTips", label: "Consejos 💡", icon: Lightbulb },
     { id: "parcels", label: "Paquetes 📦", icon: Package },
+    { id: "realtime", label: "RealTime", icon: Activity },
   ];
 
   if (!isAuthenticated) return null;
@@ -1042,6 +1044,8 @@ export default function AdminDashboard() {
               <AdminParcelStats />
             </div>
           )}
+
+          {activeTab === "realtime" && <AdminRealtimePanel />}
 
           {/* ── FAQ EDITOR ── */}
           {activeTab === "faq" && (

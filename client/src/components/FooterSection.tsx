@@ -4,7 +4,7 @@
  */
 import { useI18n } from "@/contexts/I18nContext";
 import { Github, Twitter, Linkedin, Heart } from "lucide-react";
-import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { TrustBadges } from "@/components/TrustBadges";
 
 const footerLinks = {
   Producto: ["Características", "Precios", "Changelog", "Roadmap"],
@@ -15,7 +15,6 @@ const footerLinks = {
 
 export default function FooterSection() {
   const { t } = useI18n();
-  const { config } = useSiteConfig();
 
   return (
     <footer
@@ -30,28 +29,10 @@ export default function FooterSection() {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <div
-                className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0"
-                style={{ background: config.logoUrl ? "transparent" : config.primaryColor }}
-              >
-                <img
-                  src={config.logoUrl || "/manus-storage/logo-icon_34950e08.png"}
-                  alt="Logo"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <span
-                className="text-white font-bold text-base"
-                style={{ fontFamily: `'${config.fontFamily}', sans-serif` }}
-              >
-                {config.siteTitle.split(" ")[0]}
-                <span style={{ color: config.primaryColor }}>
-                  {config.siteTitle.split(" ").slice(1).join(" ")}
-                </span>
-              </span>
+              <img src="/saytaxi-brand.svg" alt="SayTaxi Mobility Platform" className="h-10 w-auto max-w-[180px] rounded-xl" />
             </div>
             <p className="text-white/40 text-sm leading-relaxed mb-5">
-              {config.tagline}
+              Viajes, conductores y flotillas en una plataforma clara, segura y preparada para crecer.
             </p>
             <div className="flex gap-3">
               {[Twitter, Github, Linkedin].map((Icon, i) => (
@@ -92,13 +73,15 @@ export default function FooterSection() {
           ))}
         </div>
 
+        <TrustBadges />
+
         {/* Bottom bar */}
         <div
           className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t"
           style={{ borderColor: "oklch(1 0 0 / 0.08)" }}
         >
           <p className="text-white/30 text-xs">
-            {config.footerText}
+            © 2026 SayTaxi Mobility Platform. Todos los derechos reservados.
           </p>
           <p className="text-white/30 text-xs flex items-center gap-1.5">
             Hecho con <Heart size={11} className="text-red-400 fill-red-400" /> para empresas de taxi en Latinoamérica

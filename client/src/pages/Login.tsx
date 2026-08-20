@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { useI18n } from "@/contexts/I18nContext";
+import { useState } from "react";
+import { SayTaxiBrand } from "@/components/SayTaxiBrand";
 
 export default function Login() {
   const { t } = useI18n();
@@ -69,19 +71,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <a href="/" className="inline-flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-green-500/20">
-              <img
-                src="/manus-storage/logo-icon_34950e08.png"
-                alt="WhatsApp Taxi Logo"
-                className="w-full h-full object-cover"
-                style={{ background: "oklch(0.76 0.18 148)" }}
-              />
-            </div>
-            <span className="text-white font-bold text-xl" style={{ fontFamily: "'Sora', sans-serif" }}>
-              WhatsApp<span className="text-[oklch(0.76_0.18_148)]">Taxi</span>
-            </span>
-          </a>
+          <a href="/"><SayTaxiBrand /></a>
         </div>
 
         <Card className="p-8 bg-white/5 backdrop-blur-sm border border-white/10">

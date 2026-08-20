@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -13,7 +14,10 @@ import AdminDashboard from "./pages/AdminDashboard";
 import FleetDashboard from "./pages/FleetDashboard";
 import DispatcherDashboard from "./pages/DispatcherDashboard";
 import Payments from "./pages/Payments";
-import FAQPage from "./pages/FAQ";
+import FAQPage from "@/pages/FAQ";
+import PassengerMarketplacePage from "@/pages/PassengerMarketplacePage";
+import PassengerTripTrackingPage from "@/pages/PassengerTripTrackingPage";
+import PassengerMobileDashboardPreview from "@/pages/PassengerMobileDashboardPreview";
 import { useLocalAuth } from "./contexts/LocalAuthContext";
 import { useEffect } from "react";
 
@@ -52,6 +56,10 @@ function Router() {
       <Route path={"/register"} component={Register} />
       <Route path={"/login"} component={Login} />
       <Route path={"/faq"} component={FAQPage} />
+      <Route path={"/marketplace"} component={PassengerMarketplacePage} />
+      <Route path={"/trip-tracking"} component={PassengerTripTrackingPage} />
+      <Route path={"/client-mobile"}>{() => <PassengerMobileDashboardPreview role="client" />}</Route>
+      <Route path={"/driver-mobile"}>{() => <PassengerMobileDashboardPreview role="driver" />}</Route>
       <Route path={"/payments"} component={Payments} />
       <Route path={"/client-dashboard"}>
         {() => <PrivateRoute component={ClientDashboard} allowedRoles={["client"]} />}
