@@ -7,6 +7,7 @@ export interface LeafletMapRef {
   getRoute: () => Promise<{ distanceKm: number; durationMin: number } | null>;
   spawnVehicles: (lat: number, lng: number) => void;
   panTo: (lat: number, lng: number) => void;
+  updateVehiclePosition: (lat: number, lng: number, heading?: number) => void;
 }
 
 interface Props {
@@ -29,9 +30,9 @@ const dropoffIcon = (L: any) =>
     iconAnchor: [18, 18],
   });
 
-const vehicleIcon = (L: any) =>
+const vehicleIcon = (L: any, heading = 0) =>
   L.divIcon({
-    html: '<span class="passenger-map-vehicle" aria-label="Vehículo disponible"><svg viewBox="0 0 48 28" role="img"><path d="M8 18 12 8h23l6 10v5H8z"/><path d="m15 8 3-5h12l5 5"/><circle cx="15" cy="23" r="3"/><circle cx="35" cy="23" r="3"/></svg></span>',
+    html: `<span class="passenger-map-vehicle" aria-label="Vehículo disponible" style="--vehicle-heading:${heading}deg"><svg viewBox="0 0 48 28" role="img"><path d="M8 18 12 8h23l6 10v5H8z"/><path d="m15 8 3-5h12l5 5"/><circle cx="15" cy="23" r="3"/><circle cx="35" cy="23" r="3"/></svg></span>`,
     className: "passenger-map-icon",
     iconAnchor: [20, 14],
   });
@@ -48,6 +49,9 @@ export default function LeafletMap({
   const routeLayerRef = useRef<any>(null);
   const vehicleMarkersRef = useRef<any[]>([]);
   const vehicleAnimRef = useRef<any>(null);
+  const routeVehicleMarkerRef = useRef<any>(null);
+  const routeAnimationRef = useRef<number | null>(null);
+  const routePointsRef = useRef<Array<[number, number]>>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -71,6 +75,93 @@ export default function LeafletMap({
       ).addTo(map);
       map.setView([19.4326, -99.1332], 13);
       mapRef.current = map;
+
+      const stopRouteAnimation = () => {
+        if (routeAnimationRef.current !== null) {
+          cancelAnimationFrame(routeAnimationRef.current);
+          routeAnimationRef.current = null;
+        }
+      };
+
+      const bearingBetween = (from: [number, number], to: [number, number]) => {
+        const dLon = ((to[1] - from[1]) * Math.PI) / 180;
+        const fromLat = (from[0] * Math.PI) / 180;
+        const toLat = (to[0] * Math.PI) / 180;
+        return (
+          (Math.atan2(
+            Math.sin(dLon) * Math.cos(toLat),
+            Math.cos(fromLat) * Math.sin(toLat) -
+              Math.sin(fromLat) * Math.cos(toLat) * Math.cos(dLon)
+          ) *
+            180) /
+          Math.PI
+        );
+      };
+
+      const startRouteAnimation = (
+        points: Array<[number, number]>,
+        distanceMeters: number
+      ) => {
+        stopRouteAnimation();
+        routePointsRef.current = points;
+        if (points.length < 2) return;
+        const initialHeading = bearingBetween(points[0], points[1]);
+        if (routeVehicleMarkerRef.current)
+          routeVehicleMarkerRef.current.remove();
+        routeVehicleMarkerRef.current = L.marker(points[0], {
+          icon: vehicleIcon(L, initialHeading),
+          keyboard: false,
+          zIndexOffset: 700,
+        }).addTo(map);
+        const duration = Math.min(
+          24000,
+          Math.max(10000, (distanceMeters / 1000) * 1600)
+        );
+        const startedAt = performance.now();
+        const easeInOut = (value: number) =>
+          value < 0.5
+            ? 4 * value * value * value
+            : 1 - Math.pow(-2 * value + 2, 3) / 2;
+        const tick = (now: number) => {
+          const cycle = ((now - startedAt) % duration) / duration;
+          const eased = easeInOut(cycle);
+          const scaled = eased * (points.length - 1);
+          const index = Math.min(points.length - 2, Math.floor(scaled));
+          const local = scaled - index;
+          const from = points[index];
+          const to = points[index + 1];
+          const position: [number, number] = [
+            from[0] + (to[0] - from[0]) * local,
+            from[1] + (to[1] - from[1]) * local,
+          ];
+          const heading = bearingBetween(from, to);
+          routeVehicleMarkerRef.current?.setLatLng(position);
+          if (
+            routeVehicleMarkerRef.current &&
+            Math.round(cycle * 100) % 4 === 0
+          )
+            routeVehicleMarkerRef.current.setIcon(vehicleIcon(L, heading));
+          routeAnimationRef.current = requestAnimationFrame(tick);
+        };
+        routeAnimationRef.current = requestAnimationFrame(tick);
+      };
+
+      const updateVehiclePosition = (
+        lat: number,
+        lng: number,
+        heading?: number
+      ) => {
+        stopRouteAnimation();
+        if (!routeVehicleMarkerRef.current)
+          routeVehicleMarkerRef.current = L.marker([lat, lng], {
+            icon: vehicleIcon(L, heading ?? 0),
+            keyboard: false,
+            zIndexOffset: 700,
+          }).addTo(map);
+        routeVehicleMarkerRef.current.setLatLng([lat, lng]);
+        if (typeof heading === "number")
+          routeVehicleMarkerRef.current.setIcon(vehicleIcon(L, heading));
+      };
 
       const spawnVehiclesInternal = (lat: number, lng: number) => {
         vehicleMarkersRef.current.forEach(marker => marker.remove());
@@ -173,6 +264,10 @@ export default function LeafletMap({
                 routeCasing,
                 routeCore,
               ]).addTo(map);
+              const routePoints = route.geometry.coordinates.map(
+                ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
+              );
+              startRouteAnimation(routePoints, route.distance);
               map.fitBounds(routeCore.getBounds(), {
                 padding: [44, 44],
               });
@@ -188,12 +283,15 @@ export default function LeafletMap({
         },
         spawnVehicles: (lat, lng) => spawnVehiclesInternal(lat, lng),
         panTo: (lat, lng) => map.setView([lat, lng], 15),
+        updateVehiclePosition,
       };
       onMapReady?.(ref);
     });
 
     return () => {
       if (vehicleAnimRef.current) clearInterval(vehicleAnimRef.current);
+      if (routeAnimationRef.current !== null)
+        cancelAnimationFrame(routeAnimationRef.current);
       mapRef.current?.remove?.();
       mapRef.current = null;
     };

@@ -39,6 +39,25 @@ export default function LiveTripNavigationMap({
   }, [pickupLabel, destinationLabel]);
 
   useEffect(() => {
+    if (!liveLocation || !mapRef.current || typeof liveLocation !== "object")
+      return;
+    const location = liveLocation as Record<string, unknown>;
+    const coords = location.coords as Record<string, unknown> | undefined;
+    const lat = Number(location.lat ?? location.latitude ?? coords?.lat);
+    const lng = Number(
+      location.lng ?? location.lon ?? location.longitude ?? coords?.lng
+    );
+    const headingValue = Number(location.heading ?? location.bearing ?? 0);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      mapRef.current.updateVehiclePosition(
+        lat,
+        lng,
+        Number.isFinite(headingValue) ? headingValue : undefined
+      );
+    }
+  }, [liveLocation]);
+
+  useEffect(() => {
     const notify = (next: number, nextStage: LiveTripStage) => {
       const eta =
         nextStage === "approaching"
