@@ -106,6 +106,7 @@ export default function LiveTripNavigationMap({
       <LeafletMap
         className="absolute inset-0 h-full w-full"
         height="100%"
+        showNearbyVehicles={false}
         onMapReady={ref => {
           mapRef.current = ref;
           ref.setPickup(19.427, -99.1677, pickupLabel);

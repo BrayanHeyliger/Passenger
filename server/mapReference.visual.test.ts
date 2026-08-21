@@ -39,6 +39,7 @@ describe("mapa dark premium de referencia", () => {
     expect(tripSource).toContain("Seguimiento GPS en tiempo real");
     expect(tripSource).toContain("panTo(19.427, -99.1677)");
     expect(tripSource).toContain("liveLocation");
+    expect(tripSource).toContain("showNearbyVehicles={false}");
   });
 
   it("define tratamiento visual y responsive para el mapa", () => {

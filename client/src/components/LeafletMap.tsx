@@ -14,6 +14,7 @@ interface Props {
   height?: string;
   onMapReady?: (ref: LeafletMapRef) => void;
   className?: string;
+  showNearbyVehicles?: boolean;
 }
 
 const pickupIcon = (L: any) =>
@@ -41,6 +42,7 @@ export default function LeafletMap({
   height = "100%",
   onMapReady,
   className = "",
+  showNearbyVehicles = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -166,6 +168,7 @@ export default function LeafletMap({
       const spawnVehiclesInternal = (lat: number, lng: number) => {
         vehicleMarkersRef.current.forEach(marker => marker.remove());
         vehicleMarkersRef.current = [];
+        if (!showNearbyVehicles) return;
         for (let i = 0; i < 8; i++) {
           const spread = 0.012;
           const vLat = lat + (Math.random() - 0.5) * spread;
