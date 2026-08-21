@@ -32,7 +32,7 @@ export function ParcelPromoBar() {
           {/* Left: Promo Image */}
           <div className="flex justify-center lg:justify-start">
             <img
-              src="/manus-storage/parcel_promo_banner_0ebebc94.png"
+              src="/parcel-promo.svg"
               alt="Nuevo servicio de paquetería"
               className="w-full max-w-md h-auto rounded-xl shadow-lg"
             />
@@ -50,7 +50,7 @@ export function ParcelPromoBar() {
             </h2>
 
             <p className="text-base sm:text-lg text-slate-600 max-w-md mx-auto lg:mx-0">
-              Entrega rápida y segura de paquetes en minutos. Mismo servicio confiable de WhatsApp Taxi, ahora para tus envíos.
+              Entrega rápida y segura de paquetes en minutos. La misma experiencia confiable de SayTaxi, ahora para tus envíos.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
