@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface LeafletMapRef {
   setPickup: (lat: number, lng: number, label: string) => void;
@@ -15,7 +15,32 @@ interface Props {
   className?: string;
 }
 
-export default function LeafletMap({ height = "100%", onMapReady, className = "" }: Props) {
+const pickupIcon = (L: any) =>
+  L.divIcon({
+    html: '<span class="passenger-map-pin passenger-map-pin--pickup"><i></i></span>',
+    className: "passenger-map-icon",
+    iconAnchor: [18, 18],
+  });
+
+const dropoffIcon = (L: any) =>
+  L.divIcon({
+    html: '<span class="passenger-map-pin passenger-map-pin--dropoff"><i></i></span>',
+    className: "passenger-map-icon",
+    iconAnchor: [18, 18],
+  });
+
+const vehicleIcon = (L: any) =>
+  L.divIcon({
+    html: '<span class="passenger-map-vehicle" aria-label="Vehículo disponible"><svg viewBox="0 0 48 28" role="img"><path d="M8 18 12 8h23l6 10v5H8z"/><path d="m15 8 3-5h12l5 5"/><circle cx="15" cy="23" r="3"/><circle cx="35" cy="23" r="3"/></svg></span>',
+    className: "passenger-map-icon",
+    iconAnchor: [20, 14],
+  });
+
+export default function LeafletMap({
+  height = "100%",
+  onMapReady,
+  className = "",
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const pickupMarkerRef = useRef<any>(null);
@@ -28,112 +53,146 @@ export default function LeafletMap({ height = "100%", onMapReady, className = ""
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     let L: any;
-    import("leaflet").then((mod) => {
+
+    import("leaflet").then(mod => {
       L = mod.default;
-      // Fix default icon paths
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      const map = L.map(containerRef.current!, {
+        zoomControl: false,
+        attributionControl: false,
+        preferCanvas: true,
       });
-      const map = L.map(containerRef.current!, { zoomControl: true, attributionControl: false });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap",
-      }).addTo(map);
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        {
+          maxZoom: 20,
+          subdomains: "abcd",
+          attribution: "© OpenStreetMap © CARTO",
+        }
+      ).addTo(map);
       map.setView([19.4326, -99.1332], 13);
       mapRef.current = map;
 
-      // Try to get user location
-      navigator.geolocation?.getCurrentPosition((pos) => {
-        map.setView([pos.coords.latitude, pos.coords.longitude], 15);
-        const marker = L.marker([pos.coords.latitude, pos.coords.longitude], {
-          icon: L.divIcon({ html: '<div style="width:14px;height:14px;background:#25D366;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(37,211,102,0.5)"></div>', className: "", iconAnchor: [7, 7] }),
-        }).addTo(map).bindPopup("📍 Tu ubicación");
-        pickupMarkerRef.current = marker;
-        spawnVehiclesInternal(L, map, pos.coords.latitude, pos.coords.longitude);
-      }, () => {
-        spawnVehiclesInternal(L, map, 19.4326, -99.1332);
-      });
-
-      setReady(true);
-
-      const spawnVehiclesInternal = (L: any, map: any, lat: number, lng: number) => {
-        vehicleMarkersRef.current.forEach(m => m.remove());
+      const spawnVehiclesInternal = (lat: number, lng: number) => {
+        vehicleMarkersRef.current.forEach(marker => marker.remove());
         vehicleMarkersRef.current = [];
-        const types = ["🚗","🚙","🚘","🚐"];
         for (let i = 0; i < 8; i++) {
           const spread = 0.012;
           const vLat = lat + (Math.random() - 0.5) * spread;
           const vLng = lng + (Math.random() - 0.5) * spread;
-          const emoji = types[i % types.length];
-          const m = L.marker([vLat, vLng], {
-            icon: L.divIcon({ html: `<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))">${emoji}</div>`, className: "", iconAnchor: [11, 11] }),
+          const marker = L.marker([vLat, vLng], {
+            icon: vehicleIcon(L),
+            keyboard: false,
           }).addTo(map);
-          vehicleMarkersRef.current.push(m);
+          vehicleMarkersRef.current.push(marker);
         }
         if (vehicleAnimRef.current) clearInterval(vehicleAnimRef.current);
         vehicleAnimRef.current = setInterval(() => {
-          vehicleMarkersRef.current.forEach(m => {
-            const pos = m.getLatLng();
-            m.setLatLng([pos.lat + (Math.random() - 0.5) * 0.0003, pos.lng + (Math.random() - 0.5) * 0.0003]);
+          vehicleMarkersRef.current.forEach(marker => {
+            const pos = marker.getLatLng();
+            marker.setLatLng([
+              pos.lat + (Math.random() - 0.5) * 0.0003,
+              pos.lng + (Math.random() - 0.5) * 0.0003,
+            ]);
           });
         }, 1500);
       };
+
+      navigator.geolocation?.getCurrentPosition(
+        pos => {
+          map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+          pickupMarkerRef.current = L.marker(
+            [pos.coords.latitude, pos.coords.longitude],
+            { icon: pickupIcon(L) }
+          )
+            .addTo(map)
+            .bindPopup("Tu ubicación");
+          spawnVehiclesInternal(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => spawnVehiclesInternal(19.4326, -99.1332)
+      );
+
+      setReady(true);
 
       const ref: LeafletMapRef = {
         setPickup: (lat, lng, label) => {
           if (pickupMarkerRef.current) pickupMarkerRef.current.remove();
           pickupMarkerRef.current = L.marker([lat, lng], {
-            icon: L.divIcon({ html: '<div style="width:14px;height:14px;background:#25D366;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(37,211,102,0.5)"></div>', className: "", iconAnchor: [7, 7] }),
-          }).addTo(map).bindPopup(`📍 ${label}`);
+            icon: pickupIcon(L),
+          })
+            .addTo(map)
+            .bindPopup(label);
           map.setView([lat, lng], 15);
-          spawnVehiclesInternal(L, map, lat, lng);
+          spawnVehiclesInternal(lat, lng);
         },
         setDropoff: (lat, lng, label) => {
           if (dropoffMarkerRef.current) dropoffMarkerRef.current.remove();
           dropoffMarkerRef.current = L.marker([lat, lng], {
-            icon: L.divIcon({ html: '<div style="width:14px;height:14px;background:#EF4444;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(239,68,68,0.5)"></div>', className: "", iconAnchor: [7, 7] }),
-          }).addTo(map).bindPopup(`🏁 ${label}`);
+            icon: dropoffIcon(L),
+          })
+            .addTo(map)
+            .bindPopup(label);
         },
         clearRoute: () => {
-          if (routeLayerRef.current) { routeLayerRef.current.remove(); routeLayerRef.current = null; }
+          if (routeLayerRef.current) {
+            routeLayerRef.current.remove();
+            routeLayerRef.current = null;
+          }
         },
         getRoute: async () => {
-          if (!pickupMarkerRef.current || !dropoffMarkerRef.current) return null;
-          const p = pickupMarkerRef.current.getLatLng();
-          const d = dropoffMarkerRef.current.getLatLng();
+          if (!pickupMarkerRef.current || !dropoffMarkerRef.current)
+            return null;
+          const pickup = pickupMarkerRef.current.getLatLng();
+          const dropoff = dropoffMarkerRef.current.getLatLng();
           try {
-            const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${p.lng},${p.lat};${d.lng},${d.lat}?overview=full&geometries=geojson`);
-            const data = await res.json();
+            const response = await fetch(
+              `https://router.project-osrm.org/route/v1/driving/${pickup.lng},${pickup.lat};${dropoff.lng},${dropoff.lat}?overview=full&geometries=geojson`
+            );
+            const data = await response.json();
             if (data.routes?.[0]) {
               const route = data.routes[0];
               if (routeLayerRef.current) routeLayerRef.current.remove();
-              routeLayerRef.current = L.geoJSON(route.geometry, { style: { color: "#25D366", weight: 5, opacity: 0.8 } }).addTo(map);
-              map.fitBounds(routeLayerRef.current.getBounds(), { padding: [40, 40] });
-              return { distanceKm: route.distance / 1000, durationMin: Math.ceil(route.duration / 60) };
+              routeLayerRef.current = L.geoJSON(route.geometry, {
+                style: {
+                  color: "#48e894",
+                  weight: 7,
+                  opacity: 0.96,
+                  lineCap: "round",
+                  lineJoin: "round",
+                },
+              }).addTo(map);
+              map.fitBounds(routeLayerRef.current.getBounds(), {
+                padding: [44, 44],
+              });
+              return {
+                distanceKm: route.distance / 1000,
+                durationMin: Math.ceil(route.duration / 60),
+              };
             }
-          } catch {}
+          } catch {
+            return null;
+          }
           return null;
         },
-        spawnVehicles: (lat, lng) => spawnVehiclesInternal(L, map, lat, lng),
+        spawnVehicles: (lat, lng) => spawnVehiclesInternal(lat, lng),
         panTo: (lat, lng) => map.setView([lat, lng], 15),
       };
       onMapReady?.(ref);
     });
+
     return () => {
       if (vehicleAnimRef.current) clearInterval(vehicleAnimRef.current);
+      mapRef.current?.remove?.();
+      mapRef.current = null;
     };
   }, []);
 
   return (
-    <div ref={containerRef} className={className} style={{ height, width: "100%", background: "#e8e8e8" }}>
-      {!ready && (
-        <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#666", fontSize: 14 }}>
-          Cargando mapa...
-        </div>
-      )}
+    <div
+      ref={containerRef}
+      className={`passenger-leaflet-map ${className}`}
+      style={{ height, width: "100%" }}
+    >
+      {!ready && <div className="passenger-map-loading">Cargando mapa...</div>}
     </div>
   );
 }
