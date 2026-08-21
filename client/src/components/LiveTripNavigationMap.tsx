@@ -130,6 +130,7 @@ export default function LiveTripNavigationMap({
       <button
         type="button"
         aria-label="Centrar mapa"
+        onClick={() => mapRef.current?.panTo(19.427, -99.1677)}
         className="pointer-events-auto absolute bottom-5 right-5 z-[500] grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-[#071016]/85 text-white/80 shadow-xl backdrop-blur transition hover:border-[#55e89a]/60 hover:text-[#55e89a]"
       >
         <LocateFixed size={18} />

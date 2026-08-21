@@ -151,16 +151,29 @@ export default function LeafletMap({
             if (data.routes?.[0]) {
               const route = data.routes[0];
               if (routeLayerRef.current) routeLayerRef.current.remove();
-              routeLayerRef.current = L.geoJSON(route.geometry, {
+              const routeCasing = L.geoJSON(route.geometry, {
                 style: {
-                  color: "#48e894",
-                  weight: 7,
-                  opacity: 0.96,
+                  color: "#071912",
+                  weight: 14,
+                  opacity: 0.86,
                   lineCap: "round",
                   lineJoin: "round",
                 },
-              }).addTo(map);
-              map.fitBounds(routeLayerRef.current.getBounds(), {
+              });
+              const routeCore = L.geoJSON(route.geometry, {
+                style: {
+                  color: "#48e894",
+                  weight: 7,
+                  opacity: 0.98,
+                  lineCap: "round",
+                  lineJoin: "round",
+                },
+              });
+              routeLayerRef.current = L.layerGroup([
+                routeCasing,
+                routeCore,
+              ]).addTo(map);
+              map.fitBounds(routeCore.getBounds(), {
                 padding: [44, 44],
               });
               return {

@@ -26,6 +26,7 @@ describe("mapa dark premium de referencia", () => {
     expect(mapSource).toContain("passenger-map-street-grid");
     expect(mapSource).toContain("ROMA NORTE");
     expect(mapSource).toContain('color: "#48e894"');
+    expect(mapSource).toContain('color: "#071912"');
   });
 
   it("incluye las tarjetas flotantes del viaje en curso", () => {
@@ -33,6 +34,7 @@ describe("mapa dark premium de referencia", () => {
     expect(tripSource).toContain("passenger-map-pickup-card");
     expect(tripSource).toContain("passenger-map-destination-card");
     expect(tripSource).toContain("Seguimiento GPS en tiempo real");
+    expect(tripSource).toContain("panTo(19.427, -99.1677)");
   });
 
   it("define tratamiento visual y responsive para el mapa", () => {
