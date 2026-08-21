@@ -62,7 +62,7 @@ export default function LeafletMap({
         preferCanvas: true,
       });
       L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
         {
           maxZoom: 20,
           subdomains: "abcd",
@@ -192,6 +192,21 @@ export default function LeafletMap({
       className={`passenger-leaflet-map ${className}`}
       style={{ height, width: "100%" }}
     >
+      <div className="passenger-map-street-grid" aria-hidden="true" />
+      <div className="passenger-map-street-labels" aria-hidden="true">
+        <span className="passenger-map-street-label passenger-map-street-label--north">
+          JUÁREZ
+        </span>
+        <span className="passenger-map-street-label passenger-map-street-label--east">
+          ROMA NORTE
+        </span>
+        <span className="passenger-map-street-label passenger-map-street-label--center">
+          CUAUHTÉMOC
+        </span>
+        <span className="passenger-map-street-label passenger-map-street-label--south">
+          DOCTORES
+        </span>
+      </div>
       {!ready && <div className="passenger-map-loading">Cargando mapa...</div>}
     </div>
   );
