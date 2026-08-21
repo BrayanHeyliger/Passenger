@@ -19,6 +19,13 @@ const referenceSource = readFileSync(
   resolve(projectRoot, "client/src/pages/ReferencePerfectTripTrackingPage.tsx"),
   "utf8"
 );
+const functionalSource = readFileSync(
+  resolve(
+    projectRoot,
+    "client/src/pages/FunctionalReferenceTripTrackingPage.tsx"
+  ),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -57,5 +64,16 @@ describe("mapa dark premium de referencia", () => {
     expect(referenceSource).toContain("reference-trip-hotspot--share");
     expect(cssSource).toContain(".reference-trip-canvas");
     expect(cssSource).toContain(".reference-trip-hotspot--driver");
+  });
+
+  it("implementa un mapa de seguimiento funcional sin depender de una imagen fija", () => {
+    expect(functionalSource).toContain("ControlledStreetMap");
+    expect(functionalSource).toContain("animateMotion");
+    expect(functionalSource).toContain("routePath");
+    expect(functionalSource).toContain("functional-map-marker--pickup");
+    expect(functionalSource).toContain("functional-map-marker--destination");
+    expect(functionalSource).toContain("driverLocation");
+    expect(functionalSource).toContain("useSocket");
+    expect(cssSource).toContain(".functional-map-shell");
   });
 });
