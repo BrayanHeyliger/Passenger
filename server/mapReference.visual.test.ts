@@ -15,6 +15,10 @@ const cssSource = readFileSync(
   resolve(projectRoot, "client/src/index.css"),
   "utf8"
 );
+const referenceSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/ReferencePerfectTripTrackingPage.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -46,5 +50,12 @@ describe("mapa dark premium de referencia", () => {
     expect(cssSource).toContain(".passenger-leaflet-map");
     expect(cssSource).toContain(".passenger-map-pin--dropoff");
     expect(cssSource).toContain("@media (max-width: 720px)");
+  });
+
+  it("conserva la composición aprobada de referencia en la ruta visual exacta", () => {
+    expect(referenceSource).toContain("passenger-trip-reference.png");
+    expect(referenceSource).toContain("reference-trip-hotspot--share");
+    expect(cssSource).toContain(".reference-trip-canvas");
+    expect(cssSource).toContain(".reference-trip-hotspot--driver");
   });
 });

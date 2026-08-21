@@ -4399,3 +4399,72 @@ body {
     letter-spacing: 0.1em;
   }
 }
+
+/* Approved tracking composition: the reference has a fixed 16:9 geometry.
+   Keeping the image unmodified prevents tiles or responsive reflow from
+   changing the streets, route, labels, or visual hierarchy. */
+.reference-trip-canvas {
+  position: relative;
+  display: grid;
+  width: 100vw;
+  min-height: 100svh;
+  place-items: center;
+  background: #050b0f;
+}
+.reference-trip-image {
+  display: block;
+  width: min(100vw, calc(100svh * 1.7777778));
+  height: min(100svh, calc(100vw / 1.7777778));
+  object-fit: contain;
+  user-select: none;
+}
+.reference-trip-hotspot {
+  position: absolute;
+  z-index: 2;
+  border: 0;
+  border-radius: 14px;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+}
+.reference-trip-hotspot:focus-visible {
+  box-shadow:
+    0 0 0 3px #55e89a,
+    0 0 0 6px rgba(5, 11, 15, 0.95);
+}
+.reference-trip-hotspot--share {
+  left: 3.05%;
+  top: 82.75%;
+  width: 6.1%;
+  height: 6.45%;
+}
+.reference-trip-hotspot--contact {
+  left: 9.45%;
+  top: 82.75%;
+  width: 7.55%;
+  height: 6.45%;
+}
+.reference-trip-hotspot--help {
+  left: 17.15%;
+  top: 82.75%;
+  width: 4.65%;
+  height: 6.45%;
+}
+.reference-trip-hotspot--locate {
+  left: 91.55%;
+  top: 68.65%;
+  width: 3.1%;
+  height: 5.3%;
+  border-radius: 50%;
+}
+.reference-trip-hotspot--driver {
+  left: 3.05%;
+  top: 60.25%;
+  width: 31%;
+  height: 20.5%;
+}
+@media (max-aspect-ratio: 16/9) {
+  .reference-trip-hotspot {
+    display: none;
+  }
+}

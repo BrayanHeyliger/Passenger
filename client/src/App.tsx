@@ -17,12 +17,19 @@ import Payments from "./pages/Payments";
 import FAQPage from "@/pages/FAQ";
 import PassengerMarketplacePage from "@/pages/PassengerMarketplacePage";
 import PassengerTripTrackingPage from "@/pages/PassengerTripTrackingPage";
+import ReferencePerfectTripTrackingPage from "@/pages/ReferencePerfectTripTrackingPage";
 import PassengerMobileDashboardPreview from "@/pages/PassengerMobileDashboardPreview";
 import { useLocalAuth } from "./contexts/LocalAuthContext";
 import { useEffect } from "react";
 
 // Guard component: redirects to /login if not authenticated
-function PrivateRoute({ component: Component, allowedRoles }: { component: React.ComponentType; allowedRoles?: string[] }) {
+function PrivateRoute({
+  component: Component,
+  allowedRoles,
+}: {
+  component: React.ComponentType;
+  allowedRoles?: string[];
+}) {
   const { user, loading } = useLocalAuth();
   const [, navigate] = useLocation();
 
@@ -43,7 +50,12 @@ function PrivateRoute({ component: Component, allowedRoles }: { component: React
     }
   }, [user, loading, allowedRoles, navigate]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   if (!user) return null;
   if (allowedRoles && !allowedRoles.includes(user.role)) return null;
   return <Component />;
@@ -57,24 +69,48 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/faq"} component={FAQPage} />
       <Route path={"/marketplace"} component={PassengerMarketplacePage} />
-      <Route path={"/trip-tracking"} component={PassengerTripTrackingPage} />
-      <Route path={"/client-mobile"}>{() => <PassengerMobileDashboardPreview role="client" />}</Route>
-      <Route path={"/driver-mobile"}>{() => <PassengerMobileDashboardPreview role="driver" />}</Route>
+      <Route
+        path={"/trip-tracking"}
+        component={ReferencePerfectTripTrackingPage}
+      />
+      <Route
+        path={"/trip-tracking-live"}
+        component={PassengerTripTrackingPage}
+      />
+      <Route path={"/client-mobile"}>
+        {() => <PassengerMobileDashboardPreview role="client" />}
+      </Route>
+      <Route path={"/driver-mobile"}>
+        {() => <PassengerMobileDashboardPreview role="driver" />}
+      </Route>
       <Route path={"/payments"} component={Payments} />
       <Route path={"/client-dashboard"}>
-        {() => <PrivateRoute component={ClientDashboard} allowedRoles={["client"]} />}
+        {() => (
+          <PrivateRoute component={ClientDashboard} allowedRoles={["client"]} />
+        )}
       </Route>
       <Route path={"/driver-dashboard"}>
-        {() => <PrivateRoute component={DriverDashboard} allowedRoles={["driver"]} />}
+        {() => (
+          <PrivateRoute component={DriverDashboard} allowedRoles={["driver"]} />
+        )}
       </Route>
       <Route path={"/fleet-dashboard"}>
-        {() => <PrivateRoute component={FleetDashboard} allowedRoles={["fleet"]} />}
+        {() => (
+          <PrivateRoute component={FleetDashboard} allowedRoles={["fleet"]} />
+        )}
       </Route>
       <Route path={"/admin"}>
-        {() => <PrivateRoute component={AdminDashboard} allowedRoles={["admin"]} />}
+        {() => (
+          <PrivateRoute component={AdminDashboard} allowedRoles={["admin"]} />
+        )}
       </Route>
       <Route path={"/dispatcher"}>
-        {() => <PrivateRoute component={DispatcherDashboard} allowedRoles={["dispatcher"]} />}
+        {() => (
+          <PrivateRoute
+            component={DispatcherDashboard}
+            allowedRoles={["dispatcher"]}
+          />
+        )}
       </Route>
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
