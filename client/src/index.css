@@ -4407,14 +4407,15 @@ body {
   position: relative;
   display: grid;
   width: 100vw;
-  min-height: 100svh;
+  min-height: 0;
   place-items: center;
+  overflow: visible;
   background: #050b0f;
 }
 .reference-trip-image {
   display: block;
-  width: min(100vw, calc(100svh * 1.7777778));
-  height: min(100svh, calc(100vw / 1.7777778));
+  width: 100%;
+  height: auto;
   object-fit: contain;
   user-select: none;
 }
