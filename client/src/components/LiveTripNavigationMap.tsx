@@ -24,6 +24,8 @@ export default function LiveTripNavigationMap({
   pickupLabel,
   destinationLabel,
   driverName,
+  liveLocation,
+  useLiveGPS,
   onStageChange,
   onProgressChange,
 }: Props) {
