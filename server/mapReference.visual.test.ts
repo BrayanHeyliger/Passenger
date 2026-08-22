@@ -46,6 +46,10 @@ const overlayDemoSource = readFileSync(
   resolve(projectRoot, "client/src/pages/RideOverlayDemoPage.tsx"),
   "utf8"
 );
+const heroTrackingBackdropSource = readFileSync(
+  resolve(projectRoot, "client/src/components/HeroTrackingBackdrop.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -150,5 +154,12 @@ describe("mapa dark premium de referencia", () => {
     expect(overlayDemoSource).toContain("ride-overlay-sheet");
     expect(overlayDemoSource).toContain('setStage("summary")');
     expect(overlayDemoSource).toContain("La página se queda en su lugar");
+  });
+
+  it("integra el fondo de seguimiento con ruta verde y vehículo en el hero", () => {
+    expect(heroSource).toContain("HeroTrackingBackdrop");
+    expect(heroTrackingBackdropSource).toContain("heroRouteGlow");
+    expect(heroTrackingBackdropSource).toContain("animateMotion");
+    expect(heroTrackingBackdropSource).toContain("ROMA NORTE");
   });
 });

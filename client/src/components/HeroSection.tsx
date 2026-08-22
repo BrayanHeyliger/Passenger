@@ -22,6 +22,7 @@ import { useLocation } from "wouter";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
+import HeroTrackingBackdrop from "@/components/HeroTrackingBackdrop";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { HeroParcelForm } from "@/components/HeroParcelForm";
 import "./HeroSectionCompact.css";
@@ -377,6 +378,7 @@ export default function HeroSection() {
           style={{ background: "oklch(0.52 0.12 148)" }}
         />
       </div>
+      <HeroTrackingBackdrop />
 
       <div className="container passenger-reference-container relative z-10 py-6 pb-10 lg:py-10">
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12 lg:items-start">
