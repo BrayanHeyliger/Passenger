@@ -334,58 +334,68 @@ export default function RideOverlayDemoPage({
         </div>
       </section>
       <section className="ride-overlay-launcher" aria-label="Solicitud rápida">
-        <div className="ride-overlay-locations">
-          <span>
-            <small>RECÓGEME EN</small>
-            <NominatimAutocomplete
-              className="ride-overlay-autocomplete"
-              placeholder="Ingresa tu ubicación exacta"
-              value={pickup}
-              onChange={value => {
-                setPickup(value);
-                setPickupCoords(null);
-                setLocationHint("Escribe y elige una sugerencia cercana");
-              }}
-              onSelect={(address, lat, lng) => {
-                setPickup(address);
-                setPickupCoords({ lat, lng });
-              }}
-              icon={<MapPin size={17} />}
-              countryCode="us"
-              viewbox={nearbyViewbox}
-            />
-          </span>
-          <span>
-            <small>VOY A</small>
-            <NominatimAutocomplete
-              className="ride-overlay-autocomplete ride-overlay-autocomplete--destination"
-              placeholder="¿A dónde vas?"
-              value={destination}
-              onChange={value => {
-                setDestination(value);
-                setDestinationCoords(null);
-                setLocationHint("Elige tu destino para calcular ruta y precio");
-              }}
-              onSelect={(address, lat, lng) => {
-                setDestination(address);
-                setDestinationCoords({ lat, lng });
-              }}
-              icon={<Navigation size={17} />}
-              countryCode="us"
-              viewbox={nearbyViewbox}
-            />
-          </span>
+        <div className="ride-overlay-request-group">
+          <button
+            type="button"
+            className="ride-overlay-location-priority"
+            onClick={handleUseExactLocation}
+            disabled={locating}
+            title="Usar mi ubicación exacta"
+          >
+            <span className="ride-overlay-location-icon">
+              {locating ? <Loader2 size={20} className="animate-spin" /> : <LocateFixed size={20} />}
+            </span>
+            <span>
+              <small>RECOMENDADO</small>
+              <b>{locating ? "Buscando tu ubicación…" : "Usar mi ubicación exacta"}</b>
+              <em>Te recogemos donde estás ahora</em>
+            </span>
+            <ArrowRight size={18} />
+          </button>
+          <div className="ride-overlay-manual-caption"><span /> O escribe una dirección manualmente <span /></div>
+          <div className="ride-overlay-locations">
+            <span>
+              <small>RECÓGEME EN</small>
+              <NominatimAutocomplete
+                className="ride-overlay-autocomplete"
+                placeholder="Ingresa tu ubicación exacta"
+                value={pickup}
+                onChange={value => {
+                  setPickup(value);
+                  setPickupCoords(null);
+                  setLocationHint("Escribe y elige una sugerencia cercana");
+                }}
+                onSelect={(address, lat, lng) => {
+                  setPickup(address);
+                  setPickupCoords({ lat, lng });
+                }}
+                icon={<MapPin size={17} />}
+                countryCode="us"
+                viewbox={nearbyViewbox}
+              />
+            </span>
+            <span>
+              <small>VOY A</small>
+              <NominatimAutocomplete
+                className="ride-overlay-autocomplete ride-overlay-autocomplete--destination"
+                placeholder="¿A dónde vas?"
+                value={destination}
+                onChange={value => {
+                  setDestination(value);
+                  setDestinationCoords(null);
+                  setLocationHint("Elige tu destino para calcular ruta y precio");
+                }}
+                onSelect={(address, lat, lng) => {
+                  setDestination(address);
+                  setDestinationCoords({ lat, lng });
+                }}
+                icon={<Navigation size={17} />}
+                countryCode="us"
+                viewbox={nearbyViewbox}
+              />
+            </span>
+          </div>
         </div>
-        <button
-          type="button"
-          className="ride-overlay-location"
-          onClick={handleUseExactLocation}
-          disabled={locating}
-          title="Usar mi ubicación exacta"
-        >
-          {locating ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
-          <span>{locating ? "Ubicando" : "Mi ubicación"}</span>
-        </button>
         <button
           className="ride-overlay-open"
           onClick={openRideSelector}
