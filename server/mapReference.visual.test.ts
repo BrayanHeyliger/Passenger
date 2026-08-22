@@ -355,6 +355,12 @@ describe("mapa dark premium de referencia", () => {
     expect(trustBadgesSource).toContain("Cash App");
   });
 
+  it("no repite el precio cuando el pasajero está eligiendo conductor", () => {
+    expect(tripRequestSource).toContain("RIDE SELECCIONADO");
+    expect(tripRequestSource).not.toContain('text-xl text-emerald-200">${trip.estimatedPrice}');
+    expect(tripRequestSource).toContain("Conductores disponibles cerca de ti");
+  });
+
   it("centraliza la operación de viajes en el panel administrativo y aplica sus políticas", () => {
     expect(adminDashboardSource).toContain('"rideOperations"');
     expect(adminDashboardSource).toContain("RideOperationsAdminPanel");

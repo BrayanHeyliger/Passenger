@@ -10,5 +10,6 @@
 | Modelo de pago | Aprobado | La pantalla informa que UnPasajero.Com no procesa el pago del viaje. |
 | Elección manual | Aprobada | Al pulsar Demo Driver, la pantalla muestra el conductor elegido y queda esperando exclusivamente su respuesta. |
 | Autobúsqueda | Aprobada | Tras el tiempo de respuesta configurado, aparece el botón con rayo sin reasignar el viaje de forma silenciosa. |
+| Precio en selección | Corregido | El resumen conserva el ride y la ETA, pero ya no muestra el importe mientras el pasajero elige o espera la respuesta de un conductor. |
 
 La inspección se realizó con una solicitud temporal de QA en el almacenamiento local del navegador. No se modificaron viajes ni usuarios de producción.
