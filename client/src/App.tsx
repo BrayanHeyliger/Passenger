@@ -5,27 +5,28 @@ import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import ClientDashboard from "./pages/ClientDashboard";
-import DriverDashboard from "./pages/DriverDashboard";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
-import AdminDashboard from "./pages/AdminDashboard";
-import FleetDashboard from "./pages/FleetDashboard";
-import DispatcherDashboard from "./pages/DispatcherDashboard";
-import Payments from "./pages/Payments";
-import FAQPage from "@/pages/FAQ";
-import PassengerMarketplacePage from "@/pages/PassengerMarketplacePage";
-import PassengerTripTrackingPage from "@/pages/PassengerTripTrackingPage";
-import ReferencePerfectTripTrackingPage from "@/pages/ReferencePerfectTripTrackingPage";
-import FunctionalReferenceTripTrackingPage from "@/pages/FunctionalReferenceTripTrackingPage";
-import TripFlowPreviewPage from "@/pages/TripFlowPreviewPage";
-import RideSelectionProposalPage from "@/pages/RideSelectionProposalPage";
-import LandingRideProposalPage from "@/pages/LandingRideProposalPage";
-import RideOverlayDemoPage from "@/pages/RideOverlayDemoPage";
-import TripRequestPage from "@/pages/TripRequestPage";
-import PassengerMobileDashboardPreview from "@/pages/PassengerMobileDashboardPreview";
 import { useLocalAuth } from "./contexts/LocalAuthContext";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
+
+const ClientDashboard = lazy(() => import("./pages/ClientDashboard"));
+const DriverDashboard = lazy(() => import("./pages/DriverDashboard"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const FleetDashboard = lazy(() => import("./pages/FleetDashboard"));
+const DispatcherDashboard = lazy(() => import("./pages/DispatcherDashboard"));
+const Payments = lazy(() => import("./pages/Payments"));
+const FAQPage = lazy(() => import("./pages/FAQ"));
+const PassengerMarketplacePage = lazy(() => import("./pages/PassengerMarketplacePage"));
+const PassengerTripTrackingPage = lazy(() => import("./pages/PassengerTripTrackingPage"));
+const ReferencePerfectTripTrackingPage = lazy(() => import("./pages/ReferencePerfectTripTrackingPage"));
+const FunctionalReferenceTripTrackingPage = lazy(() => import("./pages/FunctionalReferenceTripTrackingPage"));
+const TripFlowPreviewPage = lazy(() => import("./pages/TripFlowPreviewPage"));
+const RideSelectionProposalPage = lazy(() => import("./pages/RideSelectionProposalPage"));
+const LandingRideProposalPage = lazy(() => import("./pages/LandingRideProposalPage"));
+const RideOverlayDemoPage = lazy(() => import("./pages/RideOverlayDemoPage"));
+const TripRequestPage = lazy(() => import("./pages/TripRequestPage"));
+const PassengerMobileDashboardPreview = lazy(() => import("./pages/PassengerMobileDashboardPreview"));
 
 // Guard component: redirects to /login if not authenticated
 function PrivateRoute({
@@ -68,6 +69,7 @@ function PrivateRoute({
 
 function Router() {
   return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#071217] text-[#63e9a7]">Cargando experiencia…</div>}>
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/register"} component={Register} />
@@ -139,6 +141,7 @@ function Router() {
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 

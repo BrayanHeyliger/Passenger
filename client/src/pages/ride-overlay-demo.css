@@ -187,7 +187,26 @@
 .ride-overlay-locations span {
   position: relative;
   min-width: 0;
-  padding-left: 25px;
+  border: 1px solid rgba(93, 231, 163, 0.26);
+  border-radius: 13px;
+  padding: 7px 10px !important;
+  background: linear-gradient(135deg, rgba(85, 228, 155, 0.13), rgba(9, 26, 31, 0.25));
+  transition: border-color 180ms var(--ease-out, ease), background 180ms var(--ease-out, ease), transform 180ms var(--ease-out, ease);
+}
+.ride-overlay-locations span + span {
+  border-color: rgba(255, 133, 125, 0.32);
+  background: linear-gradient(135deg, rgba(255, 133, 125, 0.11), rgba(9, 26, 31, 0.25));
+}
+.ride-overlay-locations span:focus-within {
+  border-color: #68efac;
+  background: rgba(85, 228, 155, 0.2);
+  box-shadow: 0 0 0 3px rgba(85, 228, 155, 0.12);
+  transform: translateY(-1px);
+}
+.ride-overlay-locations span + span:focus-within {
+  border-color: #ff9d94;
+  background: rgba(255, 133, 125, 0.16);
+  box-shadow: 0 0 0 3px rgba(255, 133, 125, 0.1);
 }
 .ride-overlay-locations svg {
   position: absolute;
@@ -270,6 +289,10 @@
   padding: 15px 17px;
   white-space: nowrap;
 }
+.ride-overlay-open:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
 .ride-overlay-location {
   display: inline-flex;
   align-items: center;
@@ -294,6 +317,7 @@
   left: 19px;
   bottom: -20px;
   color: rgba(202, 255, 226, 0.55);
+  max-width: calc(100% - 32px);
   font-size: 9px;
 }
 .ride-overlay-backdrop {

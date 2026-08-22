@@ -25,6 +25,7 @@ interface UseSocketOptions {
   userId: string;
   role: "client" | "driver" | "admin";
   enabled?: boolean;
+  realtimeToken?: string | null;
 }
 
 export function useSocket({
@@ -32,6 +33,7 @@ export function useSocket({
   userId,
   role,
   enabled = true,
+  realtimeToken = null,
 }: UseSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -163,9 +165,14 @@ export function useSocket({
   useEffect(() => {
     if (!enabled || !roomId) return;
 
-    const socket = io(window.location.origin, {
+    const realtimeUrl = import.meta.env.VITE_REALTIME_URL || window.location.origin;
+    const productionRole = role === "client" ? "passenger" : role === "admin" ? "support" : "driver";
+    const socket = io(realtimeUrl, {
       path: "/socket.io",
       transports: ["websocket", "polling"],
+      auth: realtimeToken
+        ? { token: realtimeToken }
+        : { actorId: userId, role: productionRole },
     });
 
     socketRef.current = socket;
@@ -173,7 +180,7 @@ export function useSocket({
     socket.on("connect", () => {
       setIsConnected(true);
       socket.emit("join_room", { roomId, userId, role });
-      socket.emit("trip:join", { tripId: roomId.replace(/^trip-/, "") });
+      socket.emit("trip:join", { tripId: roomId });
     });
 
     socket.on("disconnect", () => setIsConnected(false));
@@ -187,6 +194,27 @@ export function useSocket({
         if (prev.find(m => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
+    });
+
+    socket.on("trip:chat:history", (history: Array<{ id: string; senderId: string; senderRole: ChatMessage["senderRole"] | "passenger" | "support"; body: string; sentAt: number }>) => {
+      setMessages(history.map(message => ({
+        id: message.id,
+        sender: message.senderId,
+        senderRole: message.senderRole === "passenger" ? "client" : message.senderRole === "support" ? "admin" : message.senderRole,
+        text: message.body,
+        time: new Date(message.sentAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+      })));
+    });
+
+    socket.on("trip:chat:new", (message: { id: string; senderId: string; senderRole: ChatMessage["senderRole"] | "passenger" | "support"; body: string; sentAt: number }) => {
+      const normalized: ChatMessage = {
+        id: message.id,
+        sender: message.senderId,
+        senderRole: message.senderRole === "passenger" ? "client" : message.senderRole === "support" ? "admin" : message.senderRole,
+        text: message.body,
+        time: new Date(message.sentAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages(prev => prev.some(item => item.id === normalized.id) ? prev : [...prev, normalized]);
     });
 
     const receiveDriverLocation = (payload: unknown) => {
@@ -276,7 +304,7 @@ export function useSocket({
       setDriverLocation(null);
       closePeer();
     };
-  }, [roomId, userId, role, enabled, closePeer]);
+  }, [roomId, userId, role, enabled, realtimeToken, closePeer]);
 
   const sendMessage = useCallback(
     (text: string, senderName: string) => {
@@ -292,6 +320,7 @@ export function useSocket({
         }),
       };
       socketRef.current.emit("send_message", { roomId, message: msg });
+      socketRef.current.emit("trip:chat", { tripId: roomId, body: msg.text });
     },
     [roomId, role]
   );
@@ -315,7 +344,7 @@ export function useSocket({
   const sendDriverLocation = useCallback(
     (location: DriverLocation & { tripId?: string | number }) => {
       if (!socketRef.current || !roomId) return;
-      const tripId = String(location.tripId ?? roomId.replace(/^trip-/, ""));
+      const tripId = String(location.tripId ?? roomId);
       const payload = { ...location, tripId, roomId };
       socketRef.current.emit("driver_location", payload);
       socketRef.current.emit("driver:location", {
@@ -325,6 +354,7 @@ export function useSocket({
         heading: location.heading,
         speed: location.speed,
         accuracy: location.accuracy,
+        capturedAt: Date.now(),
         stage: location.stage,
       });
     },

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   CarFront,
@@ -21,14 +21,16 @@ import "./ride-overlay-demo.css";
 
 type RideId = "standard" | "comfort" | "xl";
 type Stage = "ready" | "choose" | "summary";
+type Coordinates = { lat: number; lng: number };
+type RouteEstimate = { distanceKm: number; minutes: number };
 
 const rides = [
   {
     id: "standard" as RideId,
     label: "UnPasajero",
     detail: "El viaje que necesitas, sin complicaciones",
-    price: "$115",
-    eta: "4 min",
+    baseFare: 3.5,
+    perMile: 1.45,
     capacity: "Hasta 4 pasajeros",
     Icon: CarFront,
   },
@@ -36,8 +38,8 @@ const rides = [
     id: "comfort" as RideId,
     label: "Comfort",
     detail: "Más espacio y una llegada más tranquila",
-    price: "$148",
-    eta: "6 min",
+    baseFare: 4.75,
+    perMile: 1.95,
     capacity: "Hasta 4 pasajeros",
     Icon: Star,
   },
@@ -45,8 +47,8 @@ const rides = [
     id: "xl" as RideId,
     label: "UnPasajero XL",
     detail: "Para grupos, maletas y más espacio",
-    price: "$189",
-    eta: "8 min",
+    baseFare: 6.25,
+    perMile: 2.65,
     capacity: "Hasta 6 pasajeros",
     Icon: UsersRound,
   },
@@ -154,30 +156,63 @@ export default function RideOverlayDemoPage({
   const [, navigate] = useLocation();
   const [stage, setStage] = useState<Stage>("ready");
   const [selected, setSelected] = useState<RideId>("standard");
-  const [pickup, setPickup] = useState("Lake Eola Park, Orlando, FL");
-  const [destination, setDestination] = useState(
-    "Orlando International Airport (MCO)"
-  );
-  const [pickupCoords, setPickupCoords] = useState({
-    lat: 28.543,
-    lng: -81.3737,
-  });
-  const [destinationCoords, setDestinationCoords] = useState({
-    lat: 28.4312,
-    lng: -81.3081,
-  });
+  const [pickup, setPickup] = useState("");
+  const [destination, setDestination] = useState("");
+  const [pickupCoords, setPickupCoords] = useState<Coordinates | null>(null);
+  const [destinationCoords, setDestinationCoords] = useState<Coordinates | null>(null);
   const [locating, setLocating] = useState(false);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeEstimate, setRouteEstimate] = useState<RouteEstimate | null>(null);
   const [locationHint, setLocationHint] = useState("Sugerencias cerca de ti");
   const ride = rides.find(item => item.id === selected)!;
   const nearbyViewbox = useMemo<[number, number, number, number]>(
     () => [
-      pickupCoords.lng - 0.23,
-      pickupCoords.lat - 0.18,
-      pickupCoords.lng + 0.23,
-      pickupCoords.lat + 0.18,
+      (pickupCoords?.lng ?? -81.3792) - 0.23,
+      (pickupCoords?.lat ?? 28.5383) - 0.18,
+      (pickupCoords?.lng ?? -81.3792) + 0.23,
+      (pickupCoords?.lat ?? 28.5383) + 0.18,
     ],
     [pickupCoords]
   );
+  const routeSummary = routeEstimate
+    ? `${routeEstimate.distanceKm.toFixed(1)} km · ${routeEstimate.minutes} min`
+    : "Selecciona origen y destino";
+  const quoteFor = (item: (typeof rides)[number]) => {
+    if (!routeEstimate) return "—";
+    const miles = routeEstimate.distanceKm * 0.621371;
+    return `$${(item.baseFare + miles * item.perMile).toFixed(2)}`;
+  };
+  const etaFor = () => routeEstimate ? `${routeEstimate.minutes} min` : "Calculando";
+
+  useEffect(() => {
+    if (!pickupCoords || !destinationCoords) {
+      setRouteEstimate(null);
+      return;
+    }
+    let cancelled = false;
+    const calculateRoute = async () => {
+      setRouteLoading(true);
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords.lng},${pickupCoords.lat};${destinationCoords.lng},${destinationCoords.lat}?overview=false`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const route = data.routes?.[0];
+        if (!route || cancelled) return;
+        const distanceKm = Math.max(0.1, Number(route.distance) / 1000);
+        const minutes = Math.max(2, Math.ceil(Number(route.duration) / 60));
+        setRouteEstimate({ distanceKm, minutes });
+        setLocationHint(`Ruta lista · ${distanceKm.toFixed(1)} km · ${minutes} min`);
+      } catch {
+        if (!cancelled) {
+          setLocationHint("No pudimos calcular la ruta. Revisa ambas direcciones.");
+        }
+      } finally {
+        if (!cancelled) setRouteLoading(false);
+      }
+    };
+    void calculateRoute();
+    return () => { cancelled = true; };
+  }, [pickupCoords, destinationCoords]);
   const close = () => setStage("ready");
   const handleUseExactLocation = () => {
     if (!navigator.geolocation) {
@@ -215,7 +250,22 @@ export default function RideOverlayDemoPage({
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 }
     );
   };
+  const openRideSelector = () => {
+    if (!pickupCoords || !destinationCoords || !pickup.trim() || !destination.trim()) {
+      toast.error("Ingresa y selecciona el origen y el destino para cotizar tu ride.");
+      return;
+    }
+    if (routeLoading) {
+      toast.message("Estamos calculando la ruta. Intenta en un momento.");
+      return;
+    }
+    setStage("choose");
+  };
   const confirmRequest = () => {
+    if (!pickupCoords || !destinationCoords || !routeEstimate) {
+      toast.error("Falta calcular la ruta antes de confirmar.");
+      return;
+    }
     const requestId = `trip-${Date.now()}`;
     const trip = {
       id: requestId,
@@ -225,8 +275,9 @@ export default function RideOverlayDemoPage({
       destinationCoords,
       vehicle: ride.id,
       serviceLabel: ride.label,
-      estimatedPrice: Number(ride.price.replace(/[^0-9.]/g, "")),
-      estimatedEta: ride.eta,
+      estimatedPrice: Number(quoteFor(ride).replace(/[^0-9.]/g, "")),
+      estimatedEta: etaFor(),
+      estimatedDistanceKm: routeEstimate.distanceKm,
       status: "searching",
       createdAt: Date.now(),
     };
@@ -288,9 +339,13 @@ export default function RideOverlayDemoPage({
             <small>RECÓGEME EN</small>
             <NominatimAutocomplete
               className="ride-overlay-autocomplete"
-              placeholder="¿Dónde te recogemos?"
+              placeholder="Ingresa tu ubicación exacta"
               value={pickup}
-              onChange={setPickup}
+              onChange={value => {
+                setPickup(value);
+                setPickupCoords(null);
+                setLocationHint("Escribe y elige una sugerencia cercana");
+              }}
               onSelect={(address, lat, lng) => {
                 setPickup(address);
                 setPickupCoords({ lat, lng });
@@ -306,7 +361,11 @@ export default function RideOverlayDemoPage({
               className="ride-overlay-autocomplete ride-overlay-autocomplete--destination"
               placeholder="¿A dónde vas?"
               value={destination}
-              onChange={setDestination}
+              onChange={value => {
+                setDestination(value);
+                setDestinationCoords(null);
+                setLocationHint("Elige tu destino para calcular ruta y precio");
+              }}
               onSelect={(address, lat, lng) => {
                 setDestination(address);
                 setDestinationCoords({ lat, lng });
@@ -329,11 +388,15 @@ export default function RideOverlayDemoPage({
         </button>
         <button
           className="ride-overlay-open"
-          onClick={() => setStage("choose")}
+          onClick={openRideSelector}
+          disabled={routeLoading}
         >
-          Elegir mi ride <ArrowRight size={18} />
+          {routeLoading ? "Calculando" : "Elegir mi ride"} <ArrowRight size={18} />
         </button>
-        <small className="ride-overlay-location-hint">{locationHint}</small>
+        <small className="ride-overlay-location-hint">
+          {routeLoading ? "Calculando la ruta…" : locationHint}
+          {routeEstimate ? ` · ${routeSummary}` : ""}
+        </small>
       </section>
       {stage !== "ready" && (
         <div className="ride-overlay-backdrop" onClick={close}>
@@ -357,8 +420,7 @@ export default function RideOverlayDemoPage({
                   <p>ELIGE TU RIDE</p>
                   <h2>¿Cómo quieres viajar?</h2>
                   <span>
-                    La página se queda en su lugar. Elige y continúa cuando
-                    estés listo.
+                    {routeSummary}. Elige y continúa cuando estés listo.
                   </span>
                 </div>
                 <div className="ride-overlay-options" role="radiogroup">
@@ -382,10 +444,10 @@ export default function RideOverlayDemoPage({
                           <em>{item.capacity}</em>
                         </span>
                         <span className="ride-overlay-option-price">
-                          <b>{item.price}</b>
+                          <b>{quoteFor(item)}</b>
                           <small>
                             <Clock3 size={12} />
-                            {item.eta}
+                            {etaFor()}
                           </small>
                         </span>
                         <span className="ride-overlay-radio">
@@ -401,10 +463,10 @@ export default function RideOverlayDemoPage({
                 >
                   <span>
                     Continuar con {ride.label}
-                    <small>Llegada estimada: {ride.eta}</small>
+                    <small>{routeSummary}</small>
                   </span>
                   <b>
-                    {ride.price}
+                    {quoteFor(ride)}
                     <ArrowRight size={18} />
                   </b>
                 </button>
@@ -429,10 +491,10 @@ export default function RideOverlayDemoPage({
                     <small>RIDE SELECCIONADO</small>
                     <b>{ride.label}</b>
                     <em>
-                      {ride.capacity} · Llegada {ride.eta}
+                      {ride.capacity} · Llegada {etaFor()}
                     </em>
                   </span>
-                  <strong>{ride.price}</strong>
+                  <strong>{quoteFor(ride)}</strong>
                 </div>
                 <div className="ride-overlay-route-summary">
                   <span>

@@ -86,6 +86,14 @@ const passengerTrackingSource = readFileSync(
   "utf8"
 );
 const appSource = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+const socketSource = readFileSync(
+  resolve(projectRoot, "client/src/hooks/useSocket.ts"),
+  "utf8"
+);
+const rideOverlayCssSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/ride-overlay-demo.css"),
+  "utf8"
+);
 const tripActionDockSource = readFileSync(
   resolve(projectRoot, "client/src/components/TripActionDock.tsx"),
   "utf8"
@@ -193,7 +201,7 @@ describe("mapa dark premium de referencia", () => {
   it("incluye una demo de panel superpuesto sin desplazamiento de landing", () => {
     expect(overlayDemoSource).toContain("ride-overlay-sheet");
     expect(overlayDemoSource).toContain('setStage("summary")');
-    expect(overlayDemoSource).toContain("La página se queda en su lugar");
+    expect(overlayDemoSource).toContain("routeSummary");
   });
 
   it("integra el fondo de seguimiento con ruta verde y vehículo en el hero", () => {
@@ -246,6 +254,21 @@ describe("mapa dark premium de referencia", () => {
     expect(overlayDemoSource).toContain("countryCode=\"us\"");
     expect(overlayDemoSource).toContain("viewbox={nearbyViewbox}");
     expect(overlayDemoSource).toContain("Ubicación exacta activada");
+  });
+
+  it("deja el destino abierto y cotiza a partir de la ruta real seleccionada", () => {
+    expect(overlayDemoSource).toContain('const [destination, setDestination] = useState("")');
+    expect(overlayDemoSource).toContain("router.project-osrm.org/route/v1/driving");
+    expect(overlayDemoSource).toContain("routeEstimate.distanceKm");
+    expect(overlayDemoSource).toContain("Ingresa tu ubicación exacta");
+    expect(rideOverlayCssSource).toContain(".ride-overlay-locations span:focus-within");
+  });
+
+  it("configura Socket.IO con URL de producción opcional y mantiene paneles en carga diferida", () => {
+    expect(socketSource).toContain("VITE_REALTIME_URL");
+    expect(socketSource).toContain("realtimeToken");
+    expect(appSource).toContain("lazy(() => import(\"./pages/ClientDashboard\"))");
+    expect(appSource).toContain("<Suspense fallback=");
   });
 
   it("reduce la repetición de contenido y concentra acciones de viaje en un menú inferior", () => {
