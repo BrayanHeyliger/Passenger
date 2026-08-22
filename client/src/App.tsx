@@ -22,6 +22,7 @@ import FunctionalReferenceTripTrackingPage from "@/pages/FunctionalReferenceTrip
 import TripFlowPreviewPage from "@/pages/TripFlowPreviewPage";
 import RideSelectionProposalPage from "@/pages/RideSelectionProposalPage";
 import LandingRideProposalPage from "@/pages/LandingRideProposalPage";
+import RideOverlayDemoPage from "@/pages/RideOverlayDemoPage";
 import PassengerMobileDashboardPreview from "@/pages/PassengerMobileDashboardPreview";
 import { useLocalAuth } from "./contexts/LocalAuthContext";
 import { useEffect } from "react";
@@ -82,6 +83,7 @@ function Router() {
         path={"/landing-ride-proposal"}
         component={LandingRideProposalPage}
       />
+      <Route path={"/ride-overlay-demo"} component={RideOverlayDemoPage} />
       <Route
         path={"/trip-tracking-static"}
         component={ReferencePerfectTripTrackingPage}

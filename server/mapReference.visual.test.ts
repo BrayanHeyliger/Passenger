@@ -42,6 +42,10 @@ const heroSource = readFileSync(
   resolve(projectRoot, "client/src/components/HeroSection.tsx"),
   "utf8"
 );
+const overlayDemoSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/RideOverlayDemoPage.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -140,5 +144,11 @@ describe("mapa dark premium de referencia", () => {
     expect(compactSelectorCss).toContain("min-height: 62px");
     expect(compactSelectorCss).toContain("passenger-reference-map");
     expect(heroSource).toContain("handleCalculate");
+  });
+
+  it("incluye una demo de panel superpuesto sin desplazamiento de landing", () => {
+    expect(overlayDemoSource).toContain("ride-overlay-sheet");
+    expect(overlayDemoSource).toContain('setStage("summary")');
+    expect(overlayDemoSource).toContain("La página se queda en su lugar");
   });
 });
