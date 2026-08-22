@@ -11,6 +11,7 @@ import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { LanguageSelectorLight } from "@/components/LanguageSelector";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { DriverIdentityReviewQueue } from "@/components/DriverIdentityReviewQueue";
+import { TripChat } from "@/components/TripChat";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
@@ -429,6 +430,7 @@ export default function AdminDashboard() {
   }, []);
 
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [supportTrip, setSupportTrip] = useState<{ id: string; client: string; driver: string } | null>(null);
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{
     ok: boolean;
@@ -1392,6 +1394,7 @@ export default function AdminDashboard() {
                 <div className="space-y-3">
                   {[
                     {
+                      id: "admin-trip-101",
                       client: "María García",
                       driver: "Carlos M.",
                       from: "Centro",
@@ -1401,6 +1404,7 @@ export default function AdminDashboard() {
                       time: "10:32",
                     },
                     {
+                      id: "admin-trip-102",
                       client: "Juan López",
                       driver: "Pedro R.",
                       from: "Metro",
@@ -1410,6 +1414,7 @@ export default function AdminDashboard() {
                       time: "10:45",
                     },
                     {
+                      id: "admin-trip-103",
                       client: "Ana Martínez",
                       driver: "—",
                       from: "Hospital",
@@ -1436,9 +1441,16 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">{t.fare}</p>
-                        <p className="text-xs text-slate-500">{t.time}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">{t.fare}</p>
+                          <p className="text-xs text-slate-500">{t.time}</p>
+                        </div>
+                        {t.driver !== "—" && t.status !== "completed" && (
+                          <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setSupportTrip(t)}>
+                            <MessageCircle size={13} /> Contactar
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -3321,6 +3333,19 @@ export default function AdminDashboard() {
               Cerrar
             </Button>
           </Card>
+        </div>
+      )}
+      {supportTrip && (
+        <div className="fixed bottom-5 right-5 z-[9990]">
+          <TripChat
+            tripId={supportTrip.id}
+            userId={user?.id != null ? String(user.id) : "admin"}
+            userName={user?.name || "Administrador"}
+            role="admin"
+            otherPartyName={supportTrip.driver}
+            forceOpen
+            onOpenChange={open => { if (!open) setSupportTrip(null); }}
+          />
         </div>
       )}
     </div>

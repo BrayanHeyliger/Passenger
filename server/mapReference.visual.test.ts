@@ -430,6 +430,17 @@ describe("mapa dark premium de referencia", () => {
     expect(dispatcherDashboardSource).toContain("config.autoSearchEnabled");
   });
 
+  it("permite soporte por chat y llamada desde dispatcher y administración solo dentro de una sala de viaje", () => {
+    expect(tripChatSource).toContain('role: "client" | "driver" | "admin"');
+    expect(tripChatSource).toContain('role === "admin" ? "dispatcher" : "client"');
+    expect(tripChatSource).toContain('role === "admin" ? "/dispatcher" : "/client-dashboard"');
+    expect(dispatcherDashboardSource).toContain("<TripChat");
+    expect(dispatcherDashboardSource).toContain("Chat");
+    expect(adminDashboardSource).toContain("setSupportTrip");
+    expect(adminDashboardSource).toContain("Contactar");
+    expect(adminDashboardSource).toContain('tripId={supportTrip.id}');
+  });
+
   it("persiste ofertas, presencia, métodos directos y auditoría antes de activar tiempo real de producción", () => {
     expect(schemaSource).toContain("driverDirectPaymentMethods");
     expect(schemaSource).toContain("driverPresenceSnapshots");
