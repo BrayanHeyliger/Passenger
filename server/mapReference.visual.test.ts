@@ -34,6 +34,10 @@ const rideSelectionSource = readFileSync(
   resolve(projectRoot, "client/src/pages/RideSelectionProposalPage.tsx"),
   "utf8"
 );
+const landingRideSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/LandingRideProposalPage.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -104,5 +108,11 @@ describe("mapa dark premium de referencia", () => {
     expect(rideSelectionSource).toContain("¿Cómo quieres viajar hoy?");
     expect(rideSelectionSource).toContain("UnPasajero XL");
     expect(rideSelectionSource).toContain("Continuar");
+  });
+
+  it("integra el selector amplio dentro de una propuesta de página inicial", () => {
+    expect(landingRideSource).toContain("Tu próximo viaje empieza");
+    expect(landingRideSource).toContain("SOLICITA UN RIDE");
+    expect(landingRideSource).toContain("UnPasajero.Com");
   });
 });

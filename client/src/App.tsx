@@ -21,6 +21,7 @@ import ReferencePerfectTripTrackingPage from "@/pages/ReferencePerfectTripTracki
 import FunctionalReferenceTripTrackingPage from "@/pages/FunctionalReferenceTripTrackingPage";
 import TripFlowPreviewPage from "@/pages/TripFlowPreviewPage";
 import RideSelectionProposalPage from "@/pages/RideSelectionProposalPage";
+import LandingRideProposalPage from "@/pages/LandingRideProposalPage";
 import PassengerMobileDashboardPreview from "@/pages/PassengerMobileDashboardPreview";
 import { useLocalAuth } from "./contexts/LocalAuthContext";
 import { useEffect } from "react";
@@ -76,6 +77,10 @@ function Router() {
       <Route
         path={"/ride-selection-proposal"}
         component={RideSelectionProposalPage}
+      />
+      <Route
+        path={"/landing-ride-proposal"}
+        component={LandingRideProposalPage}
       />
       <Route
         path={"/trip-tracking-static"}
