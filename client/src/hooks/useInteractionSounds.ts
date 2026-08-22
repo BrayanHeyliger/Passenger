@@ -77,10 +77,13 @@ export function useInteractionSounds() {
     tripAlertTimerRef.current = null;
   }, []);
 
-  const startIncomingTripAlert = useCallback(() => {
+  const startIncomingTripAlert = useCallback((repeatEveryMs: number = 10000) => {
     stopIncomingTripAlert();
     play("incomingTrip");
-    tripAlertTimerRef.current = window.setInterval(() => play("incomingTrip"), 10000);
+    tripAlertTimerRef.current = window.setInterval(
+      () => play("incomingTrip"),
+      Math.max(5_000, repeatEveryMs)
+    );
   }, [play, stopIncomingTripAlert]);
 
   useEffect(() => () => {

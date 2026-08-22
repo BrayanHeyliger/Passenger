@@ -114,6 +114,14 @@ const trustBadgesSource = readFileSync(
   resolve(projectRoot, "client/src/components/TrustBadges.tsx"),
   "utf8"
 );
+const adminDashboardSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/AdminDashboard.tsx"),
+  "utf8"
+);
+const siteConfigSource = readFileSync(
+  resolve(projectRoot, "client/src/contexts/SiteConfigContext.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -343,5 +351,20 @@ describe("mapa dark premium de referencia", () => {
     expect(driverDashboardSource).toContain("unpasajero_driver_payment_methods");
     expect(trustBadgesSource).toContain("El conductor puede aceptar");
     expect(trustBadgesSource).toContain("Cash App");
+  });
+
+  it("centraliza la operación de viajes en el panel administrativo y aplica sus políticas", () => {
+    expect(adminDashboardSource).toContain('"rideOperations"');
+    expect(adminDashboardSource).toContain("RideOperationsAdminPanel");
+    expect(adminDashboardSource).toContain("Selección manual obligatoria");
+    expect(adminDashboardSource).toContain("Autobúsqueda disponible");
+    expect(adminDashboardSource).toContain("driverResponseTimeoutSeconds");
+    expect(adminDashboardSource).toContain("presenceMaxAgeSeconds");
+    expect(siteConfigSource).toContain("directPaymentCashAppEnabled");
+    expect(siteConfigSource).toContain("backgroundNotificationsEnabled");
+    expect(clientDashboardSource).toContain("driverSearchRadiusMiles");
+    expect(clientDashboardSource).toContain("autoSearchEnabled");
+    expect(driverDashboardSource).toContain("allowedDirectPaymentOptions");
+    expect(pushNotificationsSource).toContain("backgroundNotificationsAllowedByAdmin");
   });
 });

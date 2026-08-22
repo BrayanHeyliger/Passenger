@@ -27,6 +27,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
@@ -81,19 +82,22 @@ interface NearbyDriver {
   plate: string;
   distanceMiles: number;
   eta: string;
+  rating: number;
+  verified: boolean;
   paymentMethods: string[];
 }
 
 const TRIPS_KEY = "wt_pending_trips";
 const HISTORY_KEY = "wt_trip_history";
 const NEARBY_DRIVERS: NearbyDriver[] = [
-  { id: "driver-demo", name: "Demo Driver", vehicle: "Toyota Corolla", plate: "DEM-204", distanceMiles: 0.8, eta: "3 min", paymentMethods: ["Efectivo", "Zelle", "Cash App"] },
-  { id: "driver-luis", name: "Luis R.", vehicle: "Honda Civic", plate: "ORL-456", distanceMiles: 1.4, eta: "5 min", paymentMethods: ["Efectivo", "Zelle", "Transferencia"] },
-  { id: "driver-ana", name: "Ana G.", vehicle: "Nissan Versa", plate: "FLA-789", distanceMiles: 2.1, eta: "7 min", paymentMethods: ["Efectivo", "Cash App", "PayPal"] },
+  { id: "driver-demo", name: "Demo Driver", vehicle: "Toyota Corolla", plate: "DEM-204", distanceMiles: 0.8, eta: "3 min", rating: 4.9, verified: true, paymentMethods: ["Efectivo", "Zelle", "Cash App"] },
+  { id: "driver-luis", name: "Luis R.", vehicle: "Honda Civic", plate: "ORL-456", distanceMiles: 1.4, eta: "5 min", rating: 4.8, verified: true, paymentMethods: ["Efectivo", "Zelle", "Transferencia"] },
+  { id: "driver-ana", name: "Ana G.", vehicle: "Nissan Versa", plate: "FLA-789", distanceMiles: 2.1, eta: "7 min", rating: 4.7, verified: true, paymentMethods: ["Efectivo", "Cash App", "PayPal"] },
 ];
 
 export default function ClientDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
+  const { config: siteConfig } = useSiteConfig();
   const [, navigate] = useLocation();
   const {
     permission: notifPermission,
@@ -111,6 +115,21 @@ export default function ClientDashboard() {
   const [pendingTripBanner, setPendingTripBanner] = useState<string | null>(
     null
   );
+  const enabledPaymentMethods = new Set([
+    siteConfig.directPaymentCashEnabled && "Efectivo",
+    siteConfig.directPaymentZelleEnabled && "Zelle",
+    siteConfig.directPaymentCashAppEnabled && "Cash App",
+    siteConfig.directPaymentPaypalEnabled && "PayPal",
+    siteConfig.directPaymentTransferEnabled && "Transferencia",
+  ].filter(Boolean));
+  const driverRadiusMiles = Math.max(1, Number(siteConfig.driverSearchRadiusMiles || 12));
+  const minimumDriverRating = Math.max(0, Number(siteConfig.minimumDriverRating || 0));
+  const nearbyDrivers = siteConfig.directPaymentEnabled
+    ? NEARBY_DRIVERS
+        .filter(driver => driver.distanceMiles <= driverRadiusMiles && driver.rating >= minimumDriverRating && (!siteConfig.verifiedDriversOnly || driver.verified))
+        .map(driver => ({ ...driver, paymentMethods: driver.paymentMethods.filter(method => enabledPaymentMethods.has(method)) }))
+        .filter(driver => driver.paymentMethods.length > 0)
+    : [];
 
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
@@ -686,7 +705,15 @@ export default function ClientDashboard() {
   };
 
   const handleAutoSearch = () => {
-    const recommended = NEARBY_DRIVERS.find(driver => driver.id !== selectedNearbyDriver?.id) || NEARBY_DRIVERS[0];
+    if (!siteConfig.autoSearchEnabled) {
+      toast.error("La Autobúsqueda está desactivada por la operación.");
+      return;
+    }
+    const recommended = nearbyDrivers.find(driver => driver.id !== selectedNearbyDriver?.id) || nearbyDrivers[0];
+    if (!recommended) {
+      toast.error("No hay otro conductor cercano con un método de pago directo habilitado.");
+      return;
+    }
     if (!persistDriverSelection(recommended, "auto")) return;
     setDriverSelectionIssue(null);
     setTripStatus("searching");
@@ -698,9 +725,9 @@ export default function ClientDashboard() {
     const timeout = setTimeout(() => {
       setDriverSelectionIssue("no_response");
       addNotification("El conductor seleccionado no ha respondido. Puedes intentar Autobúsqueda.", "warning");
-    }, 10000);
+    }, Math.max(5, Number(siteConfig.driverResponseTimeoutSeconds || 10)) * 1000);
     return () => clearTimeout(timeout);
-  }, [tripStatus, currentTrip?.id, addNotification]);
+  }, [tripStatus, currentTrip?.id, addNotification, siteConfig.driverResponseTimeoutSeconds]);
 
   useEffect(() => {
     if (tripStatus !== "awaiting_driver" || !currentTrip?.id) return;
@@ -1374,15 +1401,18 @@ export default function ClientDashboard() {
                 {tripStatus === "choosing_driver" && (
                   <div className="space-y-3">
                     <p className="text-xs font-medium text-slate-500">Conductores disponibles cerca de tu punto de recogida</p>
-                    {NEARBY_DRIVERS.map(driver => (
+                    {nearbyDrivers.map(driver => (
                       <button key={driver.id} type="button" onClick={() => handleSelectNearbyDriver(driver)} className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50/40">
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0"><div className="h-10 w-10 shrink-0 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold">{driver.name[0]}</div><div className="min-w-0"><p className="font-semibold text-slate-900">{driver.name} <span className="text-emerald-600 text-xs">Verificado</span></p><p className="text-xs text-slate-500 truncate">{driver.vehicle} · {driver.distanceMiles.toFixed(1)} mi · {driver.eta}</p></div></div>
+                          <div className="flex items-center gap-3 min-w-0"><div className="h-10 w-10 shrink-0 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold">{driver.name[0]}</div><div className="min-w-0"><p className="font-semibold text-slate-900">{driver.name} {driver.verified && <span className="text-emerald-600 text-xs">Verificado</span>}</p><p className="text-xs text-slate-500 truncate">{driver.vehicle} · ★ {driver.rating.toFixed(1)} · {driver.distanceMiles.toFixed(1)} mi · {driver.eta}</p></div></div>
                           <ChevronRight size={18} className="text-emerald-600 mt-2" />
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">{driver.paymentMethods.map(method => <span key={method} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">{method}</span>)}</div>
                       </button>
                     ))}
+                    {nearbyDrivers.length === 0 && (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">No hay conductores cercanos con métodos de pago directo habilitados. Ajusta el radio o los métodos permitidos desde Operación de viajes.</div>
+                    )}
                   </div>
                 )}
 

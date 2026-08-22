@@ -67,6 +67,21 @@ export interface SiteConfig {
   smtpUser: string;
   smtpPass: string;
   smtpFrom: string;
+  directPaymentEnabled: boolean;
+  directPaymentCashEnabled: boolean;
+  directPaymentZelleEnabled: boolean;
+  directPaymentCashAppEnabled: boolean;
+  directPaymentPaypalEnabled: boolean;
+  directPaymentTransferEnabled: boolean;
+  manualDriverSelectionEnabled: boolean;
+  autoSearchEnabled: boolean;
+  driverResponseTimeoutSeconds: string;
+  driverSearchRadiusMiles: string;
+  minimumDriverRating: string;
+  verifiedDriversOnly: boolean;
+  presenceMaxAgeSeconds: string;
+  backgroundNotificationsEnabled: boolean;
+  driverAlertRepeatSeconds: string;
 }
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
@@ -175,6 +190,21 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   smtpUser: "",
   smtpPass: "",
   smtpFrom: "noreply@whatsapptaxi.com",
+  directPaymentEnabled: true,
+  directPaymentCashEnabled: true,
+  directPaymentZelleEnabled: true,
+  directPaymentCashAppEnabled: true,
+  directPaymentPaypalEnabled: true,
+  directPaymentTransferEnabled: true,
+  manualDriverSelectionEnabled: true,
+  autoSearchEnabled: true,
+  driverResponseTimeoutSeconds: "10",
+  driverSearchRadiusMiles: "12",
+  minimumDriverRating: "4.0",
+  verifiedDriversOnly: true,
+  presenceMaxAgeSeconds: "45",
+  backgroundNotificationsEnabled: true,
+  driverAlertRepeatSeconds: "10",
 };
 
 const STORAGE_KEY = "wataxi_site_config";

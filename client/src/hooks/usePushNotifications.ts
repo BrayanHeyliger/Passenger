@@ -23,6 +23,15 @@ const defaultPreferences: PushPreferences = {
   status: true,
 };
 
+function backgroundNotificationsAllowedByAdmin() {
+  try {
+    const config = JSON.parse(localStorage.getItem("wataxi_site_config") || "{}");
+    return config.backgroundNotificationsEnabled !== false;
+  } catch {
+    return true;
+  }
+}
+
 function preferenceKey(role: string) {
   return `unpasajero_push_preferences_${role}`;
 }
@@ -84,6 +93,7 @@ export function usePushNotifications(role: string = "client") {
     if (!("Notification" in window)) return;
     const channel = options?.channel || "status";
     if (!preferences.enabled || !preferences[channel]) return;
+    if (!backgroundNotificationsAllowedByAdmin()) return;
     if (Notification.permission !== "granted") return;
     if (options?.onlyWhenHidden !== false && document.visibilityState !== "hidden") return;
 

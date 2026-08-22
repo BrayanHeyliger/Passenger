@@ -7,6 +7,7 @@ import {
   Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText, Gift, ChevronDown
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -45,6 +46,7 @@ interface EarningsEntry { date: string; trips: number; earnings: number; }
 
 export default function DriverDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
+  const { config: siteConfig } = useSiteConfig();
   const [, navigate] = useLocation();
   const { permission: notifPermission, preferences: pushPreferences, requestPermission, sendNotification } = usePushNotifications("driver");
   const { notifications: persistedNotifs, unreadCount, addNotification: addPersistedNotif, markAllRead, clearAll: clearAllNotifs } = useNotificationHistory(user?.role || "driver");
@@ -68,6 +70,16 @@ export default function DriverDashboard() {
     } catch {
       return { cash: true, zelle: false, cash_app: false, paypal: false, transfer: false };
     }
+  });
+  const allowedDirectPaymentOptions = DIRECT_PAYMENT_OPTIONS.filter(option => {
+    const policyKey: Record<DirectPaymentMethod, keyof typeof siteConfig> = {
+      cash: "directPaymentCashEnabled",
+      zelle: "directPaymentZelleEnabled",
+      cash_app: "directPaymentCashAppEnabled",
+      paypal: "directPaymentPaypalEnabled",
+      transfer: "directPaymentTransferEnabled",
+    };
+    return siteConfig.directPaymentEnabled && Boolean(siteConfig[policyKey[option.id]]);
   });
   const driverMapRef = useRef<import("@/components/LeafletMap").LeafletMapRef | null>(null);
   const gpsRoomId = currentTrip ? `trip-${currentTrip.id}` : null;
@@ -94,6 +106,10 @@ export default function DriverDashboard() {
   useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
 
   const toggleDirectPaymentMethod = (method: DirectPaymentMethod) => {
+    if (!siteConfig.directPaymentEnabled || !allowedDirectPaymentOptions.some(option => option.id === method)) {
+      toast.error("Este método está desactivado por la configuración de la operación.");
+      return;
+    }
     setDirectPaymentMethods(current => {
       const updated = { ...current, [method]: !current[method] };
       localStorage.setItem(DRIVER_PAYMENT_KEY, JSON.stringify(updated));
@@ -112,7 +128,9 @@ export default function DriverDashboard() {
       const newest = available[available.length - 1];
       setNewTripAlert(true);
       setTimeout(() => setNewTripAlert(false), 4000);
-      startIncomingTripAlert();
+      startIncomingTripAlert(
+        Math.max(5, Number(siteConfig.driverAlertRepeatSeconds || 10)) * 1000
+      );
       // Persistir notificación + sonido
       addPersistedNotif(`🚕 Nuevo viaje: ${newest?.pickup} → ${newest?.dropoff} · ${newest?.fare}`, {
         type: "success", sound: "new_trip", url: "/driver-dashboard",
@@ -126,7 +144,7 @@ export default function DriverDashboard() {
       });
     }
     setPendingTrips(available);
-  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif, startIncomingTripAlert, user?.id]);
+  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif, startIncomingTripAlert, user?.id, siteConfig.driverAlertRepeatSeconds]);
 
   useEffect(() => {
     const interval = setInterval(checkTrips, 2000);
@@ -144,7 +162,7 @@ export default function DriverDashboard() {
         vehicle: "Mi Vehículo",
         plate: "XXX-000",
         rating: 4.8,
-        paymentMethods: DIRECT_PAYMENT_OPTIONS.filter(option => directPaymentMethods[option.id]).map(option => option.label),
+        paymentMethods: allowedDirectPaymentOptions.filter(option => directPaymentMethods[option.id]).map(option => option.label),
         paymentModel: "direct_to_driver",
       },
       estimatedTime: "5 min",
@@ -746,8 +764,9 @@ export default function DriverDashboard() {
                   <p className="text-xs text-slate-600 mt-1">UnPasajero.Com no recibe ni procesa el dinero del viaje. El pasajero verá únicamente los métodos que habilites.</p>
                 </div>
               </div>
+              {!siteConfig.directPaymentEnabled && <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">El pago directo está temporalmente desactivado por la operación. Consulta al administrador antes de habilitar métodos.</div>}
               <div className="space-y-2">
-                {DIRECT_PAYMENT_OPTIONS.map(option => (
+                {allowedDirectPaymentOptions.map(option => (
                   <button
                     key={option.id}
                     type="button"

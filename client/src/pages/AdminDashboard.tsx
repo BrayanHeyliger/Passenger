@@ -60,6 +60,7 @@ import {
   Database,
   HelpCircle,
   Package,
+  Activity,
 } from "lucide-react";
 import {
   Home,
@@ -110,7 +111,8 @@ type Tab =
   | "broadcast"
   | "safetyTips"
   | "parcels"
-  | "realtime";
+  | "realtime"
+  | "rideOperations";
 type EditorSection =
   | "hero"
   | "colors"
@@ -643,6 +645,7 @@ export default function AdminDashboard() {
     { id: "dispatchers", label: "Dispatchers", icon: UserCog },
     { id: "manualBooking", label: "Reserva Manual", icon: Phone },
     { id: "surgePricing", label: "Precio Surge", icon: TrendingUp },
+    { id: "rideOperations", label: "Operación de viajes", icon: Sliders },
     { id: "broadcast", label: "Broadcast", icon: Send },
     { id: "safetyTips", label: "Consejos 💡", icon: Lightbulb },
     { id: "parcels", label: "Paquetes 📦", icon: Package },
@@ -2746,10 +2749,10 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">
-                    Configuración de Pagos
+                    Facturación SaaS y pagos directos
                   </h2>
                   <p className="text-sm text-slate-500">
-                    Configura tus claves API para procesar pagos reales
+                    Los viajes se pagan directamente al conductor. Stripe y PayPal aquí se reservan para facturación SaaS de flotillas.
                   </p>
                 </div>
               </div>
@@ -2763,7 +2766,7 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-bold text-slate-900">Stripe</h3>
                     <p className="text-xs text-slate-500">
-                      Pagos con tarjeta de crédito/débito
+                      Facturación de suscripción SaaS; no cobra viajes
                     </p>
                   </div>
                   <div className="ml-auto">
@@ -2894,7 +2897,7 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-bold text-slate-900">PayPal</h3>
                     <p className="text-xs text-slate-500">
-                      Pagos con cuenta PayPal y tarjeta
+                      Facturación de suscripción SaaS; no cobra viajes
                     </p>
                   </div>
                   <div className="ml-auto">
@@ -3012,10 +3015,10 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900">
-                      Comisiones de la Plataforma
+                      Referencia operativa de tarifas
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Porcentaje que retiene la plataforma por cada viaje
+                      El cobro del viaje es directo entre pasajero y conductor; estos valores no generan retención automática.
                     </p>
                   </div>
                 </div>
@@ -3062,9 +3065,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-200">
                   <p className="text-xs text-green-700">
-                    💡 <strong>Ejemplo:</strong> Con 15% de comisión y 100
-                    viajes/día de $15 promedio, generas{" "}
-                    <strong>$225/día</strong> ($6,750/mes) solo de comisiones.
+                    💡 <strong>Modelo actual:</strong> la plataforma no procesa ni retiene el pago del pasajero al conductor. Configura las reglas de selección en <strong>Operación de viajes</strong>.
                   </p>
                 </div>
               </Card>
@@ -3073,7 +3074,7 @@ export default function AdminDashboard() {
                 onClick={handleSaveConfig}
                 className="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-bold gap-2 text-base"
               >
-                <Save size={18} /> Guardar configuración de pagos
+                <Save size={18} /> Guardar facturación SaaS y referencias
               </Button>
             </div>
           )}
@@ -3111,6 +3112,14 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === "realtime" && <AdminRealtimePanel />}
+
+          {activeTab === "rideOperations" && (
+            <RideOperationsAdminPanel
+              config={siteConfig as any}
+              onChange={updates => setSiteConfig(current => ({ ...current, ...updates }) as any)}
+              onSave={handleSaveConfig}
+            />
+          )}
 
           {/* ── FAQ EDITOR ── */}
           {activeTab === "faq" && <FAQEditor />}
@@ -3312,6 +3321,71 @@ export default function AdminDashboard() {
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+function RideOperationsAdminPanel({
+  config,
+  onChange,
+  onSave,
+}: {
+  config: Record<string, any>;
+  onChange: (updates: Record<string, string | boolean>) => void;
+  onSave: () => void;
+}) {
+  const paymentMethods = [
+    { key: "directPaymentCashEnabled", label: "Efectivo", detail: "Pago presencial al finalizar el viaje" },
+    { key: "directPaymentZelleEnabled", label: "Zelle", detail: "Transferencia directa al conductor" },
+    { key: "directPaymentCashAppEnabled", label: "Cash App", detail: "Pago directo entre pasajeros y conductor" },
+    { key: "directPaymentPaypalEnabled", label: "PayPal", detail: "Pago entre usuarios, no procesado por la plataforma" },
+    { key: "directPaymentTransferEnabled", label: "Transferencia", detail: "Banco u otro acuerdo directo permitido" },
+  ];
+  const rules = [
+    { key: "manualDriverSelectionEnabled", label: "Selección manual obligatoria", detail: "Regla protegida: el pasajero siempre elige un conductor antes de enviar una solicitud.", locked: true },
+    { key: "autoSearchEnabled", label: "Autobúsqueda disponible", detail: "Solo aparece tras rechazo o falta de respuesta del conductor elegido." },
+    { key: "verifiedDriversOnly", label: "Solo conductores verificados", detail: "Limita la lista de cercanos a perfiles aprobados." },
+    { key: "backgroundNotificationsEnabled", label: "Avisos de segundo plano", detail: "Permite avisos de sistema si cada usuario concede permiso al navegador." },
+  ];
+
+  const toggle = (key: string) => onChange({ [key]: !config[key] });
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6">
+        <p className="text-xs font-extrabold tracking-[.16em] text-emerald-700">OPERACIÓN DE VIAJES</p>
+        <h2 className="mt-2 text-2xl font-bold text-slate-900">Pago directo y asignación transparente</h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Configura cómo se muestran los conductores cercanos, cuánto tiempo puede responder un conductor y qué métodos de pago directo pueden publicar. UnPasajero.Com no recibe, procesa ni retiene el pago de un viaje.</p>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div><h3 className="font-bold text-slate-900">Política de cobro directo</h3><p className="mt-1 text-sm text-slate-500">Controla la disponibilidad de métodos que un conductor puede publicar.</p></div>
+            <button onClick={() => toggle("directPaymentEnabled")} className={`relative h-6 w-11 rounded-full transition-colors ${config.directPaymentEnabled ? "bg-emerald-500" : "bg-slate-300"}`} aria-label="Activar pago directo"><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${config.directPaymentEnabled ? "translate-x-5" : "translate-x-0.5"}`} /></button>
+          </div>
+          <div className="mt-5 space-y-2">
+            {paymentMethods.map(method => <div key={method.key} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"><div><p className="text-sm font-semibold text-slate-900">{method.label}</p><p className="text-xs text-slate-500">{method.detail}</p></div><button disabled={!config.directPaymentEnabled} onClick={() => toggle(method.key)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${config[method.key] && config.directPaymentEnabled ? "bg-emerald-500" : "bg-slate-300"}`} aria-label={`Permitir ${method.label}`}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${config[method.key] && config.directPaymentEnabled ? "translate-x-5" : "translate-x-0.5"}`} /></button></div>)}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <h3 className="font-bold text-slate-900">Reglas de selección y Autobúsqueda</h3>
+          <p className="mt-1 text-sm text-slate-500">Evita reasignaciones silenciosas y define los límites operativos.</p>
+          <div className="mt-5 space-y-2">
+            {rules.map(rule => <div key={rule.key} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3"><div><p className="text-sm font-semibold text-slate-900">{rule.label}</p><p className="text-xs text-slate-500">{rule.detail}</p></div>{rule.locked ? <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Requerido</span> : <button onClick={() => toggle(rule.key)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${config[rule.key] ? "bg-emerald-500" : "bg-slate-300"}`} aria-label={rule.label}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${config[rule.key] ? "translate-x-5" : "translate-x-0.5"}`} /></button>}</div>)}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {[{ key: "driverResponseTimeoutSeconds", label: "Respuesta (seg)", min: "5", max: "120" }, { key: "driverSearchRadiusMiles", label: "Radio (millas)", min: "1", max: "100" }, { key: "minimumDriverRating", label: "Rating mínimo", min: "0", max: "5", step: "0.1" }, { key: "driverAlertRepeatSeconds", label: "Repetir alerta (seg)", min: "5", max: "120" }].map(field => <label key={field.key} className="text-xs font-semibold text-slate-600">{field.label}<input type="number" min={field.min} max={field.max} step={field.step || "1"} value={config[field.key] || ""} onChange={event => onChange({ [field.key]: event.target.value })} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500" /></label>)}
+          </div>
+        </Card>
+
+        <Card className="p-5 lg:col-span-2">
+          <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end"><div><h3 className="font-bold text-slate-900">Presencia, GPS y revisión operativa</h3><p className="mt-1 text-sm text-slate-500">Los conductores con señal antigua se excluyen de las recomendaciones. El valor se aplicará al servicio persistente cuando esté conectado.</p><label className="mt-4 block max-w-xs text-xs font-semibold text-slate-600">Máxima antigüedad de señal (seg)<input type="number" min="15" max="300" value={config.presenceMaxAgeSeconds || ""} onChange={event => onChange({ presenceMaxAgeSeconds: event.target.value })} className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500" /></label></div><div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600"><p className="font-semibold text-slate-900">Estado de persistencia</p><p className="mt-1">Los cambios se guardan en la configuración global y se sincronizan con la base de datos cuando el backend está disponible.</p></div></div>
+        </Card>
+      </div>
+
+      <Button onClick={onSave} className="w-full bg-emerald-500 py-6 text-base font-bold text-white hover:bg-emerald-600"><Save size={18} className="mr-2" /> Guardar operación de viajes</Button>
     </div>
   );
 }
