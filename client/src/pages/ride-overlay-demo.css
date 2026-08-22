@@ -678,15 +678,16 @@
     margin-top: 13px;
   }
   .ride-overlay-sheet {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    max-height: 87svh;
-    border-radius: 25px 25px 0 0;
+    position: relative;
+    bottom: auto;
+    width: min(510px, calc(100vw - 32px));
+    max-height: calc(100svh - 32px);
+    border-radius: 25px;
     padding: 25px 18px;
   }
   .ride-overlay-backdrop {
-    align-items: end;
+    align-items: center;
+    padding: 16px;
   }
   .ride-overlay-options > button {
     min-height: 68px;

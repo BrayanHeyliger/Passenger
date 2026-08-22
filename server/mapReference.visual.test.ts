@@ -228,6 +228,13 @@ describe("mapa dark premium de referencia", () => {
     expect(overlayDemoSource).toContain("routeSummary");
   });
 
+  it("centra el selector de ride en móvil en lugar de anclarlo al borde inferior", () => {
+    expect(rideOverlayCssSource).toContain("max-height: calc(100svh - 32px)");
+    expect(rideOverlayCssSource).toContain("width: min(510px, calc(100vw - 32px))");
+    expect(rideOverlayCssSource).toContain("align-items: center");
+    expect(rideOverlayCssSource).not.toContain("border-radius: 25px 25px 0 0");
+  });
+
   it("integra el fondo de seguimiento con ruta verde y vehículo en el hero", () => {
     expect(heroSource).toContain("HeroTrackingBackdrop");
     expect(heroTrackingBackdropSource).toContain("heroRouteGlow");
