@@ -21,6 +21,7 @@ import { TripChat } from "@/components/TripChat";
 import SafetyTipsButton from "@/components/SafetyTipsButton";
 import { DriverParcelPanel } from "@/components/DriverParcelPanel";
 import { DriverActivityTimeline } from "@/components/DriverActivityTimeline";
+import { DriverIdentityVerificationPanel } from "@/components/DriverIdentityVerificationPanel";
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
 const DRIVER_PAYMENT_KEY = "unpasajero_driver_payment_methods";
@@ -52,6 +53,8 @@ export default function DriverDashboard() {
   const { notifications: persistedNotifs, unreadCount, addNotification: addPersistedNotif, markAllRead, clearAll: clearAllNotifs } = useNotificationHistory(user?.role || "driver");
   const [showNotifications, setShowNotifications] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
+  const [identityStatus, setIdentityStatus] = useState<"unsubmitted" | "pending_review" | "approved" | "resubmission_required" | "rejected">(() => user?.email === "driver@unpasajero.com" ? "approved" : "unsubmitted");
+  const [approvedProfilePhoto, setApprovedProfilePhoto] = useState<string | null>(null);
   const [pendingTrips, setPendingTrips] = useState<PendingTrip[]>([]);
   const [currentTrip, setCurrentTrip] = useState<PendingTrip | null>(null);
   const [tripPhase, setTripPhase] = useState<"idle" | "accepted" | "otp_verify" | "in_progress" | "completed" | "rating">("idle");
@@ -82,6 +85,8 @@ export default function DriverDashboard() {
     return siteConfig.directPaymentEnabled && Boolean(siteConfig[policyKey[option.id]]);
   });
   const driverMapRef = useRef<import("@/components/LeafletMap").LeafletMapRef | null>(null);
+  const demoIdentityProfile = user?.email === "driver@unpasajero.com";
+  const identityApproved = identityStatus === "approved";
   const gpsRoomId = currentTrip ? `trip-${currentTrip.id}` : null;
   const { sendDriverLocation } = useSocket({
     roomId: gpsRoomId,
@@ -118,7 +123,7 @@ export default function DriverDashboard() {
   };
 
   const checkTrips = useCallback(() => {
-    if (!isOnline || tripPhase !== "idle") return;
+    if (!isOnline || !identityApproved || tripPhase !== "idle") return;
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const available = trips.filter(t =>
       t.status === "requested" &&
@@ -144,7 +149,7 @@ export default function DriverDashboard() {
       });
     }
     setPendingTrips(available);
-  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif, startIncomingTripAlert, user?.id, siteConfig.driverAlertRepeatSeconds]);
+  }, [isOnline, identityApproved, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif, startIncomingTripAlert, user?.id, siteConfig.driverAlertRepeatSeconds]);
 
   useEffect(() => {
     const interval = setInterval(checkTrips, 2000);
@@ -152,6 +157,11 @@ export default function DriverDashboard() {
   }, [checkTrips]);
 
   const handleAcceptTrip = (trip: PendingTrip) => {
+    if (!identityApproved) {
+      toast.error("Completa y aprueba tu verificación de identidad antes de aceptar viajes.");
+      setActiveTab("docs");
+      return;
+    }
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const updated = trips.map(t => t.id === trip.id ? {
       ...t, status: "accepted",
@@ -164,6 +174,7 @@ export default function DriverDashboard() {
         rating: 4.8,
         paymentMethods: allowedDirectPaymentOptions.filter(option => directPaymentMethods[option.id]).map(option => option.label),
         paymentModel: "direct_to_driver",
+        profilePhotoUrl: approvedProfilePhoto,
       },
       estimatedTime: "5 min",
     } : t);
@@ -423,7 +434,7 @@ export default function DriverDashboard() {
                     <h2 className="text-lg font-bold text-slate-900">Disponibilidad</h2>
                     <p className="text-sm text-slate-600">{isOnline ? "Recibirás solicitudes de viaje" : "Activa para recibir viajes"}</p>
                   </div>
-                  <Button onClick={() => { unlockAudio(); setIsOnline(!isOnline); }}
+                  <Button onClick={() => { if (!isOnline && !identityApproved) { setActiveTab("docs"); toast.error("Debes completar y aprobar tu verificación de identidad antes de conectarte."); return; } unlockAudio(); setIsOnline(!isOnline); }}
                     className={`px-6 py-2.5 font-semibold rounded-xl ${isOnline ? "bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30" : "bg-slate-200 hover:bg-slate-300 text-slate-700"}`}>
                     {isOnline ? "Desconectar" : "Conectar"}
                   </Button>
@@ -569,7 +580,7 @@ export default function DriverDashboard() {
                     <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
                       <Car size={40} className="mx-auto text-slate-300 mb-3" />
                       <p className="text-slate-600 font-medium">Conéctate para ver viajes disponibles</p>
-                      <Button onClick={() => setIsOnline(true)} className="mt-4 bg-green-500 hover:bg-green-600 text-white">Conectar Ahora</Button>
+                      <Button onClick={() => { if (!identityApproved) { setActiveTab("docs"); toast.error("Completa tu verificación de identidad antes de conectarte."); return; } setIsOnline(true); }} className="mt-4 bg-green-500 hover:bg-green-600 text-white">Conectar Ahora</Button>
                     </div>
                   ) : pendingTrips.length === 0 ? (
                     <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200">
@@ -740,7 +751,7 @@ export default function DriverDashboard() {
             <h1 className="text-2xl font-bold text-slate-900">Mi Perfil</h1>
             <Card className="p-5">
               <div className="flex items-center gap-4 mb-5">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">{user?.name?.[0]}</div>
+                <div className="w-16 h-16 overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">{approvedProfilePhoto ? <img src={approvedProfilePhoto} alt="Foto de perfil aprobada" className="h-full w-full object-cover" /> : user?.name?.[0]}</div>
                 <div>
                   <p className="text-xl font-bold text-slate-900">{user?.name}</p>
                   <p className="text-sm text-slate-500">{user?.email}</p>
@@ -748,7 +759,7 @@ export default function DriverDashboard() {
                 </div>
               </div>
               <div className="space-y-3 text-sm">
-                {[["Teléfono", user?.phone || "No registrado"], ["Estado", isOnline ? "En línea" : "Desconectado"], ["Viajes Completados", completedCount.toString()], ["Calificación Promedio", "5.0 ⭐"]].map(([k, v]) => (
+                {[["Teléfono", user?.phone || "No registrado"], ["Estado", isOnline ? "En línea" : "Desconectado"], ["Identidad", identityApproved ? "Verificada" : "Pendiente de aprobación"], ["Viajes Completados", completedCount.toString()], ["Calificación Promedio", "5.0 ⭐"]].map(([k, v]) => (
                   <div key={k} className="flex justify-between py-2 border-b border-slate-100">
                     <span className="text-slate-500">{k}</span>
                     <span className="font-medium text-slate-900">{v}</span>
@@ -787,6 +798,7 @@ export default function DriverDashboard() {
         {activeTab === "docs" && (
           <div className="space-y-6 max-w-lg">
             <h1 className="text-2xl font-bold text-slate-900">Mis Documentos</h1>
+            <DriverIdentityVerificationPanel demoMode={demoIdentityProfile} onStatusChange={setIdentityStatus} onApprovedPhotoChange={setApprovedProfilePhoto} />
             <Card className="p-5">
               <div className="space-y-4">
                 {[

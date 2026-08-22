@@ -10,6 +10,7 @@ import { trpc } from "@/lib/trpc";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { LanguageSelectorLight } from "@/components/LanguageSelector";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { DriverIdentityReviewQueue } from "@/components/DriverIdentityReviewQueue";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
@@ -1003,6 +1004,7 @@ export default function AdminDashboard() {
           {/* ── CONDUCTORES ── */}
           {activeTab === "drivers" && (
             <div className="space-y-4">
+              <DriverIdentityReviewQueue />
               {drivers.filter(d => d.status === "pending").length > 0 && (
                 <Card className="p-4 border-yellow-200 bg-yellow-50">
                   <div className="flex items-center gap-2 mb-3">

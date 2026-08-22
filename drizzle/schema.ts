@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, boolean, json, index } from "drizzle-orm/mysql-core";
 
 /**
  * WhatsApp Taxi SaaS — Complete Database Schema
@@ -58,6 +58,14 @@ export const drivers = mysqlTable("drivers", {
   licenseNumber: varchar("licenseNumber", { length: 50 }).notNull().unique(),
   licenseExpiry: timestamp("licenseExpiry"),
   licenseDocument: text("licenseDocument"),
+  identityVerificationStatus: mysqlEnum("identityVerificationStatus", ["unsubmitted", "pending_review", "approved", "resubmission_required", "rejected"]).default("unsubmitted").notNull(),
+  identitySubmittedAt: timestamp("identitySubmittedAt"),
+  identityReviewedAt: timestamp("identityReviewedAt"),
+  identityReviewedBy: int("identityReviewedBy"),
+  identityReviewNote: text("identityReviewNote"),
+  identityResubmissionCount: int("identityResubmissionCount").default(0).notNull(),
+  identityConsentAt: timestamp("identityConsentAt"),
+  identityConsentVersion: varchar("identityConsentVersion", { length: 32 }),
   insuranceDocument: text("insuranceDocument"),
   status: mysqlEnum("status", ["active", "inactive", "suspended", "pending"]).default("pending"),
   averageRating: decimal("averageRating", { precision: 3, scale: 2 }).default("5.00"),
@@ -77,6 +85,30 @@ export const drivers = mysqlTable("drivers", {
 
 export type Driver = typeof drivers.$inferSelect;
 export type InsertDriver = typeof drivers.$inferInsert;
+
+// ===== DRIVER IDENTITY SUBMISSIONS (Private evidence; never exposed to passengers) =====
+export const driverIdentitySubmissions = mysqlTable("driverIdentitySubmissions", {
+  id: int("id").autoincrement().primaryKey(),
+  driverId: int("driverId").notNull(),
+  profilePhotoKey: text("profilePhotoKey").notNull(),
+  selfieKey: text("selfieKey").notNull(),
+  licenseFrontKey: text("licenseFrontKey").notNull(),
+  status: mysqlEnum("status", ["pending_review", "approved", "resubmission_required", "rejected"]).default("pending_review").notNull(),
+  consentAt: timestamp("consentAt").notNull(),
+  consentVersion: varchar("consentVersion", { length: 32 }).notNull(),
+  submittedAt: timestamp("submittedAt").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewedBy: int("reviewedBy"),
+  reviewNote: text("reviewNote"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("driverIdentitySubmissions_driver_idx").on(table.driverId),
+  index("driverIdentitySubmissions_status_submitted_idx").on(table.status, table.submittedAt),
+]);
+
+export type DriverIdentitySubmission = typeof driverIdentitySubmissions.$inferSelect;
+export type InsertDriverIdentitySubmission = typeof driverIdentitySubmissions.$inferInsert;
 
 // ===== VEHICLES (Taxi Fleet) =====
 export const vehicles = mysqlTable("vehicles", {

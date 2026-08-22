@@ -1,0 +1,2 @@
+CREATE INDEX `driverIdentitySubmissions_driver_idx` ON `driverIdentitySubmissions` (`driverId`);--> statement-breakpoint
+CREATE INDEX `driverIdentitySubmissions_status_submitted_idx` ON `driverIdentitySubmissions` (`status`,`submittedAt`);

@@ -122,6 +122,19 @@ const siteConfigSource = readFileSync(
   resolve(projectRoot, "client/src/contexts/SiteConfigContext.tsx"),
   "utf8"
 );
+const driverIdentityRouterSource = readFileSync(
+  resolve(projectRoot, "server/routers/driverIdentity.ts"),
+  "utf8"
+);
+const driverIdentityPanelSource = readFileSync(
+  resolve(projectRoot, "client/src/components/DriverIdentityVerificationPanel.tsx"),
+  "utf8"
+);
+const driverIdentityQueueSource = readFileSync(
+  resolve(projectRoot, "client/src/components/DriverIdentityReviewQueue.tsx"),
+  "utf8"
+);
+const schemaSource = readFileSync(resolve(projectRoot, "drizzle/schema.ts"), "utf8");
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -381,5 +394,21 @@ describe("mapa dark premium de referencia", () => {
     expect(clientDashboardSource).toContain("autoSearchEnabled");
     expect(driverDashboardSource).toContain("allowedDirectPaymentOptions");
     expect(pushNotificationsSource).toContain("backgroundNotificationsAllowedByAdmin");
+  });
+
+  it("exige identidad de conductor, conserva las evidencias privadas y limita la revisión a administración", () => {
+    expect(schemaSource).toContain("driverIdentitySubmissions");
+    expect(schemaSource).toContain("identityVerificationStatus");
+    expect(driverIdentityRouterSource).toContain("storagePut");
+    expect(driverIdentityRouterSource).toContain("storageGetSignedUrl");
+    expect(driverIdentityRouterSource).toContain("adminProcedure");
+    expect(driverIdentityRouterSource).toContain("pending_review");
+    expect(driverIdentityPanelSource).toContain("Solo se aceptan JPG, PNG o WebP");
+    expect(driverIdentityPanelSource).toContain("no se almacenaron documentos reales");
+    expect(driverDashboardSource).toContain("DriverIdentityVerificationPanel");
+    expect(driverDashboardSource).toContain("identityApproved");
+    expect(driverDashboardSource).toContain("verificación de identidad antes de conectarte");
+    expect(adminDashboardSource).toContain("DriverIdentityReviewQueue");
+    expect(driverIdentityQueueSource).toContain("No existe aprobación biométrica automática");
   });
 });

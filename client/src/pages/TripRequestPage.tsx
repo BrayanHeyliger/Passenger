@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { trpc } from "@/lib/trpc";
 
 type DriverCandidate = {
   id: string;
@@ -25,6 +26,7 @@ type DriverCandidate = {
   profilePhotoUrl: string;
   paymentMethods: string[];
   verified: boolean;
+  isDemoProfile?: boolean;
 };
 
 type StoredTrip = {
@@ -42,9 +44,9 @@ type StoredTrip = {
 
 const TRIPS_KEY = "wt_pending_trips";
 const driverCandidates: DriverCandidate[] = [
-  { id: "driver-demo", name: "Demo Driver", vehicle: "Toyota Corolla", rating: 4.9, distanceMiles: 0.8, eta: "3 min", profilePhotoUrl: "/manus-storage/demo-driver-profile_5f16f288.jpg", verified: true, paymentMethods: ["Efectivo", "Zelle", "Cash App"] },
-  { id: "driver-luis", name: "Luis R.", vehicle: "Honda Civic", rating: 4.8, distanceMiles: 1.4, eta: "5 min", profilePhotoUrl: "/manus-storage/luis-driver-profile_c6f23eac.jpg", verified: true, paymentMethods: ["Efectivo", "Zelle", "Transferencia"] },
-  { id: "driver-ana", name: "Ana G.", vehicle: "Nissan Versa", rating: 4.7, distanceMiles: 2.1, eta: "7 min", profilePhotoUrl: "/manus-storage/ana-driver-profile_12c06a6f.jpg", verified: true, paymentMethods: ["Efectivo", "Cash App", "PayPal"] },
+  { id: "driver-demo", name: "Demo Driver", vehicle: "Toyota Corolla", rating: 4.9, distanceMiles: 0.8, eta: "3 min", profilePhotoUrl: "/manus-storage/demo-driver-profile_5f16f288.jpg", verified: true, paymentMethods: ["Efectivo", "Zelle", "Cash App"], isDemoProfile: true },
+  { id: "driver-luis", name: "Luis R.", vehicle: "Honda Civic", rating: 4.8, distanceMiles: 1.4, eta: "5 min", profilePhotoUrl: "/manus-storage/luis-driver-profile_c6f23eac.jpg", verified: true, paymentMethods: ["Efectivo", "Zelle", "Transferencia"], isDemoProfile: true },
+  { id: "driver-ana", name: "Ana G.", vehicle: "Nissan Versa", rating: 4.7, distanceMiles: 2.1, eta: "7 min", profilePhotoUrl: "/manus-storage/ana-driver-profile_12c06a6f.jpg", verified: true, paymentMethods: ["Efectivo", "Cash App", "PayPal"], isDemoProfile: true },
 ];
 
 function getStoredTrip(): StoredTrip | null {
@@ -64,6 +66,7 @@ function saveTrip(trip: StoredTrip) {
 export default function TripRequestPage() {
   const [, navigate] = useLocation();
   const { config } = useSiteConfig();
+  const approvedProfiles = trpc.driverIdentity.approvedProfiles.useQuery(undefined, { retry: false });
   const [trip, setTrip] = useState<StoredTrip | null>(() => {
     const stored = getStoredTrip();
     return stored && stored.status === "searching" && !stored.selectedDriverId
@@ -83,11 +86,24 @@ export default function TripRequestPage() {
       config.directPaymentTransferEnabled && "Transferencia",
     ].filter(Boolean));
     if (!config.directPaymentEnabled) return [];
-    return driverCandidates
+    const productionCandidates: DriverCandidate[] = (approvedProfiles.data || []).map((driver, index) => ({
+      id: String(driver.id),
+      name: [driver.firstName, driver.lastName].filter(Boolean).join(" "),
+      vehicle: "Conductor verificado",
+      rating: Number(driver.averageRating || 5),
+      distanceMiles: 0.8 + index * 0.7,
+      eta: `${3 + index * 2} min`,
+      profilePhotoUrl: driver.profileImage || "",
+      verified: true,
+      paymentMethods: ["Efectivo"],
+      isDemoProfile: false,
+    }));
+    const candidatePool = productionCandidates.length > 0 ? productionCandidates : driverCandidates;
+    return candidatePool
       .filter(driver => driver.distanceMiles <= radius && driver.rating >= minRating && (!config.verifiedDriversOnly || driver.verified))
       .map(driver => ({ ...driver, paymentMethods: driver.paymentMethods.filter(method => enabledPayments.has(method)) }))
       .filter(driver => driver.paymentMethods.length > 0);
-  }, [config]);
+  }, [config, approvedProfiles.data]);
 
   useEffect(() => {
     if (trip?.status === "choosing_driver") saveTrip(trip);
@@ -182,7 +198,7 @@ export default function TripRequestPage() {
             </div>
             <span className={`grid h-12 w-12 place-items-center rounded-2xl ${assigned ? "bg-emerald-300 text-[#062018]" : "bg-emerald-300/15 text-emerald-200"}`}>{assigned ? <CheckCircle2 size={24} /> : <Search size={23} className={selecting ? "" : "animate-pulse"} />}</span>
           </div>
-          {selecting && <div className="mt-7 space-y-3"><div><p className="font-bold">Conductores disponibles cerca de ti</p><p className="mt-1 text-sm text-white/55">Elige el conductor que prefieras antes de revisar los detalles del viaje.</p></div>{availableDrivers.map(driver => <button key={driver.id} onClick={() => selectDriver(driver, "manual")} className="w-full rounded-2xl border border-white/10 bg-white/[.055] p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-300/10"><div className="flex items-center gap-3"><img src={driver.profilePhotoUrl} alt={`Foto demostrativa de ${driver.name}`} className="h-14 w-14 shrink-0 rounded-2xl border border-white/15 object-cover" /><span className="min-w-0 flex-1"><b className="block">{driver.name} <em className="ml-1 text-xs not-italic text-emerald-300">Verificado</em></b><small className="mt-1 block text-white/55">{driver.vehicle} · ★ {driver.rating.toFixed(1)} · {driver.distanceMiles.toFixed(1)} mi · {driver.eta}</small><small className="mt-1 block text-[10px] text-white/35">Foto de perfil demostrativa</small></span><ChevronRight className="shrink-0 text-emerald-200" size={19} /></div><span className="mt-3 flex flex-wrap gap-1.5">{driver.paymentMethods.map(method => <small key={method} className="rounded-full border border-white/10 bg-black/15 px-2 py-1 text-[11px] text-white/75">{method}</small>)}</span></button>)}{availableDrivers.length === 0 && <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm text-amber-100">No hay conductores cercanos según las reglas actuales de operación. Ajusta radio, rating o métodos habilitados.</div>}</div>}
+          {selecting && <div className="mt-7 space-y-3"><div><p className="font-bold">Conductores disponibles cerca de ti</p><p className="mt-1 text-sm text-white/55">Elige el conductor que prefieras antes de revisar los detalles del viaje.</p></div>{availableDrivers.map(driver => <button key={driver.id} onClick={() => selectDriver(driver, "manual")} className="w-full rounded-2xl border border-white/10 bg-white/[.055] p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-300/10"><div className="flex items-center gap-3"><img src={driver.profilePhotoUrl} alt={driver.isDemoProfile ? `Foto demostrativa de ${driver.name}` : `Foto de perfil verificada de ${driver.name}`} className="h-14 w-14 shrink-0 rounded-2xl border border-white/15 object-cover" /><span className="min-w-0 flex-1"><b className="block">{driver.name} <em className="ml-1 text-xs not-italic text-emerald-300">Verificado</em></b><small className="mt-1 block text-white/55">{driver.vehicle} · ★ {driver.rating.toFixed(1)} · {driver.distanceMiles.toFixed(1)} mi · {driver.eta}</small><small className="mt-1 block text-[10px] text-white/35">{driver.isDemoProfile ? "Foto de perfil demostrativa" : "Foto de perfil aprobada"}</small></span><ChevronRight className="shrink-0 text-emerald-200" size={19} /></div><span className="mt-3 flex flex-wrap gap-1.5">{driver.paymentMethods.map(method => <small key={method} className="rounded-full border border-white/10 bg-black/15 px-2 py-1 text-[11px] text-white/75">{method}</small>)}</span></button>)}{availableDrivers.length === 0 && <div className="rounded-2xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm text-amber-100">No hay conductores cercanos según las reglas actuales de operación. Ajusta radio, rating o métodos habilitados.</div>}</div>}
 
           {!selecting && !assigned && trip.driver && <div className="mt-7 rounded-2xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs font-extrabold tracking-[.14em] text-emerald-300">{trip.assignmentMode === "auto" ? "AUTOBÚSQUEDA ACTIVA" : "CONDUCTOR ELEGIDO"}</p><div className="mt-3 flex items-center gap-3"><img src={trip.driver.profilePhotoUrl} alt={`Foto demostrativa de ${trip.driver.name}`} className="h-14 w-14 rounded-2xl border border-white/15 object-cover" /><span><b className="block">{trip.driver.name}</b><small className="text-white/55">{trip.driver.vehicle} · ★ {trip.driver.rating.toFixed(1)} · {trip.driver.distanceMiles.toFixed(1)} mi</small></span></div><div className="mt-3 flex flex-wrap gap-1.5">{trip.driver.paymentMethods.map(method => <small key={method} className="rounded-full border border-white/10 px-2 py-1 text-[11px] text-white/75">{method}</small>)}</div></div>}
 
