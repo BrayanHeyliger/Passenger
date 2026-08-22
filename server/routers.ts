@@ -11,6 +11,7 @@ import { safetyTipsRouter } from "./routers/safetyTips";
 import { parcelsRouter } from "./routers/parcels";
 import { driverIdentityRouter } from "./routers/driverIdentity";
 import { tripOperationsRouter } from "./routers/tripOperations";
+import { realtimeAccessRouter } from "./routers/realtimeAccess";
 
 export const appRouter = router({
   system: systemRouter,
@@ -23,6 +24,7 @@ export const appRouter = router({
   parcels: parcelsRouter,
   driverIdentity: driverIdentityRouter,
   tripOperations: tripOperationsRouter,
+  realtimeAccess: realtimeAccessRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

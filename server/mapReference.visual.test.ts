@@ -143,6 +143,10 @@ const tripOperationsRouterSource = readFileSync(
   resolve(projectRoot, "server/routers/tripOperations.ts"),
   "utf8"
 );
+const realtimeAccessRouterSource = readFileSync(
+  resolve(projectRoot, "server/routers/realtimeAccess.ts"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -453,5 +457,15 @@ describe("mapa dark premium de referencia", () => {
     expect(tripOperationsRouterSource).toContain("updateDriverPresence");
     expect(tripOperationsRouterSource).toContain("tripAudit");
     expect(tripOperationsRouterSource).toContain("Autobúsqueda solo se permite tras rechazo o vencimiento");
+  });
+
+  it("emite JWT de tiempo real únicamente para actores autorizados del viaje", () => {
+    expect(realtimeAccessRouterSource).toContain("issueTripToken");
+    expect(realtimeAccessRouterSource).toContain("realtimeRoleForTrip");
+    expect(realtimeAccessRouterSource).toContain("SAYTAXI_REALTIME_JWT_SECRET");
+    expect(realtimeAccessRouterSource).toContain("saytaxi-realtime");
+    expect(realtimeAccessRouterSource).toContain("No tienes acceso a la sala de este viaje");
+    expect(tripChatSource).toContain("realtimeAccess.issueTripToken");
+    expect(tripChatSource).toContain('tripId.startsWith("trip-")');
   });
 });

@@ -3,6 +3,7 @@ import { Send, MessageCircle, X, Minimize2, Wifi, WifiOff, Phone, PhoneOff, Phon
 import { useSocket } from "@/hooks/useSocket";
 import { useInteractionSounds } from "@/hooks/useInteractionSounds";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -25,16 +26,27 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
   const inputRef = useRef<HTMLInputElement>(null);
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastNotifiedMessageRef = useRef<string | null>(null);
+  const numericTripId = tripId && /^\d+$/.test(tripId)
+    ? Number(tripId)
+    : tripId && /^trip-(\d+)$/.test(tripId)
+      ? Number(tripId.slice(5))
+      : null;
+  const roomId = tripId ? (tripId.startsWith("trip-") ? tripId : `trip-${tripId}`) : null;
+  const realtimeAccess = trpc.realtimeAccess.issueTripToken.useQuery(
+    { tripId: numericTripId ?? 0 },
+    { enabled: numericTripId !== null, retry: false, staleTime: 8 * 60 * 1000 }
+  );
 
   const {
     messages, isConnected, typingUser, sendMessage, sendTyping,
     callState, incomingCallerName, pendingOfferRef,
     startCall, answerCall, endCall, rejectCall,
   } = useSocket({
-    roomId: tripId,
+    roomId,
     userId,
     role,
-    enabled: !!tripId,
+    enabled: !!roomId,
+    realtimeToken: realtimeAccess.data?.token ?? null,
   });
   const { startCallTone, stopCallTone } = useInteractionSounds();
   const { sendNotification } = usePushNotifications(role === "driver" ? "driver" : role === "admin" ? "dispatcher" : "client");
@@ -54,10 +66,10 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     void sendNotification(`💬 ${otherPartyName} te escribió`, {
       body: latest.text,
       url: role === "driver" ? "/driver-dashboard" : role === "admin" ? "/dispatcher" : "/client-dashboard",
-      tag: `trip-chat-${tripId}`,
+      tag: `trip-chat-${roomId}`,
       channel: "messages",
     });
-  }, [messages, otherPartyName, role, sendNotification, tripId]);
+  }, [messages, otherPartyName, role, sendNotification, roomId]);
 
   // Auto-scroll to latest message
   useEffect(() => {
