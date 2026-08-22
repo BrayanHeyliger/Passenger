@@ -142,11 +142,33 @@ function MapScene() {
   );
 }
 
-export default function RideOverlayDemoPage() {
+export default function RideOverlayDemoPage({
+  integrated = false,
+}: {
+  integrated?: boolean;
+}) {
   const [stage, setStage] = useState<Stage>("ready");
   const [selected, setSelected] = useState<RideId>("standard");
   const ride = rides.find(item => item.id === selected)!;
   const close = () => setStage("ready");
+  const confirmRequest = () => {
+    if (integrated) {
+      sessionStorage.setItem(
+        "pendingTrip",
+        JSON.stringify({
+          pickup: "Av. Reforma 222, Juárez",
+          destination: "Aeropuerto Internacional (AICM)",
+          vehicle: ride.id,
+          serviceLabel: ride.label,
+          estimatedPrice: ride.price,
+          estimatedEta: ride.eta,
+        })
+      );
+      window.location.href = "/marketplace";
+      return;
+    }
+    toast.success("Solicitud preparada. La página no cambió de posición.");
+  };
   return (
     <main className="ride-overlay-page">
       <MapScene />
@@ -316,11 +338,7 @@ export default function RideOverlayDemoPage() {
                 </div>
                 <button
                   className="ride-overlay-continue"
-                  onClick={() =>
-                    toast.success(
-                      "Solicitud preparada. La página no cambió de posición."
-                    )
-                  }
+                  onClick={confirmRequest}
                 >
                   <span>
                     Confirmar solicitud

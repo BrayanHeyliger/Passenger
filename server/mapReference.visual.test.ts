@@ -162,4 +162,14 @@ describe("mapa dark premium de referencia", () => {
     expect(heroTrackingBackdropSource).toContain("animateMotion");
     expect(heroTrackingBackdropSource).toContain("ROMA NORTE");
   });
+
+  it("usa el hero de panel superpuesto como portada oficial sin alterar las secciones posteriores", () => {
+    const homeSource = readFileSync(
+      resolve(projectRoot, "client/src/pages/Home.tsx"),
+      "utf8"
+    );
+    expect(homeSource).toContain("RideOverlayDemoPage integrated");
+    expect(homeSource).toContain("ForClientsSection");
+    expect(overlayDemoSource).toContain("pendingTrip");
+  });
 });
