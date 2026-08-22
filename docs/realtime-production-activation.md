@@ -26,6 +26,12 @@ io(import.meta.env.VITE_REALTIME_URL, {
 
 El conductor publica `driver:location` mientras está en ruta. El pasajero escucha `trip:location:update`, y ambos usan `trip:chat` para mensajes persistentes.
 
+## Regla de autorización obligatoria
+
+El backend debe consultar el viaje antes de firmar el token. Solo puede emitirlo si el usuario autenticado es el cliente del viaje, el conductor asignado o un miembro de soporte autorizado. No se debe firmar un token solo porque el navegador envíe un `tripId`, ya que eso permitiría a un usuario intentar unirse a viajes ajenos.
+
+La clave `SAYTAXI_REALTIME_JWT_SECRET` debe permanecer únicamente en los procesos de backend. El navegador recibe el JWT de corta duración, pero nunca la clave de firma.
+
 ## Activación
 
 1. Publicar el servicio de tiempo real con ejecución continua y asignarle una URL HTTPS permanente.

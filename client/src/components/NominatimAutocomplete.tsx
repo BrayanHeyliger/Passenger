@@ -64,11 +64,19 @@ export default function NominatimAutocomplete({
           params.set("bounded", "1"); // Strictly limit to viewbox
         }
 
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+        const request = (query: URLSearchParams) => fetch(
+          `https://nominatim.openstreetmap.org/search?${query.toString()}`,
           { headers: { "Accept-Language": "es,en;q=0.9" } }
-        );
-        const data: Suggestion[] = await res.json();
+        ).then(response => response.json() as Promise<Suggestion[]>);
+        let data = await request(params);
+        // Priorizamos el radio local; si no encuentra nada, mantenemos el país
+        // pero ampliamos la búsqueda para no bloquear una reserva válida.
+        if (data.length === 0 && viewbox) {
+          const fallbackParams = new URLSearchParams(params);
+          fallbackParams.delete("viewbox");
+          fallbackParams.delete("bounded");
+          data = await request(fallbackParams);
+        }
         setSuggestions(data);
         setOpen(data.length > 0);
       } catch {

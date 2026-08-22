@@ -171,6 +171,17 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("recharts")) return "charts-vendor";
+          if (id.includes("leaflet")) return "maps-vendor";
+          if (id.includes("socket.io")) return "realtime-vendor";
+          if (id.includes("@radix-ui")) return "ui-vendor";
+        },
+      },
+    },
   },
   server: {
     host: true,

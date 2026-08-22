@@ -25,6 +25,17 @@ type Stage = "ready" | "choose" | "summary";
 type Coordinates = { lat: number; lng: number };
 type RouteEstimate = { distanceKm: number; minutes: number };
 
+function approximateDistanceKm(origin: Coordinates, destination: Coordinates) {
+  const toRadians = (degrees: number) => degrees * (Math.PI / 180);
+  const radiusKm = 6_371;
+  const latitudeDifference = toRadians(destination.lat - origin.lat);
+  const longitudeDifference = toRadians(destination.lng - origin.lng);
+  const latitudeOrigin = toRadians(origin.lat);
+  const latitudeDestination = toRadians(destination.lat);
+  const arc = Math.sin(latitudeDifference / 2) ** 2 + Math.cos(latitudeOrigin) * Math.cos(latitudeDestination) * Math.sin(longitudeDifference / 2) ** 2;
+  return radiusKm * 2 * Math.atan2(Math.sqrt(arc), Math.sqrt(1 - arc));
+}
+
 const rides = [
   {
     id: "standard" as RideId,
@@ -206,7 +217,10 @@ export default function RideOverlayDemoPage({
         setLocationHint(`Ruta lista · ${distanceKm.toFixed(1)} km · ${minutes} min`);
       } catch {
         if (!cancelled) {
-          setLocationHint("No pudimos calcular la ruta. Revisa ambas direcciones.");
+          const distanceKm = Math.max(0.1, approximateDistanceKm(pickupCoords, destinationCoords));
+          const minutes = Math.max(2, Math.ceil((distanceKm / 28) * 60));
+          setRouteEstimate({ distanceKm, minutes });
+          setLocationHint(`Ruta aproximada · ${distanceKm.toFixed(1)} km · ${minutes} min`);
         }
       } finally {
         if (!cancelled) setRouteLoading(false);

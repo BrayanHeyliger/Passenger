@@ -260,6 +260,7 @@ describe("mapa dark premium de referencia", () => {
   it("deja el destino abierto y cotiza a partir de la ruta real seleccionada", () => {
     expect(overlayDemoSource).toContain('const [destination, setDestination] = useState("")');
     expect(overlayDemoSource).toContain("router.project-osrm.org/route/v1/driving");
+    expect(overlayDemoSource).toContain("approximateDistanceKm");
     expect(overlayDemoSource).toContain("routeEstimate.distanceKm");
     expect(overlayDemoSource).toContain("Ingresa tu ubicación exacta");
     expect(rideOverlayCssSource).toContain(".ride-overlay-locations span:focus-within");
