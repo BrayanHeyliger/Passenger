@@ -26,6 +26,10 @@ const functionalSource = readFileSync(
   ),
   "utf8"
 );
+const flowSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/TripFlowPreviewPage.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -75,5 +79,14 @@ describe("mapa dark premium de referencia", () => {
     expect(functionalSource).toContain("driverLocation");
     expect(functionalSource).toContain("useSocket");
     expect(cssSource).toContain(".functional-map-shell");
+  });
+
+  it("presenta todos los estados visuales del flujo de viaje", () => {
+    expect(flowSource).toContain("Solicita tu viaje");
+    expect(flowSource).toContain("Conductor asignado");
+    expect(flowSource).toContain("Tu viaje está en curso");
+    expect(flowSource).toContain("Llegaste con seguridad");
+    expect(flowSource).toContain("Califica tu experiencia");
+    expect(cssSource).toContain(".trip-flow-preview");
   });
 });
