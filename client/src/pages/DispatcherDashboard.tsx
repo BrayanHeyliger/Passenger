@@ -39,10 +39,10 @@ interface MockDriver {
 }
 
 const MOCK_DRIVERS: MockDriver[] = [
-  { id: "d1", name: "Carlos M.", vehicle: "Toyota Corolla", plate: "ABC-123", status: "available", lat: 19.4326, lng: -99.1332, trips: 8 },
-  { id: "d2", name: "Luis R.", vehicle: "Honda Civic", plate: "XYZ-456", status: "available", lat: 19.4400, lng: -99.1450, trips: 5 },
-  { id: "d3", name: "Ana G.", vehicle: "Nissan Versa", plate: "DEF-789", status: "busy", lat: 19.4250, lng: -99.1200, trips: 12 },
-  { id: "d4", name: "Pedro S.", vehicle: "VW Jetta", plate: "GHI-012", status: "offline", lat: 19.4500, lng: -99.1600, trips: 3 },
+  { id: "d1", name: "Carlos M.", vehicle: "Toyota Corolla", plate: "ABC-123", status: "available", lat: 28.5436, lng: -81.3733, trips: 8 },
+  { id: "d2", name: "Luis R.", vehicle: "Honda Civic", plate: "XYZ-456", status: "available", lat: 28.5381, lng: -81.3794, trips: 5 },
+  { id: "d3", name: "Ana G.", vehicle: "Nissan Versa", plate: "DEF-789", status: "busy", lat: 28.5534, lng: -81.3648, trips: 12 },
+  { id: "d4", name: "Pedro S.", vehicle: "VW Jetta", plate: "GHI-012", status: "offline", lat: 28.5292, lng: -81.3691, trips: 3 },
 ];
 
 export default function DispatcherDashboard() {

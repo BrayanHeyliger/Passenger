@@ -507,7 +507,7 @@ export default function AdminDashboard() {
   const handleMapReady = useCallback((ref: LeafletMapRef) => {
     mapRef.current = ref;
     // Spawn animated vehicle markers for all drivers via LeafletMap
-    ref.spawnVehicles(19.4326, -99.1332);
+    ref.spawnVehicles(28.5436, -81.3733);
   }, []);
 
   const handleDriverAction = (

@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 export type UserRole = "client" | "driver" | "fleet" | "admin" | "dispatcher";
 
@@ -14,8 +20,13 @@ interface LocalAuthContextType {
   user: LocalUser | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    data: RegisterData
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -36,14 +47,21 @@ export interface RegisterData {
 const LocalAuthContext = createContext<LocalAuthContextType | null>(null);
 const STORAGE_KEY = "wt_user";
 
-async function callAuth(action: "login" | "register", input: Record<string, unknown>): Promise<any> {
+async function callAuth(
+  action: "login" | "register",
+  input: Record<string, unknown>
+): Promise<any> {
   const res = await fetch("/api/auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action, ...input }),
   });
-  const data = await res.json();
-  if (!res.ok || data.error) throw new Error(data.error || "Error del servidor");
+  const raw = await res.text();
+  const data = raw
+    ? JSON.parse(raw)
+    : { error: "El servidor no devolvió una respuesta válida." };
+  if (!res.ok || data.error)
+    throw new Error(data.error || "Error del servidor");
   return data.user;
 }
 
@@ -62,7 +80,10 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       const result = await callAuth("login", { email, password });
       const userData: LocalUser = {
@@ -76,11 +97,16 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err?.message || "Credenciales incorrectas" };
+      return {
+        success: false,
+        error: err?.message || "Credenciales incorrectas",
+      };
     }
   };
 
-  const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
+  const register = async (
+    data: RegisterData
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       const result = await callAuth("register", {
         firstName: data.firstName,
@@ -115,7 +141,16 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LocalAuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, register, logout }}>
+    <LocalAuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        loading,
+        login,
+        register,
+        logout,
+      }}
+    >
       {children}
     </LocalAuthContext.Provider>
   );
@@ -123,6 +158,7 @@ export function LocalAuthProvider({ children }: { children: ReactNode }) {
 
 export function useLocalAuth() {
   const ctx = useContext(LocalAuthContext);
-  if (!ctx) throw new Error("useLocalAuth must be used inside LocalAuthProvider");
+  if (!ctx)
+    throw new Error("useLocalAuth must be used inside LocalAuthProvider");
   return ctx;
 }

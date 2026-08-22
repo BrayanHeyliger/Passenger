@@ -2,7 +2,13 @@ import { z } from "zod";
 import { publicProcedure, router } from "../_core/trpc";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", { apiVersion: "2026-07-29.dahlia" });
+function getStripe() {
+  const apiKey = process.env.STRIPE_SECRET_KEY;
+  if (!apiKey) {
+    throw new Error("Los pagos no están configurados todavía. Define STRIPE_SECRET_KEY para habilitar checkout.");
+  }
+  return new Stripe(apiKey, { apiVersion: "2026-07-29.dahlia" });
+}
 
 export const paymentsRouter = router({
   createCheckout: publicProcedure
@@ -12,6 +18,7 @@ export const paymentsRouter = router({
       amount: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const stripe = getStripe();
       const origin = ctx.req.headers.origin || "https://whatsapptaxi-jkudqcvs.manus.space";
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -19,8 +26,8 @@ export const paymentsRouter = router({
           price_data: {
             currency: "usd",
             product_data: {
-              name: `WhatsAppTaxi — Plan ${input.planName}`,
-              description: `Suscripción mensual al Plan ${input.planName} de WhatsApp Taxi SaaS`,
+              name: `UnPasajero.Com — Plan ${input.planName}`,
+              description: `Suscripción mensual al Plan ${input.planName} de UnPasajero.Com`,
             },
             unit_amount: input.amount * 100,
             recurring: { interval: "month" },

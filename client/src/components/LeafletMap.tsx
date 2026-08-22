@@ -75,7 +75,7 @@ export default function LeafletMap({
           attribution: "© OpenStreetMap © CARTO",
         }
       ).addTo(map);
-      map.setView([19.4326, -99.1332], 13);
+      map.setView([28.5436, -81.3733], 13);
       mapRef.current = map;
 
       const stopRouteAnimation = () => {
@@ -202,7 +202,7 @@ export default function LeafletMap({
             .bindPopup("Tu ubicación");
           spawnVehiclesInternal(pos.coords.latitude, pos.coords.longitude);
         },
-        () => spawnVehiclesInternal(19.4326, -99.1332)
+        () => spawnVehiclesInternal(28.5436, -81.3733)
       );
 
       setReady(true);
@@ -309,16 +309,16 @@ export default function LeafletMap({
       <div className="passenger-map-street-grid" aria-hidden="true" />
       <div className="passenger-map-street-labels" aria-hidden="true">
         <span className="passenger-map-street-label passenger-map-street-label--north">
-          JUÁREZ
+          DOWNTOWN
         </span>
         <span className="passenger-map-street-label passenger-map-street-label--east">
-          ROMA NORTE
+          LAKE EOLA
         </span>
         <span className="passenger-map-street-label passenger-map-street-label--center">
-          CUAUHTÉMOC
+          MILLS 50
         </span>
         <span className="passenger-map-street-label passenger-map-street-label--south">
-          DOCTORES
+          SODO
         </span>
       </div>
       {!ready && <div className="passenger-map-loading">Cargando mapa...</div>}

@@ -47,6 +47,7 @@ export default function DriverDashboard() {
   const [otpInput, setOtpInput] = useState("");
   const [otpCode] = useState("4821"); // Demo OTP
   const [passengerRating, setPassengerRating] = useState(0);
+  const [driverChatOpen, setDriverChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "referrals" | "profile" | "docs" | "parcels">("trips");
   const driverMapRef = useRef<import("@/components/LeafletMap").LeafletMapRef | null>(null);
   const gpsRoomId = currentTrip ? `trip-${currentTrip.id}` : null;
@@ -113,8 +114,8 @@ export default function DriverDashboard() {
 
   useEffect(() => {
     if (!driverMapRef.current || !currentTrip || !(tripPhase === "accepted" || tripPhase === "in_progress")) return;
-    driverMapRef.current.setPickup(19.4270, -99.1677, currentTrip.pickup || "Punto de recogida");
-    driverMapRef.current.setDropoff(19.4363, -99.0719, currentTrip.dropoff || "Destino");
+    driverMapRef.current.setPickup(28.5436, -81.3733, currentTrip.pickup || "Lake Eola Park, Orlando, FL");
+    driverMapRef.current.setDropoff(28.4312, -81.3081, currentTrip.dropoff || "Orlando International Airport (MCO)");
     void driverMapRef.current.getRoute();
   }, [currentTrip?.id, tripPhase]);
 
@@ -195,9 +196,8 @@ export default function DriverDashboard() {
   };
 
   const handleMessagePassenger = () => {
-    // No exponemos el número del pasajero — usar chat interno
-    toast.info("💬 Escríbele al pasajero por el chat seguro de abajo");
-    document.getElementById("driver-chat-anchor")?.scrollIntoView({ behavior: "smooth" });
+    setDriverChatOpen(true);
+    toast.info("💬 Chat seguro abierto para contactar al pasajero");
   };
 
   const handleSOS = () => {
@@ -566,17 +566,17 @@ export default function DriverDashboard() {
                           try {
                             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(currentTrip.dropoff)}&limit=1`);
                             const data = await res.json();
-                            const destination = data[0] ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : { lat: 19.4363, lng: -99.0719 };
+                            const destination = data[0] ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : { lat: 28.4312, lng: -81.3081 };
                             ref.setDropoff(destination.lat, destination.lng, currentTrip.dropoff);
                             await ref.getRoute();
                           } catch {
-                            ref.setDropoff(19.4363, -99.0719, currentTrip.dropoff);
+                            ref.setDropoff(28.4312, -81.3081, currentTrip.dropoff);
                             await ref.getRoute();
                           }
                         };
                         navigator.geolocation?.getCurrentPosition(
                           (pos) => setupRoute(pos.coords.latitude, pos.coords.longitude),
-                          () => setupRoute(19.4270, -99.1677),
+                          () => setupRoute(28.5436, -81.3733),
                         );
                       }
                     }}
@@ -704,6 +704,8 @@ export default function DriverDashboard() {
             userName={user?.name || "Conductor"}
             role="driver"
             otherPartyName={currentTrip.clientName || "Pasajero"}
+            forceOpen={driverChatOpen}
+            onOpenChange={setDriverChatOpen}
           />
         </div>
       )}

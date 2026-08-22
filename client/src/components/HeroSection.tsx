@@ -146,8 +146,8 @@ export default function HeroSection() {
 
   const handleMapReady = useCallback((ref: LeafletMapRef) => {
     mapRef.current = ref;
-    const showcasePickup = { lat: 19.427, lng: -99.1677 };
-    const showcaseDestination = { lat: 19.4363, lng: -99.0719 };
+    const showcasePickup = { lat: 28.5436, lng: -81.3733 };
+    const showcaseDestination = { lat: 28.4312, lng: -81.3081 };
     setPickupCoords(showcasePickup);
     setDestCoords(showcaseDestination);
     ref.setPickup(showcasePickup.lat, showcasePickup.lng, "Lake Eola Park");
@@ -157,7 +157,7 @@ export default function HeroSection() {
       "Orlando International Airport (MCO)"
     );
     void ref.getRoute();
-    ref.setVehiclePosition(19.4312, -99.1284, "Conductor disponible");
+    ref.setVehiclePosition(28.5034, -81.3448, "Conductor disponible");
     // Solo intentar geolocalización automática si el usuario ya dio permiso antes
     if (navigator.permissions) {
       navigator.permissions

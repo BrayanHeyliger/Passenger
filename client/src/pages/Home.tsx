@@ -1,4 +1,3 @@
-import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import ForClientsSection from "@/components/ForClientsSection";
 import Navbar from "@/components/Navbar";
 import ForDriversSection from "@/components/ForDriversSection";

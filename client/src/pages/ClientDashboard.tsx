@@ -158,6 +158,32 @@ export default function ClientDashboard() {
   const [driverEta, setDriverEta] = useState<string | null>(null);
   const [driverDistance, setDriverDistance] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+    try {
+      const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+      const activeTrip = trips.find(
+        (trip: any) =>
+          trip.clientId === user.id &&
+          ["requested", "accepted", "in_progress"].includes(trip.status)
+      );
+      if (!activeTrip) return;
+      setCurrentTrip(activeTrip);
+      setPickupLocation(activeTrip.pickup || "");
+      setDropoffLocation(activeTrip.dropoff || "");
+      setSelectedVehicle(activeTrip.vehicleType || "economy");
+      setTripStatus(
+        activeTrip.status === "requested"
+          ? "searching"
+          : activeTrip.status === "in_progress"
+            ? "in_progress"
+            : "accepted"
+      );
+    } catch {
+      // Ignore malformed legacy demo entries and keep the booking form available.
+    }
+  }, [isAuthenticated, user?.id]);
+
   // LeafletMap handles vehicle spawning internally
   const clearVehicleMarkers = useCallback(() => {
     // Leaflet map handles its own cleanup
@@ -262,7 +288,7 @@ export default function ClientDashboard() {
         );
         setLoyaltyPoints(p => p + 10);
         if (pickupCoords) startDriverApproach(pickupCoords);
-        else startDriverApproach({ lat: 19.4326, lng: -99.1332 });
+        else startDriverApproach({ lat: 28.5436, lng: -81.3733 });
       }
     }, 6000);
     return () => clearTimeout(autoAssign);
@@ -1132,6 +1158,15 @@ export default function ClientDashboard() {
                     {loyaltyPoints} / {loyaltyLevel.next} pts
                   </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleRequestTrip}
+                  disabled={!pickupLocation.trim() || !dropoffLocation.trim()}
+                  className="mt-1 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  <Car size={18} />
+                  Solicitar {vehicles.find(v => v.id === selectedVehicle)?.label || "viaje"} · {estimatedFare || "~$8.00"}
+                </button>
               </div>
             )}
 
