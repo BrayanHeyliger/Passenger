@@ -125,4 +125,10 @@ describe("mapa dark premium de referencia", () => {
     expect(heroSource).toContain("Continuar con");
     expect(heroSource).toContain("handleCalculate");
   });
+
+  it("evita repetir las opciones de ride después de la selección del hero", () => {
+    expect(heroSource).not.toContain("VEHICLES.map(vh");
+    expect(heroSource).toContain("landing-estimate-summary");
+    expect(heroSource).toContain("Cambiar ride");
+  });
 });

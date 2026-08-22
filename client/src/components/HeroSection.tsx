@@ -798,34 +798,34 @@ export default function HeroSection() {
                       ⏱ {estimate.minutes} min
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    {VEHICLES.map(vh => {
-                      const p = (
-                        vh.base +
-                        estimate.km * vh.perKm +
-                        extrasTotal
-                      ).toFixed(2);
-                      return (
-                        <button
-                          key={vh.id}
-                          onClick={() => setSelectedVehicle(vh.id)}
-                          className={`passenger-vehicle-option p-3 rounded-xl border-2 text-left transition-all ${selectedVehicle === vh.id ? "is-selected" : "border-slate-200 hover:border-slate-300"}`}
-                        >
-                          <p className="passenger-vehicle-option-icon text-lg">
-                            {vh.emoji}
-                          </p>
-                          <p className="passenger-vehicle-option-label text-xs font-semibold">
-                            {vh.label}
-                          </p>
-                          <p className="passenger-vehicle-option-price text-base font-extrabold">
-                            ${p}
-                          </p>
-                          <p className="passenger-vehicle-option-eta text-xs">
-                            {vh.eta}
-                          </p>
-                        </button>
-                      );
-                    })}
+                  <div className="landing-estimate-summary mb-4">
+                    <div>
+                      <span className="landing-estimate-icon">
+                        <CarFront size={19} />
+                      </span>
+                      <span>
+                        <small>RIDE SELECCIONADO</small>
+                        <b>
+                          {v.id === "economy"
+                            ? "UnPasajero"
+                            : v.id === "suv"
+                              ? "UnPasajero XL"
+                              : "Comfort"}
+                        </b>
+                        <em>
+                          Hasta {v.seats} pasajeros · Llegada {v.eta}
+                        </em>
+                      </span>
+                      <strong>
+                        $
+                        {(v.base + estimate.km * v.perKm + extrasTotal).toFixed(
+                          2
+                        )}
+                      </strong>
+                    </div>
+                    <button type="button" onClick={() => setStep("form")}>
+                      Cambiar ride
+                    </button>
                   </div>
                   <button
                     onClick={handleRequestTrip}
@@ -835,7 +835,13 @@ export default function HeroSection() {
                       color: "oklch(0.08 0.02 148)",
                     }}
                   >
-                    Pedir {v.emoji} {v.label} · $
+                    Confirmar{" "}
+                    {v.id === "economy"
+                      ? "UnPasajero"
+                      : v.id === "suv"
+                        ? "UnPasajero XL"
+                        : "Comfort"}{" "}
+                    · $
                     {(v.base + estimate.km * v.perKm + extrasTotal).toFixed(2)}{" "}
                     <ChevronRight size={16} />
                   </button>

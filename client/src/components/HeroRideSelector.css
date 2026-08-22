@@ -144,6 +144,62 @@
   border-color: #55e49b;
   background: #55e49b;
 }
+.landing-estimate-summary {
+  border: 1px solid rgba(100, 235, 170, 0.28);
+  border-radius: 16px;
+  padding: 13px;
+  background: rgba(80, 224, 144, 0.09);
+}
+.landing-estimate-summary > div {
+  display: grid;
+  grid-template-columns: 39px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.landing-estimate-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #54e49a;
+  color: #082219;
+}
+.landing-estimate-summary small,
+.landing-estimate-summary b,
+.landing-estimate-summary em {
+  display: block;
+}
+.landing-estimate-summary small {
+  color: #69e9ab;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.landing-estimate-summary b {
+  margin: 3px 0;
+  color: #fff;
+  font-size: 14px;
+}
+.landing-estimate-summary em {
+  color: rgba(255, 255, 255, 0.53);
+  font-size: 10px;
+  font-style: normal;
+}
+.landing-estimate-summary strong {
+  color: #6cebad;
+  font-size: 19px;
+}
+.landing-estimate-summary > button {
+  margin-top: 11px;
+  border: 0;
+  background: transparent;
+  color: #72edb0;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
 @media (max-width: 640px) {
   .landing-hero-booking-card {
     padding: 18px !important;
@@ -173,5 +229,11 @@
   .landing-hero-ride-check {
     width: 18px;
     height: 18px;
+  }
+  .landing-estimate-summary {
+    padding: 11px;
+  }
+  .landing-estimate-summary strong {
+    font-size: 16px;
   }
 }
