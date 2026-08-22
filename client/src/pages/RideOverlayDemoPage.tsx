@@ -3,6 +3,7 @@ import {
   ArrowRight,
   CarFront,
   Check,
+  CircleCheck,
   ChevronLeft,
   Clock3,
   MapPin,
@@ -161,6 +162,7 @@ export default function RideOverlayDemoPage({
   const [pickupCoords, setPickupCoords] = useState<Coordinates | null>(null);
   const [destinationCoords, setDestinationCoords] = useState<Coordinates | null>(null);
   const [locating, setLocating] = useState(false);
+  const [locationActionState, setLocationActionState] = useState<"ready" | "success" | "hidden">("ready");
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeEstimate, setRouteEstimate] = useState<RouteEstimate | null>(null);
   const [locationHint, setLocationHint] = useState("Sugerencias cerca de ti");
@@ -213,6 +215,11 @@ export default function RideOverlayDemoPage({
     void calculateRoute();
     return () => { cancelled = true; };
   }, [pickupCoords, destinationCoords]);
+  useEffect(() => {
+    if (locationActionState !== "success") return;
+    const timer = window.setTimeout(() => setLocationActionState("hidden"), 1_500);
+    return () => window.clearTimeout(timer);
+  }, [locationActionState]);
   const close = () => setStage("ready");
   const handleUseExactLocation = () => {
     if (!navigator.geolocation) {
@@ -220,6 +227,7 @@ export default function RideOverlayDemoPage({
       return;
     }
     setLocating(true);
+    setLocationActionState("ready");
     setLocationHint("Buscando tu ubicación exacta…");
     navigator.geolocation.getCurrentPosition(
       async position => {
@@ -238,7 +246,8 @@ export default function RideOverlayDemoPage({
         } catch {
           setPickup("Mi ubicación actual");
         } finally {
-          setLocationHint("Ubicación exacta activada · sugerencias cercanas");
+          setLocationHint("Ubicación lista · ahora elige tu destino");
+          setLocationActionState("success");
           setLocating(false);
         }
       },
@@ -335,23 +344,35 @@ export default function RideOverlayDemoPage({
       </section>
       <section className="ride-overlay-launcher" aria-label="Solicitud rápida">
         <div className="ride-overlay-request-group">
-          <button
-            type="button"
-            className="ride-overlay-location-priority"
-            onClick={handleUseExactLocation}
-            disabled={locating}
-            title="Usar mi ubicación exacta"
-          >
-            <span className="ride-overlay-location-icon">
-              {locating ? <Loader2 size={20} className="animate-spin" /> : <LocateFixed size={20} />}
-            </span>
-            <span>
-              <small>RECOMENDADO</small>
-              <b>{locating ? "Buscando tu ubicación…" : "Usar mi ubicación exacta"}</b>
-              <em>Te recogemos donde estás ahora</em>
-            </span>
-            <ArrowRight size={18} />
-          </button>
+          {locationActionState !== "hidden" ? (
+            <button
+              type="button"
+              className={`ride-overlay-location-priority${locationActionState === "success" ? " is-success" : ""}`}
+              onClick={locationActionState === "success" ? undefined : handleUseExactLocation}
+              disabled={locating || locationActionState === "success"}
+              title="Usar mi ubicación exacta"
+            >
+              <span className="ride-overlay-location-icon">
+                {locating ? <Loader2 size={20} className="animate-spin" /> : locationActionState === "success" ? <CircleCheck size={21} /> : <LocateFixed size={20} />}
+              </span>
+              <span>
+                <small>{locationActionState === "success" ? "LISTO" : "RECOMENDADO"}</small>
+                <b>{locating ? "Buscando tu ubicación…" : locationActionState === "success" ? "Ubicación lista" : "Usar mi ubicación exacta"}</b>
+                <em>{locationActionState === "success" ? "Continuamos con tu destino" : "Te recogemos donde estás ahora"}</em>
+              </span>
+              {locationActionState === "success" ? <CircleCheck size={18} /> : <ArrowRight size={18} />}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="ride-overlay-location-compact"
+              onClick={() => setLocationActionState("ready")}
+            >
+              <CircleCheck size={15} />
+              <span>Ubicación lista</span>
+              <em>Cambiar</em>
+            </button>
+          )}
           <div className="ride-overlay-manual-caption"><span /> O escribe una dirección manualmente <span /></div>
           <div className="ride-overlay-locations">
             <span>

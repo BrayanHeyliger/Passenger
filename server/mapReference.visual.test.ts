@@ -253,7 +253,8 @@ describe("mapa dark premium de referencia", () => {
     expect(overlayDemoSource).toContain("enableHighAccuracy: true");
     expect(overlayDemoSource).toContain("countryCode=\"us\"");
     expect(overlayDemoSource).toContain("viewbox={nearbyViewbox}");
-    expect(overlayDemoSource).toContain("Ubicación exacta activada");
+    expect(overlayDemoSource).toContain("Ubicación lista · ahora elige tu destino");
+    expect(overlayDemoSource).toContain('setLocationActionState("success")');
   });
 
   it("deja el destino abierto y cotiza a partir de la ruta real seleccionada", () => {

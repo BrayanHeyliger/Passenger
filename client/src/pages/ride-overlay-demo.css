@@ -210,6 +210,11 @@
 .ride-overlay-location-priority:hover { border-color: #a7ffd1; background: linear-gradient(105deg, rgba(75, 225, 151, 0.42), rgba(24, 96, 76, 0.76)); transform: translateY(-1px); }
 .ride-overlay-location-priority:active { transform: scale(0.985); }
 .ride-overlay-location-priority:disabled { cursor: wait; opacity: 0.78; }
+.ride-overlay-location-priority.is-success {
+  border-color: #9affca;
+  background: linear-gradient(105deg, rgba(95, 238, 173, 0.42), rgba(18, 116, 78, 0.74));
+  animation: location-confirm 1.5s var(--ease-out, ease) forwards;
+}
 .ride-overlay-location-priority small,
 .ride-overlay-location-priority b,
 .ride-overlay-location-priority em { display: block; }
@@ -227,6 +232,23 @@
   box-shadow: 0 0 0 5px rgba(98, 234, 168, 0.13);
   animation: location-pulse 2.3s ease-in-out infinite;
 }
+.ride-overlay-location-priority.is-success .ride-overlay-location-icon { animation: none; }
+.ride-overlay-location-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-self: start;
+  border: 1px solid rgba(113, 241, 180, 0.36);
+  border-radius: 10px;
+  padding: 6px 9px;
+  background: rgba(78, 215, 145, 0.1);
+  color: #8bf6bd;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  animation: location-compact-in 220ms var(--ease-out, ease) both;
+}
+.ride-overlay-location-compact em { margin-left: 3px; color: rgba(236, 255, 246, 0.62); font-size: 9px; font-style: normal; font-weight: 700; }
 .ride-overlay-manual-caption {
   display: flex;
   align-items: center;
@@ -238,6 +260,8 @@
 }
 .ride-overlay-manual-caption span { height: 1px; flex: 1; background: rgba(255, 255, 255, 0.11); }
 @keyframes location-pulse { 0%, 100% { box-shadow: 0 0 0 5px rgba(98, 234, 168, 0.13); } 50% { box-shadow: 0 0 0 9px rgba(98, 234, 168, 0.04); } }
+@keyframes location-confirm { 0% { transform: translateY(0); opacity: 1; } 72% { transform: translateY(-1px); opacity: 1; } 100% { transform: translateY(-4px); opacity: 0.32; } }
+@keyframes location-compact-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 .ride-overlay-locations span {
   position: relative;
   min-width: 0;
