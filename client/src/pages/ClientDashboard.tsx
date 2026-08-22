@@ -151,12 +151,50 @@ export default function ClientDashboard() {
     null
   );
   const [showParcelTracking, setShowParcelTracking] = useState(false);
+  const [showParcelCreator, setShowParcelCreator] = useState(false);
+  const [parcelPickup, setParcelPickup] = useState("Lake Eola Park, Orlando, FL");
+  const [parcelDropoff, setParcelDropoff] = useState("Orlando International Airport (MCO)");
   const PARCELS_KEY = "wt_parcel_orders";
 
   const mapRef = useRef<LeafletMapRef | null>(null);
   const driverAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [driverEta, setDriverEta] = useState<string | null>(null);
   const [driverDistance, setDriverDistance] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      setParcelOrders(JSON.parse(localStorage.getItem(PARCELS_KEY) || "[]"));
+    } catch {
+      setParcelOrders([]);
+    }
+  }, []);
+
+  const handleCreateParcel = () => {
+    if (!parcelPickup.trim() || !parcelDropoff.trim()) {
+      toast.error("Ingresa recogida y destino para el paquete");
+      return;
+    }
+    const parcel: ParcelOrder = {
+      id: `pkg-${Date.now()}`,
+      trackingCode: `UP-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+      pickupAddress: parcelPickup.trim(),
+      pickupLat: 28.5436,
+      pickupLng: -81.3733,
+      dropoffAddress: parcelDropoff.trim(),
+      dropoffLat: 28.4312,
+      dropoffLng: -81.3081,
+      status: "pending",
+      estimatedPrice: "$14.90",
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [parcel, ...parcelOrders];
+    setParcelOrders(updated);
+    localStorage.setItem(PARCELS_KEY, JSON.stringify(updated));
+    setSelectedParcel(parcel);
+    setShowParcelCreator(false);
+    setShowParcelTracking(true);
+    toast.success(`Paquete creado · código ${parcel.trackingCode}`);
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
@@ -1421,11 +1459,26 @@ export default function ClientDashboard() {
                         📦 No hay paquetes activos
                       </p>
                       <p className="text-xs text-blue-600 mt-1">
-                        Crea un nuevo envío desde el formulario en el Hero
+                        Crea un envío sin salir de este panel
                       </p>
+                      <Button
+                        type="button"
+                        onClick={() => setShowParcelCreator(true)}
+                        className="mt-3 bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        <Briefcase size={16} className="mr-2" /> Crear paquete
+                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowParcelCreator(true)}
+                        className="w-full border-blue-200 text-blue-700 hover:bg-blue-50"
+                      >
+                        <Briefcase size={16} className="mr-2" /> Crear nuevo paquete
+                      </Button>
                       {parcelOrders.map(order => (
                         <Card
                           key={order.id}
@@ -1476,6 +1529,40 @@ export default function ClientDashboard() {
                         </Card>
                       ))}
                     </div>
+                  )}
+                  {showParcelCreator && (
+                    <Card className="space-y-3 border-blue-200 bg-blue-50/70 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-bold text-slate-900">Nuevo envío</h3>
+                        <button
+                          type="button"
+                          onClick={() => setShowParcelCreator(false)}
+                          className="text-slate-500 hover:text-slate-700"
+                          aria-label="Cerrar creador de paquete"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                      <input
+                        value={parcelPickup}
+                        onChange={event => setParcelPickup(event.target.value)}
+                        placeholder="Recogida del paquete"
+                        className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                      />
+                      <input
+                        value={parcelDropoff}
+                        onChange={event => setParcelDropoff(event.target.value)}
+                        placeholder="Destino del paquete"
+                        className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleCreateParcel}
+                        className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Crear envío · $14.90
+                      </Button>
+                    </Card>
                   )}
                 </div>
               )}

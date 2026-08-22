@@ -15,6 +15,7 @@
 | Chat cliente → conductor | Aprobado | El conductor leyó el mensaje enviado por el cliente. |
 | Chat conductor → cliente | Aprobado | El cliente recibió la respuesta del conductor después de reiniciar su sesión. |
 | Cliente: recuperar viaje activo | Aprobado | Tras salir e iniciar sesión, el cliente recuperó conductor, tarifa, ETA y conversación. |
+| Cliente: paquetes | Corregido y validado en build | La pestaña incorpora un creador de envío persistente y abre el seguimiento del paquete recién creado. |
 
 ## Fallos encontrados y correcciones
 
@@ -26,6 +27,7 @@
 | La autenticación no podía probarse desde el preview estático. | Se habilitó autenticación de demostración controlada para QA y Stripe se cargó de forma diferida para no bloquear el servidor sin una clave de pagos. |
 | Vite tenía importaciones duplicadas heredadas en App, Login, Register y Home. | Se eliminaron las importaciones repetidas que impedían cargar el entorno de QA. |
 | Seguían apareciendo coordenadas, etiquetas y marca de versiones anteriores. | Se migraron fallbacks cartográficos a Orlando y las pantallas de acceso usan UnPasajero.Com. |
+| La pestaña de paquetes no permitía crear envíos y remitía al hero. | Se añadió un creador dentro del panel, con recogida, destino, código de rastreo y acceso al seguimiento. |
 
 ## Validación técnica
 

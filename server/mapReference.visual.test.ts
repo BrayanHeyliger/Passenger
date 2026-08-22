@@ -217,6 +217,7 @@ describe("mapa dark premium de referencia", () => {
     expect(paymentsSource).toContain("function getStripe()");
     expect(clientDashboardSource).toContain("onClick={handleRequestTrip}");
     expect(clientDashboardSource).toContain("const activeTrip = trips.find");
+    expect(clientDashboardSource).toContain("handleCreateParcel");
     expect(driverDashboardSource).toContain("forceOpen={driverChatOpen}");
     expect(authBrandSource).toContain("UnPasajero");
   });
