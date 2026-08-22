@@ -20,6 +20,7 @@ import PassengerTripTrackingPage from "@/pages/PassengerTripTrackingPage";
 import ReferencePerfectTripTrackingPage from "@/pages/ReferencePerfectTripTrackingPage";
 import FunctionalReferenceTripTrackingPage from "@/pages/FunctionalReferenceTripTrackingPage";
 import TripFlowPreviewPage from "@/pages/TripFlowPreviewPage";
+import RideSelectionProposalPage from "@/pages/RideSelectionProposalPage";
 import PassengerMobileDashboardPreview from "@/pages/PassengerMobileDashboardPreview";
 import { useLocalAuth } from "./contexts/LocalAuthContext";
 import { useEffect } from "react";
@@ -72,6 +73,10 @@ function Router() {
       <Route path={"/faq"} component={FAQPage} />
       <Route path={"/marketplace"} component={PassengerMarketplacePage} />
       <Route path={"/trip-flow-preview"} component={TripFlowPreviewPage} />
+      <Route
+        path={"/ride-selection-proposal"}
+        component={RideSelectionProposalPage}
+      />
       <Route
         path={"/trip-tracking-static"}
         component={ReferencePerfectTripTrackingPage}

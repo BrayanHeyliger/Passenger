@@ -30,6 +30,10 @@ const flowSource = readFileSync(
   resolve(projectRoot, "client/src/pages/TripFlowPreviewPage.tsx"),
   "utf8"
 );
+const rideSelectionSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/RideSelectionProposalPage.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -94,5 +98,11 @@ describe("mapa dark premium de referencia", () => {
     expect(flowSource).toContain('"./trip-flow-responsive.css"');
     expect(functionalSource).toContain('"./trip-flow-responsive.css"');
     expect(functionalSource).toContain("functional-mobile-map");
+  });
+
+  it("ofrece una propuesta amplia y seleccionable para elegir el tipo de ride", () => {
+    expect(rideSelectionSource).toContain("¿Cómo quieres viajar hoy?");
+    expect(rideSelectionSource).toContain("UnPasajero XL");
+    expect(rideSelectionSource).toContain("Continuar");
   });
 });
