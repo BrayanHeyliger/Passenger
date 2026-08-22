@@ -1,7 +1,7 @@
 {
-  "name": "WhatsApp Taxi SaaS",
-  "short_name": "WATaxi",
-  "description": "Plataforma de taxis vía WhatsApp — pide tu viaje sin instalar apps",
+  "name": "UnPasajero.Com · Orlando Mobility",
+  "short_name": "UnPasajero",
+  "description": "Movilidad en Orlando con viajes, seguimiento y seguridad en tiempo real.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1117",

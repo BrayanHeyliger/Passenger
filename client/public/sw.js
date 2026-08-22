@@ -1,4 +1,4 @@
-const CACHE_NAME = "wataxi-v2";
+const CACHE_NAME = "unpasajero-v1";
 const STATIC_ASSETS = ["/", "/login", "/register", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -44,13 +44,13 @@ self.addEventListener("push", (event) => {
     body: data.body || "Tienes una nueva notificación",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: data.tag || "wataxi-notif",
+    tag: data.tag || "unpasajero-notif",
     data: { url: data.url || "/" },
     actions: data.actions || [],
     requireInteraction: data.requireInteraction || false,
   };
   event.waitUntil(
-    self.registration.showNotification(data.title || "WhatsApp Taxi 🚕", options)
+    self.registration.showNotification(data.title || "UnPasajero.Com", options)
   );
 });
 

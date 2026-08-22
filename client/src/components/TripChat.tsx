@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, MessageCircle, X, Minimize2, Wifi, WifiOff, Phone, PhoneOff, PhoneIncoming, PhoneMissed } from "lucide-react";
 import { useSocket } from "@/hooks/useSocket";
 import { useInteractionSounds } from "@/hooks/useInteractionSounds";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastNotifiedMessageRef = useRef<string | null>(null);
 
   const {
     messages, isConnected, typingUser, sendMessage, sendTyping,
@@ -35,6 +37,7 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     enabled: !!tripId,
   });
   const { startCallTone, stopCallTone } = useInteractionSounds();
+  const { sendNotification } = usePushNotifications(role === "driver" ? "driver" : "client");
 
   useEffect(() => {
     if (callState === "calling" || callState === "incoming") {
@@ -43,6 +46,18 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     }
     stopCallTone();
   }, [callState, startCallTone, stopCallTone]);
+
+  useEffect(() => {
+    const latest = messages[messages.length - 1];
+    if (!latest || latest.senderRole === role || latest.id === lastNotifiedMessageRef.current) return;
+    lastNotifiedMessageRef.current = latest.id;
+    void sendNotification(`💬 ${otherPartyName} te escribió`, {
+      body: latest.text,
+      url: role === "driver" ? "/driver-dashboard" : "/client-dashboard",
+      tag: `trip-chat-${tripId}`,
+      channel: "messages",
+    });
+  }, [messages, otherPartyName, role, sendNotification, tripId]);
 
   // Auto-scroll to latest message
   useEffect(() => {

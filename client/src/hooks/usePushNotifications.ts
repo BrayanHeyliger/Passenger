@@ -1,28 +1,72 @@
 /**
  * usePushNotifications — Hook para notificaciones push PWA
- * Usa la Notifications API del navegador + Service Worker
- * No requiere servidor externo: notificaciones locales inmediatas
+ * Usa la Notifications API del navegador + Service Worker.
+ * Esta fase cubre notificaciones locales mientras la aplicación permanece abierta;
+ * el envío persistente requiere una suscripción Web Push y un backend emisor.
  */
 import { useState, useEffect, useCallback } from "react";
 
 export type NotifPermission = "default" | "granted" | "denied";
+export type NotificationChannel = "trips" | "messages" | "status";
 
-export function usePushNotifications() {
+export interface PushPreferences {
+  enabled: boolean;
+  trips: boolean;
+  messages: boolean;
+  status: boolean;
+}
+
+const defaultPreferences: PushPreferences = {
+  enabled: false,
+  trips: true,
+  messages: true,
+  status: true,
+};
+
+function preferenceKey(role: string) {
+  return `unpasajero_push_preferences_${role}`;
+}
+
+function loadPreferences(role: string): PushPreferences {
+  try {
+    const stored = JSON.parse(localStorage.getItem(preferenceKey(role)) || "{}");
+    return { ...defaultPreferences, ...stored };
+  } catch {
+    return defaultPreferences;
+  }
+}
+
+export function usePushNotifications(role: string = "client") {
   const [permission, setPermission] = useState<NotifPermission>("default");
+  const [preferences, setPreferences] = useState<PushPreferences>(defaultPreferences);
 
   useEffect(() => {
     if ("Notification" in window) {
       setPermission(Notification.permission as NotifPermission);
     }
-  }, []);
+    setPreferences(loadPreferences(role));
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    }
+  }, [role]);
+
+  const updatePreferences = useCallback((next: Partial<PushPreferences>) => {
+    setPreferences(current => {
+      const updated = { ...current, ...next };
+      localStorage.setItem(preferenceKey(role), JSON.stringify(updated));
+      return updated;
+    });
+  }, [role]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!("Notification" in window)) return false;
-    if (Notification.permission === "granted") return true;
-    const result = await Notification.requestPermission();
+    const result = Notification.permission === "granted"
+      ? "granted"
+      : await Notification.requestPermission();
     setPermission(result as NotifPermission);
+    if (result === "granted") updatePreferences({ enabled: true });
     return result === "granted";
-  }, []);
+  }, [updatePreferences]);
 
   const sendNotification = useCallback(async (
     title: string,
@@ -33,13 +77,15 @@ export function usePushNotifications() {
       tag?: string;
       url?: string;
       vibrate?: number[];
+      channel?: NotificationChannel;
+      onlyWhenHidden?: boolean;
     }
   ) => {
     if (!("Notification" in window)) return;
-    if (Notification.permission !== "granted") {
-      const granted = await requestPermission();
-      if (!granted) return;
-    }
+    const channel = options?.channel || "status";
+    if (!preferences.enabled || !preferences[channel]) return;
+    if (Notification.permission !== "granted") return;
+    if (options?.onlyWhenHidden !== false && document.visibilityState !== "hidden") return;
 
     const notifOptions: NotificationOptions = {
       body: options?.body,
@@ -65,7 +111,7 @@ export function usePushNotifications() {
       if (options?.url) window.location.href = options.url;
       notif.close();
     };
-  }, [requestPermission]);
+  }, [preferences]);
 
-  return { permission, requestPermission, sendNotification };
+  return { permission, preferences, requestPermission, updatePreferences, sendNotification };
 }

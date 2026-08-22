@@ -98,6 +98,18 @@ const tripActionDockSource = readFileSync(
   resolve(projectRoot, "client/src/components/TripActionDock.tsx"),
   "utf8"
 );
+const pushNotificationsSource = readFileSync(
+  resolve(projectRoot, "client/src/hooks/usePushNotifications.ts"),
+  "utf8"
+);
+const tripChatSource = readFileSync(
+  resolve(projectRoot, "client/src/components/TripChat.tsx"),
+  "utf8"
+);
+const serviceWorkerSource = readFileSync(
+  resolve(projectRoot, "client/public/sw.js"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -299,5 +311,19 @@ describe("mapa dark premium de referencia", () => {
     expect(driverDashboardSource).toContain("Apple Maps");
     expect(driverDashboardSource).toContain("Waze");
     expect(driverDashboardSource).toContain("startIncomingTripAlert");
+  });
+
+  it("envía avisos de sistema por rol únicamente cuando la pestaña está en segundo plano", () => {
+    expect(pushNotificationsSource).toContain("unpasajero_push_preferences_${role}");
+    expect(pushNotificationsSource).toContain('"trips" | "messages" | "status"');
+    expect(pushNotificationsSource).toContain('document.visibilityState !== "hidden"');
+    expect(pushNotificationsSource).toContain('navigator.serviceWorker.register("/sw.js")');
+    expect(clientDashboardSource).toContain('usePushNotifications("client")');
+    expect(driverDashboardSource).toContain('usePushNotifications("driver")');
+    expect(driverDashboardSource).toContain('channel: "trips"');
+    expect(tripChatSource).toContain('channel: "messages"');
+    expect(tripChatSource).toContain("lastNotifiedMessageRef");
+    expect(serviceWorkerSource).toContain('"UnPasajero.Com"');
+    expect(serviceWorkerSource).toContain("notificationclick");
   });
 });

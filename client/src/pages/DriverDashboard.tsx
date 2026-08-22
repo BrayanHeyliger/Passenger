@@ -35,7 +35,7 @@ interface EarningsEntry { date: string; trips: number; earnings: number; }
 export default function DriverDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
-  const { permission: notifPermission, requestPermission, sendNotification } = usePushNotifications();
+  const { permission: notifPermission, preferences: pushPreferences, requestPermission, sendNotification } = usePushNotifications("driver");
   const { notifications: persistedNotifs, unreadCount, addNotification: addPersistedNotif, markAllRead, clearAll: clearAllNotifs } = useNotificationHistory(user?.role || "driver");
   const [showNotifications, setShowNotifications] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
@@ -93,6 +93,7 @@ export default function DriverDashboard() {
         body: `${newest?.pickup} → ${newest?.dropoff}`,
         url: "/driver-dashboard",
         tag: "new-trip",
+        channel: "trips",
       });
     }
     setPendingTrips(available);
@@ -120,7 +121,7 @@ export default function DriverDashboard() {
     addPersistedNotif(`✅ Viaje aceptado: ${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, {
       type: "success", sound: "accepted", url: "/driver-dashboard",
     });
-    sendNotification("✅ Viaje aceptado", { body: `${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, url: "/driver-dashboard", tag: "trip-accepted" });
+    sendNotification("✅ Viaje aceptado", { body: `${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, url: "/driver-dashboard", tag: "trip-accepted", channel: "status" });
   };
 
   useEffect(() => {
@@ -293,9 +294,9 @@ export default function DriverDashboard() {
                 </div>
               )}
             </div>
-            {notifPermission !== "granted" && (
-              <button onClick={requestPermission} title="Activar notificaciones push" className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 border border-blue-200 text-xs flex items-center gap-1">
-                <Bell size={14} /> Push
+            {(!pushPreferences.enabled || notifPermission !== "granted") && (
+              <button onClick={requestPermission} title="Activar avisos de viajes cuando esta pestaña esté en segundo plano" className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 border border-blue-200 text-xs flex items-center gap-1">
+                <Bell size={14} /> Avisos
               </button>
             )}
             <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/"); }} className="gap-1.5 text-xs">

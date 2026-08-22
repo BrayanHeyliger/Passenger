@@ -79,9 +79,10 @@ export default function ClientDashboard() {
   const [, navigate] = useLocation();
   const {
     permission: notifPermission,
+    preferences: pushPreferences,
     requestPermission,
     sendNotification,
-  } = usePushNotifications();
+  } = usePushNotifications("client");
   const {
     notifications: persistedNotifs,
     unreadCount,
@@ -392,6 +393,7 @@ export default function ClientDashboard() {
           body: pushBody || message,
           url: "/client-dashboard",
           tag: "trip-update",
+          channel: type === "info" ? "messages" : "trips",
         });
     },
     [addPersistedNotif, sendNotification]
@@ -813,14 +815,14 @@ export default function ClientDashboard() {
                 </div>
               )}
             </div>
-            {/* Botón activar notificaciones push */}
-            {notifPermission !== "granted" && (
+            {/* Avisos de sistema cuando la pestaña está en segundo plano */}
+            {(!pushPreferences.enabled || notifPermission !== "granted") && (
               <button
                 onClick={requestPermission}
-                title="Activar notificaciones"
+                title="Activar avisos del viaje cuando esta pestaña esté en segundo plano"
                 className="p-2 rounded-lg hover:bg-green-50 text-green-600 border border-green-200 text-xs flex items-center gap-1"
               >
-                <Bell size={14} /> Push
+                <Bell size={14} /> Avisos
               </button>
             )}
             <Button
