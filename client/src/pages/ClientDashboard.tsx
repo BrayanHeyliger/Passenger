@@ -342,11 +342,17 @@ export default function ClientDashboard() {
         setLoyaltyPoints(p => p + 10);
         liveDriverGpsRef.current = false;
         if (gpsFallbackTimerRef.current) clearTimeout(gpsFallbackTimerRef.current);
-        gpsFallbackTimerRef.current = setTimeout(() => {
-          if (!liveDriverGpsRef.current) {
-            startDriverApproachRef.current?.(pickupCoords || { lat: 28.5436, lng: -81.3733 });
-          }
-        }, 12000);
+        const qaSimulation = import.meta.env.DEV && new URLSearchParams(window.location.search).has("qa");
+        if (qaSimulation) {
+          gpsFallbackTimerRef.current = setTimeout(() => {
+            if (!liveDriverGpsRef.current) {
+              startDriverApproachRef.current?.(pickupCoords || { lat: 28.5436, lng: -81.3733 });
+            }
+          }, 12000);
+        } else {
+          setDriverDistance("Esperando GPS del conductor");
+          setDriverEta("Ubicación en tiempo real pendiente");
+        }
       }
     }, 6000);
     return () => clearTimeout(autoAssign);

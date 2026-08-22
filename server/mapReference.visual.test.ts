@@ -293,6 +293,8 @@ describe("mapa dark premium de referencia", () => {
     expect(clientDashboardSource).toContain("playReservationConfirmed");
     expect(clientDashboardSource).toContain("driverLocation");
     expect(clientDashboardSource).toContain("updateVehiclePosition");
+    expect(clientDashboardSource).toContain("Esperando GPS del conductor");
+    expect(clientDashboardSource).toContain("qaSimulation");
     expect(driverDashboardSource).toContain("Google Maps");
     expect(driverDashboardSource).toContain("Apple Maps");
     expect(driverDashboardSource).toContain("Waze");
