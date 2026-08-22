@@ -249,7 +249,9 @@ describe("mapa dark premium de referencia", () => {
     expect(overlayDemoSource).toContain("NominatimAutocomplete");
     expect(overlayDemoSource).toContain("unpasajeroActiveTrip");
     expect(overlayDemoSource).toContain("trip-request?tripId");
-    expect(tripRequestSource).toContain("Conductor asignado");
+    expect(tripRequestSource).toContain("Elige a tu conductor");
+    expect(tripRequestSource).toContain("Conductores disponibles cerca de ti");
+    expect(tripRequestSource).toContain("Autobúsqueda");
     expect(tripRequestSource).toContain("Ver viaje en curso");
     expect(functionalTrackingSource).toContain("loadActiveTrip");
     expect(functionalTrackingSource).toContain("roomId: trip?.id");
