@@ -89,4 +89,10 @@ describe("mapa dark premium de referencia", () => {
     expect(flowSource).toContain("Califica tu experiencia");
     expect(cssSource).toContain(".trip-flow-preview");
   });
+
+  it("incluye reglas de adaptación táctil para flujo y seguimiento", () => {
+    expect(flowSource).toContain('"./trip-flow-responsive.css"');
+    expect(functionalSource).toContain('"./trip-flow-responsive.css"');
+    expect(functionalSource).toContain("functional-mobile-map");
+  });
 });

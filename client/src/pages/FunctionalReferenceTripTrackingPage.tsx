@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { type DriverLocation, useSocket } from "@/hooks/useSocket";
+import "./trip-flow-responsive.css";
 
 type TripStep = "solicitud" | "aceptado" | "camino" | "llegada";
 
@@ -397,6 +398,18 @@ export default function FunctionalReferenceTripTrackingPage() {
                 <small>{item.detail}</small>
               </button>
             ))}
+          </div>
+
+          <div className="functional-mobile-map" aria-hidden="true">
+            <ControlledStreetMap
+              onPickup={() => toast.info("Recogida: Av. Reforma 222")}
+              onDestination={() =>
+                toast.info(
+                  "Destino: Aeropuerto Internacional de la Ciudad de México"
+                )
+              }
+              driverLocation={driverLocation}
+            />
           </div>
 
           <button

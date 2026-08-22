@@ -14,6 +14,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { toast } from "sonner";
+import "./trip-flow-responsive.css";
 
 type FlowStep = 0 | 1 | 2 | 3 | 4;
 
