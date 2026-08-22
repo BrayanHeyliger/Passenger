@@ -131,4 +131,14 @@ describe("mapa dark premium de referencia", () => {
     expect(heroSource).toContain("landing-estimate-summary");
     expect(heroSource).toContain("Cambiar ride");
   });
+
+  it("mantiene el selector del hero compacto sin eliminar sus controles principales", () => {
+    const compactSelectorCss = readFileSync(
+      resolve(projectRoot, "client/src/components/HeroRideSelector.css"),
+      "utf8"
+    );
+    expect(compactSelectorCss).toContain("min-height: 62px");
+    expect(compactSelectorCss).toContain("passenger-reference-map");
+    expect(heroSource).toContain("handleCalculate");
+  });
 });
