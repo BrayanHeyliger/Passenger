@@ -38,6 +38,10 @@ const landingRideSource = readFileSync(
   resolve(projectRoot, "client/src/pages/LandingRideProposalPage.tsx"),
   "utf8"
 );
+const heroSource = readFileSync(
+  resolve(projectRoot, "client/src/components/HeroSection.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -114,5 +118,11 @@ describe("mapa dark premium de referencia", () => {
     expect(landingRideSource).toContain("Tu próximo viaje empieza");
     expect(landingRideSource).toContain("SOLICITA UN RIDE");
     expect(landingRideSource).toContain("UnPasajero.Com");
+  });
+
+  it("aplica el selector amplio al hero oficial sin cambiar su flujo de solicitud", () => {
+    expect(heroSource).toContain("landing-hero-ride-options");
+    expect(heroSource).toContain("Continuar con");
+    expect(heroSource).toContain("handleCalculate");
   });
 });
