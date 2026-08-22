@@ -50,6 +50,17 @@ const heroTrackingBackdropSource = readFileSync(
   resolve(projectRoot, "client/src/components/HeroTrackingBackdrop.tsx"),
   "utf8"
 );
+const tripRequestSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/TripRequestPage.tsx"),
+  "utf8"
+);
+const functionalTrackingSource = readFileSync(
+  resolve(
+    projectRoot,
+    "client/src/pages/FunctionalReferenceTripTrackingPage.tsx"
+  ),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -171,5 +182,15 @@ describe("mapa dark premium de referencia", () => {
     expect(homeSource).toContain("RideOverlayDemoPage integrated");
     expect(homeSource).toContain("ForClientsSection");
     expect(overlayDemoSource).toContain("pendingTrip");
+  });
+
+  it("restaura direcciones editables y persiste la solicitud creada desde la portada", () => {
+    expect(overlayDemoSource).toContain("NominatimAutocomplete");
+    expect(overlayDemoSource).toContain("unpasajeroActiveTrip");
+    expect(overlayDemoSource).toContain("trip-request?tripId");
+    expect(tripRequestSource).toContain("Conductor asignado");
+    expect(tripRequestSource).toContain("Ver viaje en curso");
+    expect(functionalTrackingSource).toContain("loadActiveTrip");
+    expect(functionalTrackingSource).toContain("roomId: trip?.id");
   });
 });

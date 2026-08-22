@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
+import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import "./ride-overlay-demo.css";
 
 type RideId = "standard" | "comfort" | "xl";
@@ -147,24 +149,42 @@ export default function RideOverlayDemoPage({
 }: {
   integrated?: boolean;
 }) {
+  const [, navigate] = useLocation();
   const [stage, setStage] = useState<Stage>("ready");
   const [selected, setSelected] = useState<RideId>("standard");
+  const [pickup, setPickup] = useState("Av. Reforma 222, Juárez");
+  const [destination, setDestination] = useState(
+    "Aeropuerto Internacional (AICM)"
+  );
+  const [pickupCoords, setPickupCoords] = useState({
+    lat: 19.427,
+    lng: -99.1677,
+  });
+  const [destinationCoords, setDestinationCoords] = useState({
+    lat: 19.4363,
+    lng: -99.0719,
+  });
   const ride = rides.find(item => item.id === selected)!;
   const close = () => setStage("ready");
   const confirmRequest = () => {
+    const requestId = `trip-${Date.now()}`;
+    const trip = {
+      id: requestId,
+      pickup,
+      destination,
+      pickupCoords,
+      destinationCoords,
+      vehicle: ride.id,
+      serviceLabel: ride.label,
+      estimatedPrice: Number(ride.price.replace(/[^0-9.]/g, "")),
+      estimatedEta: ride.eta,
+      status: "searching",
+      createdAt: Date.now(),
+    };
+    localStorage.setItem("unpasajeroActiveTrip", JSON.stringify(trip));
+    sessionStorage.setItem("pendingTrip", JSON.stringify(trip));
     if (integrated) {
-      sessionStorage.setItem(
-        "pendingTrip",
-        JSON.stringify({
-          pickup: "Av. Reforma 222, Juárez",
-          destination: "Aeropuerto Internacional (AICM)",
-          vehicle: ride.id,
-          serviceLabel: ride.label,
-          estimatedPrice: ride.price,
-          estimatedEta: ride.eta,
-        })
-      );
-      window.location.href = "/marketplace";
+      navigate(`/trip-request?tripId=${requestId}`);
       return;
     }
     toast.success("Solicitud preparada. La página no cambió de posición.");
@@ -212,14 +232,32 @@ export default function RideOverlayDemoPage({
       <section className="ride-overlay-launcher" aria-label="Solicitud rápida">
         <div className="ride-overlay-locations">
           <span>
-            <MapPin size={18} />
             <small>RECÓGEME EN</small>
-            <b>Av. Reforma 222, Juárez</b>
+            <NominatimAutocomplete
+              className="ride-overlay-autocomplete"
+              placeholder="¿Dónde te recogemos?"
+              value={pickup}
+              onChange={setPickup}
+              onSelect={(address, lat, lng) => {
+                setPickup(address);
+                setPickupCoords({ lat, lng });
+              }}
+              icon={<MapPin size={17} />}
+            />
           </span>
           <span>
-            <Navigation size={18} />
             <small>VOY A</small>
-            <b>Aeropuerto Internacional (AICM)</b>
+            <NominatimAutocomplete
+              className="ride-overlay-autocomplete ride-overlay-autocomplete--destination"
+              placeholder="¿A dónde vas?"
+              value={destination}
+              onChange={setDestination}
+              onSelect={(address, lat, lng) => {
+                setDestination(address);
+                setDestinationCoords({ lat, lng });
+              }}
+              icon={<Navigation size={17} />}
+            />
           </span>
         </div>
         <button
@@ -330,10 +368,10 @@ export default function RideOverlayDemoPage({
                 </div>
                 <div className="ride-overlay-route-summary">
                   <span>
-                    <MapPin size={16} /> Av. Reforma 222, Juárez
+                    <MapPin size={16} /> {pickup}
                   </span>
                   <span>
-                    <Navigation size={16} /> Aeropuerto Internacional (AICM)
+                    <Navigation size={16} /> {destination}
                   </span>
                 </div>
                 <button

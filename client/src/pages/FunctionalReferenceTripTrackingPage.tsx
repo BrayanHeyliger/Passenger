@@ -17,6 +17,23 @@ import "./trip-flow-responsive.css";
 
 type TripStep = "solicitud" | "aceptado" | "camino" | "llegada";
 
+type ActiveTrip = {
+  id: string;
+  pickup: string;
+  destination: string;
+  estimatedEta: string;
+  serviceLabel: string;
+};
+
+function loadActiveTrip(): ActiveTrip | null {
+  try {
+    const raw = localStorage.getItem("unpasajeroActiveTrip");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 const routePath =
   "M 120 410 C 196 449 274 446 352 421 C 438 393 490 400 567 358 C 646 316 704 333 773 281 C 826 241 874 242 915 207";
 
@@ -44,10 +61,16 @@ function ControlledStreetMap({
   onPickup,
   onDestination,
   driverLocation,
+  pickup,
+  destination,
+  eta,
 }: {
   onPickup: () => void;
   onDestination: () => void;
   driverLocation: DriverLocation | null;
+  pickup: string;
+  destination: string;
+  eta: string;
 }) {
   const gpsVehicle = driverLocation
     ? {
@@ -257,26 +280,16 @@ function ControlledStreetMap({
 
       <div className="functional-map-card functional-map-card--eta">
         <span>Llegada en</span>
-        <strong>4 min</strong>
+        <strong>{eta}</strong>
         <small>(1.2 km)</small>
       </div>
       <div className="functional-map-card functional-map-card--pickup">
         <b>Punto de recogida</b>
-        <span>
-          Av. Reforma 222,
-          <br />
-          Juárez, Cuauhtémoc, CDMX
-        </span>
+        <span>{pickup}</span>
       </div>
       <div className="functional-map-card functional-map-card--destination">
         <b>Destino</b>
-        <span>
-          Aeropuerto Internacional
-          <br />
-          de la Ciudad de México
-          <br />
-          (AICM)
-        </span>
+        <span>{destination}</span>
       </div>
       <button
         type="button"
@@ -293,11 +306,17 @@ function ControlledStreetMap({
 
 export default function FunctionalReferenceTripTrackingPage() {
   const [, navigate] = useLocation();
+  const [trip] = useState<ActiveTrip | null>(() => loadActiveTrip());
   const [step, setStep] = useState<TripStep>("camino");
   const [live, setLive] = useState(true);
   const [elapsed, setElapsed] = useState(0);
+  const pickup = trip?.pickup ?? "Av. Reforma 222, Juárez, Cuauhtémoc, CDMX";
+  const destination =
+    trip?.destination ??
+    "Aeropuerto Internacional de la Ciudad de México (AICM)";
+  const eta = trip?.estimatedEta ?? "4 min";
   const { driverLocation, isConnected: gpsConnected } = useSocket({
-    roomId: "trip-gps-demo",
+    roomId: trip?.id ?? "trip-gps-demo",
     userId: "client-controlled-map",
     role: "client",
   });
@@ -342,8 +361,8 @@ export default function FunctionalReferenceTripTrackingPage() {
         >
           <span className="functional-reference-brand-mark">P</span>
           <span>
-            <b>Passenger</b>
-            <small>MOBILITY PLATFORM</small>
+            <b>UnPasajero.Com</b>
+            <small>MOVILIDAD EN UN SOLO LUGAR</small>
           </span>
         </button>
         <nav aria-label="Navegación">
@@ -402,13 +421,12 @@ export default function FunctionalReferenceTripTrackingPage() {
 
           <div className="functional-mobile-map" aria-hidden="true">
             <ControlledStreetMap
-              onPickup={() => toast.info("Recogida: Av. Reforma 222")}
-              onDestination={() =>
-                toast.info(
-                  "Destino: Aeropuerto Internacional de la Ciudad de México"
-                )
-              }
+              onPickup={() => toast.info(`Recogida: ${pickup}`)}
+              onDestination={() => toast.info(`Destino: ${destination}`)}
               driverLocation={driverLocation}
+              pickup={pickup}
+              destination={destination}
+              eta={eta}
             />
           </div>
 
@@ -451,13 +469,12 @@ export default function FunctionalReferenceTripTrackingPage() {
 
         <section className="functional-reference-right">
           <ControlledStreetMap
-            onPickup={() => toast.info("Recogida: Av. Reforma 222")}
-            onDestination={() =>
-              toast.info(
-                "Destino: Aeropuerto Internacional de la Ciudad de México"
-              )
-            }
+            onPickup={() => toast.info(`Recogida: ${pickup}`)}
+            onDestination={() => toast.info(`Destino: ${destination}`)}
             driverLocation={driverLocation}
+            pickup={pickup}
+            destination={destination}
+            eta={eta}
           />
           <div className="functional-route-footer">
             <span>

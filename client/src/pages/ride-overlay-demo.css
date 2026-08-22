@@ -212,6 +212,44 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.ride-overlay-locations span {
+  padding-left: 0;
+}
+.ride-overlay-locations > span > svg {
+  display: none;
+}
+.ride-overlay-autocomplete input {
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 3px 4px 3px 27px !important;
+  background: transparent !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+.ride-overlay-autocomplete input::placeholder {
+  color: rgba(255, 255, 255, 0.46) !important;
+}
+.ride-overlay-autocomplete > div > span {
+  left: 0 !important;
+  top: 50% !important;
+  padding: 0 !important;
+}
+.ride-overlay-autocomplete > div > span svg {
+  position: static !important;
+  color: #5de7a3 !important;
+}
+.ride-overlay-autocomplete--destination > div > span svg {
+  color: #ff857d !important;
+}
+.ride-overlay-autocomplete > div > div {
+  z-index: 70 !important;
+}
+.ride-overlay-autocomplete > div > div button {
+  color: #0d1820;
+}
 .ride-overlay-open,
 .ride-overlay-continue {
   display: flex;
