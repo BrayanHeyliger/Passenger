@@ -1,6 +1,35 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+.trip-action-dock-button {
+  display: grid;
+  min-width: 48px;
+  min-height: 48px;
+  flex: 1;
+  place-items: center;
+  gap: 2px;
+  border-radius: 13px;
+  font-size: 10px;
+  font-weight: 700;
+  transition: background-color 160ms var(--ease-out, ease), transform 160ms var(--ease-out, ease);
+}
+.trip-action-dock-button:hover { background: rgba(16, 185, 129, 0.09); }
+.trip-action-dock-button:active { transform: scale(0.96); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .role-narrative-card__highlights span { animation: narrative-highlight-in 420ms var(--ease-out, ease) both; }
+  .role-narrative-card__highlights span:nth-child(2) { animation-delay: 60ms; }
+  .role-narrative-card__highlights span:nth-child(3) { animation-delay: 120ms; }
+  .mini-trip-card__status i { animation: narrative-signal 1.8s ease-in-out infinite; }
+}
+@keyframes narrative-highlight-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes narrative-signal {
+  50% { box-shadow: 0 0 0 6px rgba(85, 228, 155, 0); transform: scale(1.12); }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* =============================================

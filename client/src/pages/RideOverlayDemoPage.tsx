@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowRight,
   CarFront,
@@ -7,6 +7,8 @@ import {
   Clock3,
   MapPin,
   Navigation,
+  LocateFixed,
+  Loader2,
   ShieldCheck,
   Star,
   UsersRound,
@@ -164,8 +166,55 @@ export default function RideOverlayDemoPage({
     lat: 28.4312,
     lng: -81.3081,
   });
+  const [locating, setLocating] = useState(false);
+  const [locationHint, setLocationHint] = useState("Sugerencias cerca de ti");
   const ride = rides.find(item => item.id === selected)!;
+  const nearbyViewbox = useMemo<[number, number, number, number]>(
+    () => [
+      pickupCoords.lng - 0.23,
+      pickupCoords.lat - 0.18,
+      pickupCoords.lng + 0.23,
+      pickupCoords.lat + 0.18,
+    ],
+    [pickupCoords]
+  );
   const close = () => setStage("ready");
+  const handleUseExactLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Tu navegador no permite obtener ubicación");
+      return;
+    }
+    setLocating(true);
+    setLocationHint("Buscando tu ubicación exacta…");
+    navigator.geolocation.getCurrentPosition(
+      async position => {
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setPickupCoords(coords);
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lng}`,
+            { headers: { "Accept-Language": "es,en;q=0.9" } }
+          );
+          const data = await response.json();
+          const label = typeof data.display_name === "string"
+            ? data.display_name.split(",").slice(0, 3).join(",").trim()
+            : "Mi ubicación actual";
+          setPickup(label);
+        } catch {
+          setPickup("Mi ubicación actual");
+        } finally {
+          setLocationHint("Ubicación exacta activada · sugerencias cercanas");
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocating(false);
+        setLocationHint("Escribe una dirección o activa ubicación para sugerencias cercanas");
+        toast.error("No pudimos obtener tu ubicación. Revisa el permiso del navegador.");
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 }
+    );
+  };
   const confirmRequest = () => {
     const requestId = `trip-${Date.now()}`;
     const trip = {
@@ -247,6 +296,8 @@ export default function RideOverlayDemoPage({
                 setPickupCoords({ lat, lng });
               }}
               icon={<MapPin size={17} />}
+              countryCode="us"
+              viewbox={nearbyViewbox}
             />
           </span>
           <span>
@@ -261,15 +312,28 @@ export default function RideOverlayDemoPage({
                 setDestinationCoords({ lat, lng });
               }}
               icon={<Navigation size={17} />}
+              countryCode="us"
+              viewbox={nearbyViewbox}
             />
           </span>
         </div>
+        <button
+          type="button"
+          className="ride-overlay-location"
+          onClick={handleUseExactLocation}
+          disabled={locating}
+          title="Usar mi ubicación exacta"
+        >
+          {locating ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
+          <span>{locating ? "Ubicando" : "Mi ubicación"}</span>
+        </button>
         <button
           className="ride-overlay-open"
           onClick={() => setStage("choose")}
         >
           Elegir mi ride <ArrowRight size={18} />
         </button>
+        <small className="ride-overlay-location-hint">{locationHint}</small>
       </section>
       {stage !== "ready" && (
         <div className="ride-overlay-backdrop" onClick={close}>

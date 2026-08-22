@@ -86,6 +86,10 @@ const passengerTrackingSource = readFileSync(
   "utf8"
 );
 const appSource = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
+const tripActionDockSource = readFileSync(
+  resolve(projectRoot, "client/src/components/TripActionDock.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -234,5 +238,22 @@ describe("mapa dark premium de referencia", () => {
     expect(passengerTrackingSource).toContain("trackingRoomId");
     expect(appSource).toContain('path={"/trip-tracking"}');
     expect(appSource).toContain("component={PassengerTripTrackingPage}");
+  });
+
+  it("pide ubicación exacta y limita las sugerencias del hero al entorno del pasajero", () => {
+    expect(overlayDemoSource).toContain("handleUseExactLocation");
+    expect(overlayDemoSource).toContain("enableHighAccuracy: true");
+    expect(overlayDemoSource).toContain("countryCode=\"us\"");
+    expect(overlayDemoSource).toContain("viewbox={nearbyViewbox}");
+    expect(overlayDemoSource).toContain("Ubicación exacta activada");
+  });
+
+  it("reduce la repetición de contenido y concentra acciones de viaje en un menú inferior", () => {
+    expect(clientDashboardSource).toContain("TripActionDock");
+    expect(clientDashboardSource).toContain("Usa el menú inferior");
+    expect(tripActionDockSource).toContain("Abrir chat");
+    expect(tripActionDockSource).toContain("Enviar alerta SOS");
+    expect(tripActionDockSource).toContain("Compartir viaje");
+    expect(cssSource).toContain(".trip-action-dock-button");
   });
 });

@@ -270,6 +270,32 @@
   padding: 15px 17px;
   white-space: nowrap;
 }
+.ride-overlay-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  border: 1px solid rgba(93, 231, 163, 0.34);
+  border-radius: 12px;
+  padding: 12px 11px;
+  background: rgba(85, 228, 155, 0.09);
+  color: #7cf0b5;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out, ease), background 160ms var(--ease-out, ease);
+}
+.ride-overlay-location:hover { background: rgba(85, 228, 155, 0.17); }
+.ride-overlay-location:active { transform: scale(0.97); }
+.ride-overlay-location:disabled { cursor: wait; opacity: 0.7; }
+.ride-overlay-location-hint {
+  position: absolute;
+  left: 19px;
+  bottom: -20px;
+  color: rgba(202, 255, 226, 0.55);
+  font-size: 9px;
+}
 .ride-overlay-backdrop {
   position: fixed;
   z-index: 20;

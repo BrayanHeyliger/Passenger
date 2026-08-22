@@ -30,6 +30,7 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { TripChat } from "@/components/TripChat";
+import { TripActionDock } from "@/components/TripActionDock";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
@@ -813,7 +814,12 @@ export default function ClientDashboard() {
       {/* Main content — fills remaining height */}
       <div
         className="flex-1 flex flex-col lg:flex-row min-h-0"
-        style={{ height: "calc(100vh - 65px)" }}
+        style={{
+          height:
+            tripStatus === "accepted" || tripStatus === "in_progress"
+              ? "calc(100vh - 149px)"
+              : "calc(100vh - 65px)",
+        }}
       >
         {/* MAPA — altura explícita garantizada */}
         <div
@@ -830,17 +836,29 @@ export default function ClientDashboard() {
           {/* Chat flotante — visible cuando hay viaje activo */}
           {(tripStatus === "accepted" || tripStatus === "in_progress") &&
             currentTrip && (
-              <div id="trip-chat-anchor">
-                <TripChat
+                  <div id="trip-chat-anchor">
+                    <TripChat
                   tripId={currentTrip.id}
                   userId={user?.id != null ? String(user.id) : "client"}
                   userName={user?.name || "Cliente"}
                   role="client"
                   otherPartyName={currentTrip.driver?.name || "Conductor"}
-                  forceOpen={chatOpen}
-                  onOpenChange={setChatOpen}
-                />
-              </div>
+                      forceOpen={chatOpen}
+                      onOpenChange={setChatOpen}
+                      className="bottom-24 right-3 md:bottom-24 md:right-6"
+                    />
+                  </div>
+                )}
+          {(tripStatus === "accepted" || tripStatus === "in_progress") &&
+            currentTrip && (
+              <TripActionDock
+                statusLabel={tripStatus === "accepted" ? "Conductor en camino" : "Viaje en curso"}
+                onChat={handleMessageDriver}
+                onCall={handleCallDriver}
+                onShare={handleShareTrip}
+                onSOS={handleSOS}
+                onCancel={handleCancelTrip}
+              />
             )}
           {/* Status overlay en el mapa */}
           {tripStatus === "searching" && (
@@ -1729,47 +1747,9 @@ export default function ClientDashboard() {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      onClick={handleMessageDriver}
-                      className="bg-green-600 hover:bg-green-700 text-white gap-2 text-sm"
-                    >
-                      <MessageCircle size={15} /> Chat Seguro
-                    </Button>
-                    <Button
-                      onClick={handleSOS}
-                      variant="outline"
-                      className="gap-2 text-sm text-red-500 border-red-200"
-                    >
-                      <AlertTriangle size={15} /> SOS
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleShareTrip}
-                      className="gap-1 text-xs"
-                    >
-                      <Share2 size={12} /> Compartir
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSOS}
-                      className="gap-1 text-xs text-red-500 border-red-200"
-                    >
-                      <AlertTriangle size={12} /> SOS
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCancelTrip}
-                      className="gap-1 text-xs text-slate-500"
-                    >
-                      <X size={12} /> Cancelar
-                    </Button>
-                  </div>
+                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
+                    Usa el menú inferior para chat, SOS, compartir y acciones del viaje.
+                  </p>
                   {tripStatus === "in_progress" && (
                     <Button
                       onClick={() => setTripStatus("rating")}
