@@ -81,6 +81,11 @@ const authBrandSource = readFileSync(
   resolve(projectRoot, "client/src/components/SayTaxiBrand.tsx"),
   "utf8"
 );
+const passengerTrackingSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/PassengerTripTrackingPage.tsx"),
+  "utf8"
+);
+const appSource = readFileSync(resolve(projectRoot, "client/src/App.tsx"), "utf8");
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -220,5 +225,14 @@ describe("mapa dark premium de referencia", () => {
     expect(clientDashboardSource).toContain("handleCreateParcel");
     expect(driverDashboardSource).toContain("forceOpen={driverChatOpen}");
     expect(authBrandSource).toContain("UnPasajero");
+  });
+
+  it("usa la sesión compacta como seguimiento principal con mapa, GPS y chat", () => {
+    expect(passengerTrackingSource).toContain("ControlledStreetMap");
+    expect(passengerTrackingSource).toContain("Tu conductor está");
+    expect(passengerTrackingSource).toContain("TripChat");
+    expect(passengerTrackingSource).toContain("trackingRoomId");
+    expect(appSource).toContain('path={"/trip-tracking"}');
+    expect(appSource).toContain("component={PassengerTripTrackingPage}");
   });
 });

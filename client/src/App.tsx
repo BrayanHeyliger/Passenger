@@ -91,6 +91,10 @@ function Router() {
       />
       <Route
         path={"/trip-tracking"}
+        component={PassengerTripTrackingPage}
+      />
+      <Route
+        path={"/trip-tracking-functional"}
         component={FunctionalReferenceTripTrackingPage}
       />
       <Route

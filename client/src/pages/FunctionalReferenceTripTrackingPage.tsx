@@ -57,7 +57,7 @@ const roads = [
   "M747 0 C673 115 746 207 699 301 C655 385 738 470 762 650",
 ];
 
-function ControlledStreetMap({
+export function ControlledStreetMap({
   onPickup,
   onDestination,
   driverLocation,
@@ -76,11 +76,11 @@ function ControlledStreetMap({
     ? {
         x: Math.max(
           120,
-          Math.min(915, 120 + ((driverLocation.lng + 99.1677) / 0.0958) * 795)
+          Math.min(915, 120 + ((driverLocation.lng + 81.3733) / 0.0652) * 795)
         ),
         y: Math.max(
           207,
-          Math.min(410, 410 - ((driverLocation.lat - 19.427) / 0.0093) * 203)
+          Math.min(410, 410 - ((driverLocation.lat - 28.4312) / 0.1124) * 203)
         ),
         heading: driverLocation.heading ?? 0,
       }
