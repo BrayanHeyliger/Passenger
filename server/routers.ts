@@ -10,6 +10,7 @@ import { announcementsRouter } from "./routers/announcements";
 import { safetyTipsRouter } from "./routers/safetyTips";
 import { parcelsRouter } from "./routers/parcels";
 import { driverIdentityRouter } from "./routers/driverIdentity";
+import { tripOperationsRouter } from "./routers/tripOperations";
 
 export const appRouter = router({
   system: systemRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   safetyTips: safetyTipsRouter,
   parcels: parcelsRouter,
   driverIdentity: driverIdentityRouter,
+  tripOperations: tripOperationsRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

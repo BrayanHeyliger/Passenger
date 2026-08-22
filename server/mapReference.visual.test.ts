@@ -139,6 +139,10 @@ const dispatcherDashboardSource = readFileSync(
   resolve(projectRoot, "client/src/pages/DispatcherDashboard.tsx"),
   "utf8"
 );
+const tripOperationsRouterSource = readFileSync(
+  resolve(projectRoot, "server/routers/tripOperations.ts"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -424,5 +428,19 @@ describe("mapa dark premium de referencia", () => {
     expect(dispatcherDashboardSource).toContain("Pago directo");
     expect(dispatcherDashboardSource).toContain("profilePhotoUrl");
     expect(dispatcherDashboardSource).toContain("config.autoSearchEnabled");
+  });
+
+  it("persiste ofertas, presencia, métodos directos y auditoría antes de activar tiempo real de producción", () => {
+    expect(schemaSource).toContain("driverDirectPaymentMethods");
+    expect(schemaSource).toContain("driverPresenceSnapshots");
+    expect(schemaSource).toContain("tripDriverOffers");
+    expect(schemaSource).toContain("tripOperationEvents");
+    expect(schemaSource).toContain("paymentModel");
+    expect(tripOperationsRouterSource).toContain("createManualOffer");
+    expect(tripOperationsRouterSource).toContain("respondToOffer");
+    expect(tripOperationsRouterSource).toContain("dispatcherAutosearch");
+    expect(tripOperationsRouterSource).toContain("updateDriverPresence");
+    expect(tripOperationsRouterSource).toContain("tripAudit");
+    expect(tripOperationsRouterSource).toContain("Autobúsqueda solo se permite tras rechazo o vencimiento");
   });
 });

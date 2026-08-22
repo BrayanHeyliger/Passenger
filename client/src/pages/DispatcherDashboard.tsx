@@ -17,6 +17,7 @@ import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { trpc } from "@/lib/trpc";
 import LeafletMap from "@/components/LeafletMap";
+import { TripChat } from "@/components/TripChat";
 import { toast } from "sonner";
 
 // Default permissions if not loaded from DB
@@ -57,6 +58,7 @@ export default function DispatcherDashboard() {
   const [selectedTrip, setSelectedTrip] = useState<any>(null);
   const [selectedDriver, setSelectedDriver] = useState<string>("");
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [chatTrip, setChatTrip] = useState<any>(null);
   const [activityLog, setActivityLog] = useState<string[]>([]);
 
   useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
@@ -245,6 +247,12 @@ export default function DispatcherDashboard() {
                           Autobúsqueda
                         </Button>
                       )}
+                      <Button size="sm" variant="outline" className="gap-1 border-slate-300 text-slate-700 text-xs" onClick={() => {
+                        if (!permissions.contactUsers) { toast.error("No tienes permiso para contactar participantes."); return; }
+                        setChatTrip(trip);
+                      }}>
+                        <MessageCircle size={12} /> Chat
+                      </Button>
                       {permissions.cancelTrips && (
                         <Button size="sm" variant="outline" className="text-xs text-red-500 border-red-200 hover:bg-red-50"
                           onClick={() => handleCancelTrip(trip.id)}>
@@ -381,6 +389,19 @@ export default function DispatcherDashboard() {
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+      {chatTrip && (
+        <div className="fixed bottom-5 right-5 z-[9990]">
+          <TripChat
+            tripId={chatTrip.id}
+            userId={user?.id != null ? String(user.id) : "dispatcher"}
+            userName={user?.name || "Dispatcher"}
+            role="admin"
+            otherPartyName={chatTrip.clientName || "Participantes del viaje"}
+            forceOpen
+            onOpenChange={open => { if (!open) setChatTrip(null); }}
+          />
         </div>
       )}
     </div>

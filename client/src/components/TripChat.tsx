@@ -10,7 +10,7 @@ interface TripChatProps {
   tripId: string | null;
   userId: string;
   userName: string;
-  role: "client" | "driver";
+  role: "client" | "driver" | "admin";
   otherPartyName: string;
   className?: string;
   forceOpen?: boolean;
@@ -37,7 +37,7 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     enabled: !!tripId,
   });
   const { startCallTone, stopCallTone } = useInteractionSounds();
-  const { sendNotification } = usePushNotifications(role === "driver" ? "driver" : "client");
+  const { sendNotification } = usePushNotifications(role === "driver" ? "driver" : role === "admin" ? "dispatcher" : "client");
 
   useEffect(() => {
     if (callState === "calling" || callState === "incoming") {
@@ -53,7 +53,7 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     lastNotifiedMessageRef.current = latest.id;
     void sendNotification(`💬 ${otherPartyName} te escribió`, {
       body: latest.text,
-      url: role === "driver" ? "/driver-dashboard" : "/client-dashboard",
+      url: role === "driver" ? "/driver-dashboard" : role === "admin" ? "/dispatcher" : "/client-dashboard",
       tag: `trip-chat-${tripId}`,
       channel: "messages",
     });

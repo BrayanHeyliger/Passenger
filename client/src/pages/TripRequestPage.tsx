@@ -67,6 +67,7 @@ export default function TripRequestPage() {
   const [, navigate] = useLocation();
   const { config } = useSiteConfig();
   const approvedProfiles = trpc.driverIdentity.approvedProfiles.useQuery(undefined, { retry: false });
+  const operationalDrivers = trpc.tripOperations.availableDrivers.useQuery(undefined, { retry: false });
   const [trip, setTrip] = useState<StoredTrip | null>(() => {
     const stored = getStoredTrip();
     return stored && stored.status === "searching" && !stored.selectedDriverId
@@ -86,7 +87,7 @@ export default function TripRequestPage() {
       config.directPaymentTransferEnabled && "Transferencia",
     ].filter(Boolean));
     if (!config.directPaymentEnabled) return [];
-    const productionCandidates: DriverCandidate[] = (approvedProfiles.data || []).map((driver, index) => ({
+    const productionCandidates: DriverCandidate[] = (operationalDrivers.data || approvedProfiles.data || []).map((driver, index) => ({
       id: String(driver.id),
       name: [driver.firstName, driver.lastName].filter(Boolean).join(" "),
       vehicle: "Conductor verificado",
@@ -95,7 +96,7 @@ export default function TripRequestPage() {
       eta: `${3 + index * 2} min`,
       profilePhotoUrl: driver.profileImage || "",
       verified: true,
-      paymentMethods: ["Efectivo"],
+      paymentMethods: "paymentMethods" in driver && Array.isArray(driver.paymentMethods) ? driver.paymentMethods : ["Efectivo"],
       isDemoProfile: false,
     }));
     const candidatePool = productionCandidates.length > 0 ? productionCandidates : driverCandidates;
@@ -103,7 +104,7 @@ export default function TripRequestPage() {
       .filter(driver => driver.distanceMiles <= radius && driver.rating >= minRating && (!config.verifiedDriversOnly || driver.verified))
       .map(driver => ({ ...driver, paymentMethods: driver.paymentMethods.filter(method => enabledPayments.has(method)) }))
       .filter(driver => driver.paymentMethods.length > 0);
-  }, [config, approvedProfiles.data]);
+  }, [config, approvedProfiles.data, operationalDrivers.data]);
 
   useEffect(() => {
     if (trip?.status === "choosing_driver") saveTrip(trip);

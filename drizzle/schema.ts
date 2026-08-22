@@ -13,7 +13,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 20 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin", "client", "driver"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "client", "driver", "dispatcher"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -110,6 +110,39 @@ export const driverIdentitySubmissions = mysqlTable("driverIdentitySubmissions",
 export type DriverIdentitySubmission = typeof driverIdentitySubmissions.$inferSelect;
 export type InsertDriverIdentitySubmission = typeof driverIdentitySubmissions.$inferInsert;
 
+// ===== DRIVER DIRECT PAYMENT METHODS (No platform collection of ride funds) =====
+export const driverDirectPaymentMethods = mysqlTable("driverDirectPaymentMethods", {
+  id: int("id").autoincrement().primaryKey(),
+  driverId: int("driverId").notNull(),
+  method: mysqlEnum("method", ["cash", "zelle", "cash_app", "paypal", "transfer"]).notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  publicLabel: varchar("publicLabel", { length: 120 }),
+  privateAccountKey: text("privateAccountKey"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("driverDirectPaymentMethods_driver_enabled_idx").on(table.driverId, table.enabled),
+]);
+
+export type DriverDirectPaymentMethod = typeof driverDirectPaymentMethods.$inferSelect;
+export type InsertDriverDirectPaymentMethod = typeof driverDirectPaymentMethods.$inferInsert;
+
+// ===== DRIVER PRESENCE (Last known, shared dispatcher snapshot) =====
+export const driverPresenceSnapshots = mysqlTable("driverPresenceSnapshots", {
+  driverId: int("driverId").primaryKey(),
+  status: mysqlEnum("status", ["offline", "online", "away", "on_trip"]).default("offline").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }),
+  heading: decimal("heading", { precision: 6, scale: 2 }),
+  activeTripId: int("activeTripId"),
+  lastSeenAt: timestamp("lastSeenAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("driverPresenceSnapshots_status_seen_idx").on(table.status, table.lastSeenAt),
+]);
+
+export type DriverPresenceSnapshot = typeof driverPresenceSnapshots.$inferSelect;
+
 // ===== VEHICLES (Taxi Fleet) =====
 export const vehicles = mysqlTable("vehicles", {
   id: int("id").autoincrement().primaryKey(),
@@ -144,8 +177,15 @@ export const trips = mysqlTable("trips", {
   dropoffLatLng: json("dropoffLatLng").notNull(), // { lat, lng }
   distance: decimal("distance", { precision: 8, scale: 2 }), // in km
   duration: int("duration"), // in minutes
-  status: mysqlEnum("status", ["requested", "accepted", "in_progress", "completed", "cancelled"]).default("requested"),
+  status: mysqlEnum("status", ["requested", "choosing_driver", "awaiting_driver", "driver_declined", "searching", "accepted", "in_progress", "completed", "cancelled", "expired"]).default("requested"),
+  assignmentMode: mysqlEnum("assignmentMode", ["manual", "autosearch", "dispatcher"]).default("manual").notNull(),
+  selectedDriverId: int("selectedDriverId"),
+  assignedByUserId: int("assignedByUserId"),
+  responseDeadlineAt: timestamp("responseDeadlineAt"),
+  autoSearchStartedAt: timestamp("autoSearchStartedAt"),
   fare: decimal("fare", { precision: 10, scale: 2 }).notNull(),
+  paymentModel: mysqlEnum("paymentModel", ["direct_to_driver", "platform_collection"]).default("direct_to_driver").notNull(),
+  directPaymentMethod: mysqlEnum("directPaymentMethod", ["cash", "zelle", "cash_app", "paypal", "transfer"]),
   paymentMethod: mysqlEnum("paymentMethod", ["cash", "card", "paypal", "stripe"]).default("cash"),
   paymentStatus: mysqlEnum("paymentStatus", ["pending", "completed", "failed"]).default("pending"),
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
@@ -160,6 +200,43 @@ export const trips = mysqlTable("trips", {
 
 export type Trip = typeof trips.$inferSelect;
 export type InsertTrip = typeof trips.$inferInsert;
+
+// ===== TRIP OFFERS (Manual selection, dispatcher offer and Autobúsqueda) =====
+export const tripDriverOffers = mysqlTable("tripDriverOffers", {
+  id: int("id").autoincrement().primaryKey(),
+  tripId: int("tripId").notNull(),
+  driverId: int("driverId").notNull(),
+  offeredByUserId: int("offeredByUserId"),
+  offeredByRole: mysqlEnum("offeredByRole", ["client", "dispatcher", "system"]).notNull(),
+  mode: mysqlEnum("mode", ["manual", "autosearch", "dispatcher"]).notNull(),
+  status: mysqlEnum("status", ["pending", "accepted", "declined", "expired", "withdrawn"]).default("pending").notNull(),
+  expiresAt: timestamp("expiresAt"),
+  respondedAt: timestamp("respondedAt"),
+  declineReason: text("declineReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("tripDriverOffers_trip_status_idx").on(table.tripId, table.status),
+  index("tripDriverOffers_driver_status_idx").on(table.driverId, table.status),
+]);
+
+export type TripDriverOffer = typeof tripDriverOffers.$inferSelect;
+
+// ===== TRIP OPERATION EVENTS (Immutable dispatcher / lifecycle audit) =====
+export const tripOperationEvents = mysqlTable("tripOperationEvents", {
+  id: int("id").autoincrement().primaryKey(),
+  tripId: int("tripId").notNull(),
+  actorUserId: int("actorUserId"),
+  actorRole: mysqlEnum("actorRole", ["client", "driver", "dispatcher", "admin", "system"]).notNull(),
+  eventType: mysqlEnum("eventType", ["trip_requested", "driver_selected", "offer_created", "offer_accepted", "offer_declined", "offer_expired", "autosearch_started", "dispatcher_assigned", "trip_cancelled", "dispatcher_note", "realtime_message", "notification_requested"]).notNull(),
+  detail: json("detail"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("tripOperationEvents_trip_created_idx").on(table.tripId, table.createdAt),
+  index("tripOperationEvents_actor_created_idx").on(table.actorUserId, table.createdAt),
+]);
+
+export type TripOperationEvent = typeof tripOperationEvents.$inferSelect;
 
 // ===== RATINGS (Trip Ratings) =====
 export const ratings = mysqlTable("ratings", {
