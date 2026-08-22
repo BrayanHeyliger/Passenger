@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   MapPin, Phone, Star, DollarSign, LogOut, CheckCircle, XCircle, Bell, Car,
-  Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText, Gift
+  Navigation, AlertTriangle, MessageCircle, Shield, TrendingUp, Clock, FileText, Gift, ChevronDown
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -13,6 +13,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
 import LeafletMap from "@/components/LeafletMap";
 import { useSocket } from "@/hooks/useSocket";
+import { useInteractionSounds } from "@/hooks/useInteractionSounds";
 import ReferralPanel from "@/components/ReferralPanel";
 
 import { TripChat } from "@/components/TripChat";
@@ -48,6 +49,7 @@ export default function DriverDashboard() {
   const [otpCode] = useState("4821"); // Demo OTP
   const [passengerRating, setPassengerRating] = useState(0);
   const [driverChatOpen, setDriverChatOpen] = useState(false);
+  const [showNavigationApps, setShowNavigationApps] = useState(false);
   const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "referrals" | "profile" | "docs" | "parcels">("trips");
   const driverMapRef = useRef<import("@/components/LeafletMap").LeafletMapRef | null>(null);
   const gpsRoomId = currentTrip ? `trip-${currentTrip.id}` : null;
@@ -57,6 +59,12 @@ export default function DriverDashboard() {
     role: "driver",
     enabled: Boolean(gpsRoomId && (tripPhase === "accepted" || tripPhase === "in_progress")),
   });
+  const {
+    unlockAudio,
+    playTripAccepted,
+    startIncomingTripAlert,
+    stopIncomingTripAlert,
+  } = useInteractionSounds();
   const [earningsHistory] = useState<EarningsEntry[]>([
     { date: "Hoy", trips: completedCount, earnings },
     { date: "Ayer", trips: 8, earnings: 145.50 },
@@ -75,6 +83,7 @@ export default function DriverDashboard() {
       const newest = available[available.length - 1];
       setNewTripAlert(true);
       setTimeout(() => setNewTripAlert(false), 4000);
+      startIncomingTripAlert();
       // Persistir notificación + sonido
       addPersistedNotif(`🚕 Nuevo viaje: ${newest?.pickup} → ${newest?.dropoff} · ${newest?.fare}`, {
         type: "success", sound: "new_trip", url: "/driver-dashboard",
@@ -87,7 +96,7 @@ export default function DriverDashboard() {
       });
     }
     setPendingTrips(available);
-  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif]);
+  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif, startIncomingTripAlert]);
 
   useEffect(() => {
     const interval = setInterval(checkTrips, 2000);
@@ -105,6 +114,8 @@ export default function DriverDashboard() {
     setCurrentTrip({ ...trip, status: "accepted", estimatedTime: "5 min" });
     setTripPhase("accepted");
     setPendingTrips([]);
+    stopIncomingTripAlert();
+    playTripAccepted();
     toast.success("¡Viaje aceptado!");
     addPersistedNotif(`✅ Viaje aceptado: ${trip.pickup} → ${trip.dropoff} · ${trip.fare}`, {
       type: "success", sound: "accepted", url: "/driver-dashboard",
@@ -187,6 +198,7 @@ export default function DriverDashboard() {
 
   const handleRejectTrip = (tripId: string) => {
     setPendingTrips(prev => prev.filter(t => t.id !== tripId));
+    stopIncomingTripAlert();
   };
 
   const handleCallPassenger = () => {
@@ -206,23 +218,19 @@ export default function DriverDashboard() {
     toast.error("🚨 Alerta SOS enviada a la central");
   };
 
-  const handleNavigate = (destination: string) => {
+  const handleNavigate = (destination: string, app: "local" | "google" | "apple" | "waze" = "local") => {
     if (!destination) { toast.error("No hay destino activo"); return; }
     const encoded = encodeURIComponent(destination);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-    // Use OpenStreetMap/OsmAnd for navigation (no Google dependency)
-    if (isIOS) {
+    if (app === "google") {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`, "_blank", "noopener,noreferrer");
+    } else if (app === "apple") {
       window.open(`https://maps.apple.com/?daddr=${encoded}&dirflg=d`, "_blank");
-    } else if (isAndroid) {
-      // Try OsmAnd first, fallback to OSM web
-      window.location.href = `osmand.navigation:q=${encoded}`;
-      setTimeout(() => {
-        window.open(`https://www.openstreetmap.org/search?query=${encoded}`, "_blank");
-      }, 500);
+    } else if (app === "waze") {
+      window.open(`https://www.waze.com/ul?q=${encoded}&navigate=yes`, "_blank", "noopener,noreferrer");
     } else {
       window.open(`https://www.openstreetmap.org/search?query=${encoded}`, "_blank");
     }
+    setShowNavigationApps(false);
     toast.success(`Abriendo navegación hacia: ${destination}`);
   };
 
@@ -355,7 +363,7 @@ export default function DriverDashboard() {
                     <h2 className="text-lg font-bold text-slate-900">Disponibilidad</h2>
                     <p className="text-sm text-slate-600">{isOnline ? "Recibirás solicitudes de viaje" : "Activa para recibir viajes"}</p>
                   </div>
-                  <Button onClick={() => setIsOnline(!isOnline)}
+                  <Button onClick={() => { unlockAudio(); setIsOnline(!isOnline); }}
                     className={`px-6 py-2.5 font-semibold rounded-xl ${isOnline ? "bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/30" : "bg-slate-200 hover:bg-slate-300 text-slate-700"}`}>
                     {isOnline ? "Desconectar" : "Conectar"}
                   </Button>
@@ -549,9 +557,41 @@ export default function DriverDashboard() {
               <Card className="overflow-hidden p-0">
                 <div className="px-4 pt-4 pb-2 flex items-center justify-between">
                   <h3 className="font-semibold text-slate-900 text-sm">Mi Ubicación</h3>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOnline ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
-                    {isOnline ? "● En línea" : "○ Desconectado"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {currentTrip && (tripPhase === "accepted" || tripPhase === "in_progress") && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowNavigationApps(value => !value)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 shadow-sm hover:border-green-400 hover:text-green-700"
+                        >
+                          <Navigation size={12} /> Navegar <ChevronDown size={12} />
+                        </button>
+                        {showNavigationApps && (
+                          <div className="absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+                            {[
+                              ["google", "Google Maps"],
+                              ["apple", "Apple Maps"],
+                              ["waze", "Waze"],
+                              ["local", "Mapa local"],
+                            ].map(([app, label]) => (
+                              <button
+                                key={app}
+                                type="button"
+                                onClick={() => handleNavigate(tripPhase === "accepted" ? currentTrip.pickup : currentTrip.dropoff, app as "local" | "google" | "apple" | "waze")}
+                                className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-green-50 hover:text-green-700"
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isOnline ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                      {isOnline ? "● En línea" : "○ Desconectado"}
+                    </span>
+                  </div>
                 </div>
                 <div className="relative w-full" style={{ height: "240px" }}>
                   <LeafletMap

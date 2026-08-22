@@ -31,6 +31,8 @@ import LeafletMap, { type LeafletMapRef } from "@/components/LeafletMap";
 import NominatimAutocomplete from "@/components/NominatimAutocomplete";
 import { TripChat } from "@/components/TripChat";
 import { TripActionDock } from "@/components/TripActionDock";
+import { useSocket } from "@/hooks/useSocket";
+import { useInteractionSounds } from "@/hooks/useInteractionSounds";
 import { useNotificationHistory } from "@/hooks/useNotificationHistory";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { toast } from "sonner";
@@ -159,8 +161,19 @@ export default function ClientDashboard() {
 
   const mapRef = useRef<LeafletMapRef | null>(null);
   const driverAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startDriverApproachRef = useRef<((pickup: { lat: number; lng: number }) => void) | null>(null);
+  const liveDriverGpsRef = useRef(false);
+  const gpsFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [driverEta, setDriverEta] = useState<string | null>(null);
   const [driverDistance, setDriverDistance] = useState<string | null>(null);
+  const tripRoomId = currentTrip ? `trip-${currentTrip.id}` : null;
+  const { driverLocation } = useSocket({
+    roomId: tripRoomId,
+    userId: user?.id != null ? String(user.id) : "client-demo",
+    role: "client",
+    enabled: Boolean(tripRoomId && (tripStatus === "accepted" || tripStatus === "in_progress")),
+  });
+  const { playReservationConfirmed, playTripAccepted } = useInteractionSounds();
 
   useEffect(() => {
     try {
@@ -319,6 +332,7 @@ export default function ClientDashboard() {
         localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
         setCurrentTrip(updatedTrip);
         setTripStatus("accepted");
+        playTripAccepted();
         addNotification(
           "🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min",
           "success",
@@ -326,12 +340,29 @@ export default function ClientDashboard() {
           "Carlos M. aceptó tu viaje. Llegará en 4 minutos."
         );
         setLoyaltyPoints(p => p + 10);
-        if (pickupCoords) startDriverApproach(pickupCoords);
-        else startDriverApproach({ lat: 28.5436, lng: -81.3733 });
+        liveDriverGpsRef.current = false;
+        if (gpsFallbackTimerRef.current) clearTimeout(gpsFallbackTimerRef.current);
+        gpsFallbackTimerRef.current = setTimeout(() => {
+          if (!liveDriverGpsRef.current) {
+            startDriverApproachRef.current?.(pickupCoords || { lat: 28.5436, lng: -81.3733 });
+          }
+        }, 12000);
       }
     }, 6000);
     return () => clearTimeout(autoAssign);
-  }, [tripStatus, user?.id]);
+  }, [tripStatus, user?.id, pickupCoords, playTripAccepted]);
+
+  useEffect(() => {
+    if (!driverLocation || !currentTrip || !(tripStatus === "accepted" || tripStatus === "in_progress")) return;
+    liveDriverGpsRef.current = true;
+    if (gpsFallbackTimerRef.current) clearTimeout(gpsFallbackTimerRef.current);
+    if (driverAnimRef.current) clearInterval(driverAnimRef.current);
+    driverAnimRef.current = null;
+    mapRef.current?.updateVehiclePosition(driverLocation.lat, driverLocation.lng, driverLocation.heading ?? undefined);
+    mapRef.current?.panTo(driverLocation.lat, driverLocation.lng);
+    setDriverDistance("GPS en vivo");
+    setDriverEta(driverLocation.stage === "in_trip" ? "En ruta al destino" : "Conductor en camino");
+  }, [driverLocation, currentTrip?.id, tripStatus]);
 
   const addNotification = useCallback(
     (
@@ -447,6 +478,7 @@ export default function ClientDashboard() {
     },
     []
   );
+  startDriverApproachRef.current = startDriverApproach;
 
   const handleMapReady = useCallback((ref: LeafletMapRef) => {
     mapRef.current = ref;
@@ -570,6 +602,7 @@ export default function ClientDashboard() {
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
     setCurrentTrip(newTrip);
     setTripStatus("searching");
+    playReservationConfirmed();
     addNotification(
       scheduledDate
         ? `📅 Viaje programado para ${scheduledDate} ${scheduledTime}`

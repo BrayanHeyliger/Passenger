@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, MessageCircle, X, Minimize2, Wifi, WifiOff, Phone, PhoneOff, PhoneIncoming, PhoneMissed } from "lucide-react";
 import { useSocket } from "@/hooks/useSocket";
+import { useInteractionSounds } from "@/hooks/useInteractionSounds";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -33,6 +34,15 @@ export function TripChat({ tripId, userId, userName, role, otherPartyName, class
     role,
     enabled: !!tripId,
   });
+  const { startCallTone, stopCallTone } = useInteractionSounds();
+
+  useEffect(() => {
+    if (callState === "calling" || callState === "incoming") {
+      startCallTone();
+      return stopCallTone;
+    }
+    stopCallTone();
+  }, [callState, startCallTone, stopCallTone]);
 
   // Auto-scroll to latest message
   useEffect(() => {

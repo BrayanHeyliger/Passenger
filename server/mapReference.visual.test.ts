@@ -281,4 +281,21 @@ describe("mapa dark premium de referencia", () => {
     expect(tripActionDockSource).toContain("Compartir viaje");
     expect(cssSource).toContain(".trip-action-dock-button");
   });
+
+  it("añade alertas sonoras, GPS real del conductor y navegación externa", () => {
+    const soundSource = readFileSync(
+      resolve(projectRoot, "client/src/hooks/useInteractionSounds.ts"),
+      "utf8"
+    );
+    expect(soundSource).toContain("startIncomingTripAlert");
+    expect(soundSource).toContain("10000");
+    expect(soundSource).toContain("startCallTone");
+    expect(clientDashboardSource).toContain("playReservationConfirmed");
+    expect(clientDashboardSource).toContain("driverLocation");
+    expect(clientDashboardSource).toContain("updateVehiclePosition");
+    expect(driverDashboardSource).toContain("Google Maps");
+    expect(driverDashboardSource).toContain("Apple Maps");
+    expect(driverDashboardSource).toContain("Waze");
+    expect(driverDashboardSource).toContain("startIncomingTripAlert");
+  });
 });
