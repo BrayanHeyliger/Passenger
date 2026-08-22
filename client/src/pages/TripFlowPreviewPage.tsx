@@ -137,9 +137,9 @@ function MiniTripMap({ step }: { step: FlowStep }) {
           <circle cx="18" cy="11" r="5" fill="#0e171b" />
         </g>
       </svg>
-      <span className="flow-map-label flow-map-label--one">JUÁREZ</span>
-      <span className="flow-map-label flow-map-label--two">ROMA NORTE</span>
-      <span className="flow-map-label flow-map-label--three">DOCTORES</span>
+      <span className="flow-map-label flow-map-label--one">DOWNTOWN</span>
+      <span className="flow-map-label flow-map-label--two">LAKE EOLA</span>
+      <span className="flow-map-label flow-map-label--three">MILLS 50</span>
       {step === 2 && (
         <div className="flow-eta-card">
           <span>Llegada en</span>
@@ -158,13 +158,13 @@ function StageContent({ step }: { step: FlowStep }) {
         <div className="flow-input">
           <MapPin size={19} />
           <span>
-            <small>RECÓGEME EN</small>Av. Reforma 222, Juárez
+            <small>RECÓGEME EN</small>Lake Eola Park, Orlando, FL
           </span>
         </div>
         <div className="flow-input">
           <Navigation size={19} />
           <span>
-            <small>VOY A</small>Aeropuerto Internacional (AICM)
+            <small>VOY A</small>Orlando International Airport (MCO)
           </span>
         </div>
         <div className="flow-service-row">
@@ -264,7 +264,7 @@ function StageContent({ step }: { step: FlowStep }) {
         </div>
         <span className="flow-status-label">VIAJE COMPLETADO</span>
         <h3>Gracias por viajar con nosotros</h3>
-        <p>Has llegado a Aeropuerto Internacional (AICM).</p>
+        <p>Has llegado a Orlando International Airport (MCO).</p>
         <div className="flow-total">
           <span>Total del viaje</span>
           <strong>$115.00</strong>

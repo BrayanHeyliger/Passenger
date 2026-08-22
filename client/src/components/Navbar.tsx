@@ -20,15 +20,44 @@ interface NavbarProps {
   onLogin?: () => void;
 }
 
-export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: NavbarProps) {
+export default function Navbar({
+  user,
+  isAuthenticated,
+  onLogout,
+  onLogin,
+}: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { lang, t } = useI18n();
   const navLinksTranslated = [
-    { label: lang === "en" ? "For Clients" : lang === "fr" ? "Pour Clients" : "Para Clientes", href: "#clientes" },
-    { label: lang === "en" ? "For Drivers" : lang === "fr" ? "Pour Chauffeurs" : "Para Conductores", href: "#conductores" },
-    { label: lang === "en" ? "For Fleets" : lang === "fr" ? "Pour Flottes" : "Para Flotillas", href: "#flotilla" },
+    {
+      label:
+        lang === "en"
+          ? "For Clients"
+          : lang === "fr"
+            ? "Pour Clients"
+            : "Para Clientes",
+      href: "#clientes",
+    },
+    {
+      label:
+        lang === "en"
+          ? "For Drivers"
+          : lang === "fr"
+            ? "Pour Chauffeurs"
+            : "Para Conductores",
+      href: "#conductores",
+    },
+    {
+      label:
+        lang === "en"
+          ? "For Fleets"
+          : lang === "fr"
+            ? "Pour Flottes"
+            : "Para Flotillas",
+      href: "#flotilla",
+    },
     { label: t.nav.pricing, href: "#pricing" },
     { label: t.nav.contact, href: "#contact" },
     { label: "FAQ", href: "/faq" },
@@ -64,13 +93,24 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
           <a
             href="/"
             className="flex items-center gap-3 group"
+            aria-label="UnPasajero.Com"
           >
-            <img src="/saytaxi-brand.svg" alt="SayTaxi Mobility Platform" className="h-10 w-auto max-w-[180px] rounded-xl shadow-lg shadow-emerald-500/10" />
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400 text-lg font-black text-[#071016] shadow-lg shadow-emerald-500/20">
+              P
+            </span>
+            <span className="leading-tight">
+              <b className="block text-sm font-extrabold tracking-tight text-white">
+                UnPasajero.Com
+              </b>
+              <small className="block text-[9px] font-semibold tracking-[.16em] text-white/45">
+                ORLANDO MOBILITY
+              </small>
+            </span>
           </a>
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-8">
-            {navLinksTranslated.map((link) => (
+            {navLinksTranslated.map(link => (
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
@@ -93,17 +133,26 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xs font-bold">
                     {user.name?.[0] || "U"}
                   </div>
-                  <span className="text-sm font-medium">{user.name || "Usuario"}</span>
-                  <ChevronDown size={14} className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+                  <span className="text-sm font-medium">
+                    {user.name || "Usuario"}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 {/* Dropdown Menu */}
                 {userMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[oklch(0.18_0.01_250)] border border-white/10 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50">
                     <div className="px-4 py-3 border-b border-white/10">
-                      <p className="text-white text-sm font-medium">{user.name}</p>
+                      <p className="text-white text-sm font-medium">
+                        {user.name}
+                      </p>
                       <p className="text-white/50 text-xs">{user.email}</p>
-                      <p className="text-green-400 text-xs mt-1 capitalize">Rol: {user.role}</p>
+                      <p className="text-green-400 text-xs mt-1 capitalize">
+                        Rol: {user.role}
+                      </p>
                     </div>
                     <div className="py-1">
                       {(user.role === "client" || user.role === "user") && (
@@ -116,7 +165,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                           Panel de Cliente
                         </Link>
                       )}
-                      {(user.role === "driver") && (
+                      {user.role === "driver" && (
                         <Link
                           href="/driver-dashboard"
                           className="flex items-center gap-3 px-4 py-2.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors text-sm"
@@ -126,7 +175,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                           Panel de Conductor
                         </Link>
                       )}
-                      {(user.role === "admin") && (
+                      {user.role === "admin" && (
                         <>
                           <Link
                             href="/client-dashboard"
@@ -149,7 +198,10 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                     </div>
                     <div className="border-t border-white/10 py-1">
                       <button
-                        onClick={() => { setUserMenuOpen(false); onLogout?.(); }}
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          onLogout?.();
+                        }}
                         className="flex items-center gap-3 px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-white/10 transition-colors text-sm w-full text-left"
                       >
                         <LogOut size={16} />
@@ -164,7 +216,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                 <Button
                   variant="ghost"
                   className="text-white/80 hover:text-white hover:bg-white/10 text-sm"
-                  onClick={() => window.location.href = "/login"}
+                  onClick={() => (window.location.href = "/login")}
                 >
                   Iniciar sesión
                 </Button>
@@ -198,7 +250,7 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
       {mobileOpen && (
         <div className="lg:hidden bg-[oklch(0.13_0.01_250/0.98)] backdrop-blur-xl border-t border-white/10">
           <div className="container py-4 flex flex-col gap-1">
-            {navLinksTranslated.map((link) => (
+            {navLinksTranslated.map(link => (
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
@@ -213,7 +265,9 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                   <div className="px-4 py-2 text-white/60 text-sm">
                     Hola, {user.name} ({user.role})
                   </div>
-                  {(user.role === "client" || user.role === "user" || user.role === "admin") && (
+                  {(user.role === "client" ||
+                    user.role === "user" ||
+                    user.role === "admin") && (
                     <Link
                       href="/client-dashboard"
                       className="text-white/80 hover:text-white text-left py-3 px-4 rounded-lg hover:bg-white/10 transition-colors font-medium flex items-center gap-2"
@@ -234,7 +288,10 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                   <Button
                     variant="ghost"
                     className="text-red-400 hover:text-red-300 w-full justify-center"
-                    onClick={() => { setMobileOpen(false); onLogout?.(); }}
+                    onClick={() => {
+                      setMobileOpen(false);
+                      onLogout?.();
+                    }}
                   >
                     <LogOut size={16} className="mr-2" /> Cerrar Sesión
                   </Button>
@@ -244,14 +301,20 @@ export default function Navbar({ user, isAuthenticated, onLogout, onLogin }: Nav
                   <Button
                     variant="ghost"
                     className="text-white/80 hover:text-white w-full justify-center"
-                    onClick={() => { setMobileOpen(false); window.location.href = "/login"; }}
+                    onClick={() => {
+                      setMobileOpen(false);
+                      window.location.href = "/login";
+                    }}
                   >
                     Iniciar sesión
                   </Button>
                   <Link href="/register" onClick={() => setMobileOpen(false)}>
                     <Button
                       className="w-full font-semibold"
-                      style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}
+                      style={{
+                        background: "oklch(0.76 0.18 148)",
+                        color: "oklch(0.08 0.02 148)",
+                      }}
                     >
                       Registrarse
                     </Button>

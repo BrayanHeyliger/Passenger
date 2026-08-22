@@ -1,8 +1,29 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 export interface SiteConfig {
-  vehicles: Array<{ id: string; label: string; emoji: string; base: number; perKm: number; eta: string; seats: number; active: boolean }>;
-  extras: Array<{ id: string; label: string; icon: string; price: number; active: boolean }>;
+  vehicles: Array<{
+    id: string;
+    label: string;
+    emoji: string;
+    base: number;
+    perKm: number;
+    eta: string;
+    seats: number;
+    active: boolean;
+  }>;
+  extras: Array<{
+    id: string;
+    label: string;
+    icon: string;
+    price: number;
+    active: boolean;
+  }>;
   siteTitle: string;
   tagline: string;
   heroTitle: string;
@@ -32,7 +53,14 @@ export interface SiteConfig {
   surgeMultiplier: string;
   logoUrl: string;
   heroBgUrl: string;
-  testimonials: Array<{ id: string; name: string; company: string; text: string; rating: number; avatarUrl: string }>;
+  testimonials: Array<{
+    id: string;
+    name: string;
+    company: string;
+    text: string;
+    rating: number;
+    avatarUrl: string;
+  }>;
   notificationEmail: string;
   smtpHost: string;
   smtpPort: string;
@@ -43,33 +71,89 @@ export interface SiteConfig {
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
   vehicles: [
-    { id: "economy", label: "Económico", emoji: "🚗", base: 6,  perKm: 0.9, eta: "3 min", seats: 4, active: true },
-    { id: "comfort",  label: "Confort",   emoji: "🚙", base: 9,  perKm: 1.3, eta: "5 min", seats: 4, active: true },
-    { id: "premium",  label: "Premium",   emoji: "🚘", base: 14, perKm: 1.8, eta: "7 min", seats: 4, active: true },
-    { id: "suv",      label: "SUV",       emoji: "🚐", base: 18, perKm: 2.2, eta: "8 min", seats: 6, active: true },
+    {
+      id: "economy",
+      label: "Económico",
+      emoji: "🚗",
+      base: 6,
+      perKm: 0.9,
+      eta: "3 min",
+      seats: 4,
+      active: true,
+    },
+    {
+      id: "comfort",
+      label: "Confort",
+      emoji: "🚙",
+      base: 9,
+      perKm: 1.3,
+      eta: "5 min",
+      seats: 4,
+      active: true,
+    },
+    {
+      id: "premium",
+      label: "Premium",
+      emoji: "🚘",
+      base: 14,
+      perKm: 1.8,
+      eta: "7 min",
+      seats: 4,
+      active: true,
+    },
+    {
+      id: "suv",
+      label: "SUV",
+      emoji: "🚐",
+      base: 18,
+      perKm: 2.2,
+      eta: "8 min",
+      seats: 6,
+      active: true,
+    },
   ],
   extras: [
-    { id: "pet",        label: "Mascota",        icon: "🐾", price: 2, active: true },
-    { id: "luggage",    label: "Maletas",         icon: "🧳", price: 1, active: true },
-    { id: "child_seat", label: "Silla de niño",   icon: "👶", price: 3, active: true },
-    { id: "wheelchair", label: "Silla de ruedas", icon: "♿", price: 0, active: true },
-    { id: "music",      label: "Música a gusto",  icon: "🎵", price: 0, active: true },
+    { id: "pet", label: "Mascota", icon: "🐾", price: 2, active: true },
+    { id: "luggage", label: "Maletas", icon: "🧳", price: 1, active: true },
+    {
+      id: "child_seat",
+      label: "Silla de niño",
+      icon: "👶",
+      price: 3,
+      active: true,
+    },
+    {
+      id: "wheelchair",
+      label: "Silla de ruedas",
+      icon: "♿",
+      price: 0,
+      active: true,
+    },
+    {
+      id: "music",
+      label: "Música a gusto",
+      icon: "🎵",
+      price: 0,
+      active: true,
+    },
   ],
-  siteTitle: "SayTaxi Mobility Platform",
+  siteTitle: "UnPasajero.Com · Orlando Mobility",
   tagline: "Movilidad clara para pasajeros, conductores y flotillas",
   heroTitle: "Conecta pasajeros y conductores con una experiencia clara.",
-  heroDesc: "La plataforma de movilidad que integra reserva, asignación, seguimiento y operación de flotillas.",
+  heroDesc:
+    "La plataforma de movilidad que integra reserva, asignación, seguimiento y operación de flotillas.",
   ctaText: "Empezar gratis",
   primaryColor: "#25D366",
   secondaryColor: "#0d1117",
   accentColor: "#128C7E",
   fontFamily: "Sora",
-  contactEmail: "soporte@saytaxi.app",
-  contactPhone: "+1 800 SAYTAXI",
-  contactAddress: "Ciudad de México, México",
-  footerText: "© 2026 SayTaxi Mobility Platform. Todos los derechos reservados.",
+  contactEmail: "support@unpasajero.com",
+  contactPhone: "+1 (407) 555-0100",
+  contactAddress: "Orlando, Florida, USA",
+  footerText: "© 2026 UnPasajero.Com. Todos los derechos reservados.",
   footerLinks: "Privacidad | Términos | Soporte",
-  metaDescription: "Plataforma de movilidad para pasajeros, conductores y flotillas.",
+  metaDescription:
+    "Plataforma de movilidad para pasajeros, conductores y flotillas.",
   metaKeywords: "taxi, movilidad, saas, flotilla, conductor",
   showAnimations: true,
   showPricing: true,
@@ -99,7 +183,26 @@ function loadConfig(): SiteConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SITE_CONFIG;
-    return { ...DEFAULT_SITE_CONFIG, ...JSON.parse(raw) };
+    const merged = { ...DEFAULT_SITE_CONFIG, ...JSON.parse(raw) };
+    const legacyMarker =
+      `${merged.siteTitle} ${merged.contactEmail} ${merged.contactPhone} ${merged.contactAddress} ${merged.footerText}`.toLowerCase();
+    if (
+      legacyMarker.includes("saytaxi") ||
+      legacyMarker.includes("méxico") ||
+      legacyMarker.includes("mexico")
+    ) {
+      const localized = {
+        ...merged,
+        siteTitle: DEFAULT_SITE_CONFIG.siteTitle,
+        contactEmail: DEFAULT_SITE_CONFIG.contactEmail,
+        contactPhone: DEFAULT_SITE_CONFIG.contactPhone,
+        contactAddress: DEFAULT_SITE_CONFIG.contactAddress,
+        footerText: DEFAULT_SITE_CONFIG.footerText,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localized));
+      return localized;
+    }
+    return merged;
   } catch {
     return DEFAULT_SITE_CONFIG;
   }
@@ -224,7 +327,9 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SiteConfigContext.Provider value={{ config, updateConfig, saveConfig, isSaving, lastSaved }}>
+    <SiteConfigContext.Provider
+      value={{ config, updateConfig, saveConfig, isSaving, lastSaved }}
+    >
       {children}
     </SiteConfigContext.Provider>
   );

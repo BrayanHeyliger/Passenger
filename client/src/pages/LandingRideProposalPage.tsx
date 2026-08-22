@@ -109,9 +109,9 @@ function HeroMap() {
         />
         <circle cx="739" cy="169" r="8" fill="#fff6f4" />
       </svg>
-      <span className="landing-map-name landing-map-name--one">JUÁREZ</span>
-      <span className="landing-map-name landing-map-name--two">ROMA NORTE</span>
-      <span className="landing-map-name landing-map-name--three">DOCTORES</span>
+      <span className="landing-map-name landing-map-name--one">DOWNTOWN</span>
+      <span className="landing-map-name landing-map-name--two">LAKE EOLA</span>
+      <span className="landing-map-name landing-map-name--three">MILLS 50</span>
     </div>
   );
 }
@@ -183,14 +183,14 @@ export default function LandingRideProposalPage() {
                 <CircleDot size={18} />
               </i>
               <small>RECÓGEME EN</small>
-              <b>Av. Reforma 222, Juárez</b>
+              <b>Lake Eola Park, Orlando, FL</b>
             </span>
             <span>
               <i className="landing-destination">
                 <Navigation size={18} />
               </i>
               <small>VOY A</small>
-              <b>Aeropuerto Internacional (AICM)</b>
+              <b>Orlando International Airport (MCO)</b>
             </span>
           </div>
           <div className="landing-service-title">

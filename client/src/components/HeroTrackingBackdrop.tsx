@@ -105,9 +105,9 @@ export default function HeroTrackingBackdrop() {
           </g>
         </g>
       </svg>
-      <span className="hero-map-label hero-map-label--one">JUÁREZ</span>
-      <span className="hero-map-label hero-map-label--two">ROMA NORTE</span>
-      <span className="hero-map-label hero-map-label--three">DOCTORES</span>
+      <span className="hero-map-label hero-map-label--one">DOWNTOWN</span>
+      <span className="hero-map-label hero-map-label--two">LAKE EOLA</span>
+      <span className="hero-map-label hero-map-label--three">MILLS 50</span>
     </div>
   );
 }

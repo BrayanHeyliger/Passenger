@@ -6,6 +6,9 @@
   color: #f8fffc;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
+.ride-overlay-page--integrated {
+  padding-top: 0;
+}
 .ride-overlay-map {
   position: absolute;
   inset: 0 0 0 33%;

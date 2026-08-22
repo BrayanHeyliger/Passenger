@@ -102,11 +102,9 @@ export default function HeroSection() {
   const { config } = useSiteConfig();
   const { isAuthenticated, register } = useLocalAuth();
 
-  const [pickup, setPickup] = useState(
-    "Av. Reforma 222, Juárez, Cuauhtémoc, CDMX"
-  );
+  const [pickup, setPickup] = useState("Lake Eola Park, Orlando, FL");
   const [destination, setDestination] = useState(
-    "Aeropuerto Internacional de la Ciudad de México (AICM)"
+    "Orlando International Airport (MCO)"
   );
   const [tripTime, setTripTime] = useState<"now" | "later">("now");
   const [selectedVehicle, setSelectedVehicle] = useState("economy");
@@ -152,11 +150,11 @@ export default function HeroSection() {
     const showcaseDestination = { lat: 19.4363, lng: -99.0719 };
     setPickupCoords(showcasePickup);
     setDestCoords(showcaseDestination);
-    ref.setPickup(showcasePickup.lat, showcasePickup.lng, "Av. Reforma 222");
+    ref.setPickup(showcasePickup.lat, showcasePickup.lng, "Lake Eola Park");
     ref.setDropoff(
       showcaseDestination.lat,
       showcaseDestination.lng,
-      "Aeropuerto AICM"
+      "Orlando International Airport (MCO)"
     );
     void ref.getRoute();
     ref.setVehiclePosition(19.4312, -99.1284, "Conductor disponible");
@@ -173,7 +171,7 @@ export default function HeroSection() {
               ref.setDropoff(
                 showcaseDestination.lat,
                 showcaseDestination.lng,
-                "Aeropuerto AICM"
+                "Orlando International Airport (MCO)"
               );
               void ref.getRoute();
               try {

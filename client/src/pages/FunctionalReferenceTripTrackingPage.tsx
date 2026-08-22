@@ -263,19 +263,19 @@ function ControlledStreetMap({
       </svg>
 
       <span className="functional-map-area functional-map-area--juarez">
-        JUÁREZ
+        DOWNTOWN
       </span>
       <span className="functional-map-area functional-map-area--roma">
-        ROMA NORTE
+        LAKE EOLA
       </span>
       <span className="functional-map-area functional-map-area--doctores">
-        DOCTORES
+        MILLS 50
       </span>
       <span className="functional-map-area functional-map-area--cuauhtemoc">
-        CUAUHTÉMOC
+        SODO
       </span>
       <span className="functional-map-area functional-map-area--alamos">
-        ÁLAMOS
+        WINTER PARK
       </span>
 
       <div className="functional-map-card functional-map-card--eta">
@@ -310,10 +310,9 @@ export default function FunctionalReferenceTripTrackingPage() {
   const [step, setStep] = useState<TripStep>("camino");
   const [live, setLive] = useState(true);
   const [elapsed, setElapsed] = useState(0);
-  const pickup = trip?.pickup ?? "Av. Reforma 222, Juárez, Cuauhtémoc, CDMX";
+  const pickup = trip?.pickup ?? "Lake Eola Park, Orlando, FL";
   const destination =
-    trip?.destination ??
-    "Aeropuerto Internacional de la Ciudad de México (AICM)";
+    trip?.destination ?? "Orlando International Airport (MCO)";
   const eta = trip?.estimatedEta ?? "4 min";
   const { driverLocation, isConnected: gpsConnected } = useSocket({
     roomId: trip?.id ?? "trip-gps-demo",

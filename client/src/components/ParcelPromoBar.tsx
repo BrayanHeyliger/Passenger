@@ -42,7 +42,9 @@ export function ParcelPromoBar() {
           <div className="space-y-4 text-center lg:text-left">
             <div className="inline-flex lg:inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
               <span className="text-2xl">📦</span>
-              <span className="text-sm font-semibold text-green-600">NUEVO SERVICIO</span>
+              <span className="text-sm font-semibold text-green-600">
+                NUEVO SERVICIO
+              </span>
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
@@ -50,7 +52,8 @@ export function ParcelPromoBar() {
             </h2>
 
             <p className="text-base sm:text-lg text-slate-600 max-w-md mx-auto lg:mx-0">
-              Entrega rápida y segura de paquetes en minutos. La misma experiencia confiable de SayTaxi, ahora para tus envíos.
+              Entrega rápida y segura de paquetes en minutos. La misma
+              experiencia confiable de UnPasajero.Com, ahora para tus envíos.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">

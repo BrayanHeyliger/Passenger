@@ -132,9 +132,9 @@ function RoutePreview() {
           />
           <circle cx="606" cy="150" r="8" fill="#fff7f5" />
         </svg>
-        <span className="ride-map-area ride-map-area--one">JUÁREZ</span>
-        <span className="ride-map-area ride-map-area--two">ROMA NORTE</span>
-        <span className="ride-map-area ride-map-area--three">DOCTORES</span>
+        <span className="ride-map-area ride-map-area--one">DOWNTOWN</span>
+        <span className="ride-map-area ride-map-area--two">LAKE EOLA</span>
+        <span className="ride-map-area ride-map-area--three">MILLS 50</span>
         <span className="ride-eta-chip">
           <Clock3 size={15} />
           <b>12 min</b>
@@ -146,14 +146,14 @@ function RoutePreview() {
           <i className="ride-origin">
             <CircleDot size={18} />
           </i>
-          <b>Av. Reforma 222, Juárez</b>
+          <b>Lake Eola Park, Orlando, FL</b>
           <small>Punto de recogida</small>
         </span>
         <span>
           <i className="ride-destination">
             <Navigation size={18} />
           </i>
-          <b>Aeropuerto Internacional (AICM)</b>
+          <b>Orlando International Airport (MCO)</b>
           <small>Destino</small>
         </span>
       </div>

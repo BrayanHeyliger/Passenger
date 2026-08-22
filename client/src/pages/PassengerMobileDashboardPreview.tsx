@@ -1,11 +1,86 @@
 import { CarFront, MapPinned, Route, WalletCards } from "lucide-react";
 import { Link } from "wouter";
 
-export default function PassengerMobileDashboardPreview({ role }: { role: "client" | "driver" }) {
+export default function PassengerMobileDashboardPreview({
+  role,
+}: {
+  role: "client" | "driver";
+}) {
   const client = role === "client";
-  const title = client ? "Tu viaje, bajo control." : "Tu jornada, en movimiento.";
-  const destination = client ? "Aeropuerto Internacional" : "Av. Reforma 222";
-  return <main className="min-h-screen bg-[#071016] px-5 py-8 text-white"><div className="mx-auto max-w-sm"><Link href="/" className="text-sm font-semibold text-emerald-200">← Volver a SayTaxi</Link><div className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b171d] shadow-2xl shadow-black/45"><div className="flex items-center justify-between border-b border-white/10 p-5"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-emerald-300">Vista móvil · {client ? "Pasajero" : "Conductor"}</p><h1 className="mt-2 text-2xl font-extrabold" style={{ fontFamily: "'Sora', sans-serif" }}>{title}</h1></div><CarFront className="text-emerald-200" /></div><div className="m-4 h-64 rounded-3xl border border-emerald-300/15 bg-[radial-gradient(circle_at_75%_25%,rgba(65,227,136,.18),transparent_35%),linear-gradient(135deg,#102129,#071016)] p-5"><div className="rounded-2xl bg-[#071016]/85 p-3 text-xs text-white/70"><MapPinned size={14} className="mr-1 inline text-emerald-300" />{destination}</div><div className="mt-24 flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-emerald-300" /><span className="h-1 flex-1 rounded-full bg-emerald-300/70" /><Route size={20} className="text-emerald-200" /></div></div><div className="space-y-3 p-5"><div className="rounded-2xl border border-white/10 bg-white/[.04] p-4"><p className="text-xs text-white/45">{client ? "Estado del viaje" : "Actividad del día"}</p><p className="mt-2 font-bold text-white">{client ? "Conductor en camino · 4 min" : "Disponible para solicitudes"}</p></div><div className="grid grid-cols-2 gap-3">{client ? <><Mini icon={Route} label="Seguimiento" /><Mini icon={WalletCards} label="Pagos" /></> : <><Mini icon={CarFront} label="Solicitudes" /><Mini icon={WalletCards} label="Ganancias" /></>}</div></div></div></div></main>;
+  const title = client
+    ? "Tu viaje, bajo control."
+    : "Tu jornada, en movimiento.";
+  const destination = client
+    ? "Orlando International Airport (MCO)"
+    : "Lake Eola Park";
+  return (
+    <main className="min-h-screen bg-[#071016] px-5 py-8 text-white">
+      <div className="mx-auto max-w-sm">
+        <Link href="/" className="text-sm font-semibold text-emerald-200">
+          ← Volver a SayTaxi
+        </Link>
+        <div className="mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-[#0b171d] shadow-2xl shadow-black/45">
+          <div className="flex items-center justify-between border-b border-white/10 p-5">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.14em] text-emerald-300">
+                Vista móvil · {client ? "Pasajero" : "Conductor"}
+              </p>
+              <h1
+                className="mt-2 text-2xl font-extrabold"
+                style={{ fontFamily: "'Sora', sans-serif" }}
+              >
+                {title}
+              </h1>
+            </div>
+            <CarFront className="text-emerald-200" />
+          </div>
+          <div className="m-4 h-64 rounded-3xl border border-emerald-300/15 bg-[radial-gradient(circle_at_75%_25%,rgba(65,227,136,.18),transparent_35%),linear-gradient(135deg,#102129,#071016)] p-5">
+            <div className="rounded-2xl bg-[#071016]/85 p-3 text-xs text-white/70">
+              <MapPinned size={14} className="mr-1 inline text-emerald-300" />
+              {destination}
+            </div>
+            <div className="mt-24 flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-emerald-300" />
+              <span className="h-1 flex-1 rounded-full bg-emerald-300/70" />
+              <Route size={20} className="text-emerald-200" />
+            </div>
+          </div>
+          <div className="space-y-3 p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4">
+              <p className="text-xs text-white/45">
+                {client ? "Estado del viaje" : "Actividad del día"}
+              </p>
+              <p className="mt-2 font-bold text-white">
+                {client
+                  ? "Conductor en camino · 4 min"
+                  : "Disponible para solicitudes"}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {client ? (
+                <>
+                  <Mini icon={Route} label="Seguimiento" />
+                  <Mini icon={WalletCards} label="Pagos" />
+                </>
+              ) : (
+                <>
+                  <Mini icon={CarFront} label="Solicitudes" />
+                  <Mini icon={WalletCards} label="Ganancias" />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }
 
-function Mini({ icon: Icon, label }: { icon: typeof Route; label: string }) { return <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4 text-center text-sm font-semibold text-white/75"><Icon size={18} className="mx-auto mb-2 text-emerald-200" />{label}</div>; }
+function Mini({ icon: Icon, label }: { icon: typeof Route; label: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[.04] p-4 text-center text-sm font-semibold text-white/75">
+      <Icon size={18} className="mx-auto mb-2 text-emerald-200" />
+      {label}
+    </div>
+  );
+}

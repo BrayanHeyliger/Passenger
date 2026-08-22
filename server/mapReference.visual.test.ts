@@ -171,7 +171,7 @@ describe("mapa dark premium de referencia", () => {
     expect(heroSource).toContain("HeroTrackingBackdrop");
     expect(heroTrackingBackdropSource).toContain("heroRouteGlow");
     expect(heroTrackingBackdropSource).toContain("animateMotion");
-    expect(heroTrackingBackdropSource).toContain("ROMA NORTE");
+    expect(heroTrackingBackdropSource).toContain("LAKE EOLA");
   });
 
   it("usa el hero de panel superpuesto como portada oficial sin alterar las secciones posteriores", () => {

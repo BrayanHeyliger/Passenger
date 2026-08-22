@@ -3,9 +3,27 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  Phone, Star, Clock, DollarSign, LogOut, CheckCircle, Bell,
-  Car, X, ChevronRight, AlertTriangle, Share2, Tag, Calendar,
-  History, Home, Briefcase, MessageCircle, MapPin, Navigation, Gift
+  Phone,
+  Star,
+  Clock,
+  DollarSign,
+  LogOut,
+  CheckCircle,
+  Bell,
+  Car,
+  X,
+  ChevronRight,
+  AlertTriangle,
+  Share2,
+  Tag,
+  Calendar,
+  History,
+  Home,
+  Briefcase,
+  MessageCircle,
+  MapPin,
+  Navigation,
+  Gift,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -19,11 +37,36 @@ import ReferralPanel from "@/components/ReferralPanel";
 import { ParcelTracking, type ParcelOrder } from "@/components/ParcelTracking";
 import { ParcelHistory } from "@/components/ParcelHistory";
 
-type TripStatus = "idle" | "searching" | "accepted" | "in_progress" | "completed" | "rating";
-type ActivePanel = "request" | "history" | "scheduled" | "promo" | "referrals" | "parcels";
+type TripStatus =
+  | "idle"
+  | "searching"
+  | "accepted"
+  | "in_progress"
+  | "completed"
+  | "rating";
+type ActivePanel =
+  | "request"
+  | "history"
+  | "scheduled"
+  | "promo"
+  | "referrals"
+  | "parcels";
 
-interface TripNotification { id: string; message: string; time: string; type: "info" | "success" | "warning"; }
-interface TripHistory { id: string; date: string; from: string; to: string; fare: string; driver: string; rating: number; }
+interface TripNotification {
+  id: string;
+  message: string;
+  time: string;
+  type: "info" | "success" | "warning";
+}
+interface TripHistory {
+  id: string;
+  date: string;
+  from: string;
+  to: string;
+  fare: string;
+  driver: string;
+  rating: number;
+}
 
 const TRIPS_KEY = "wt_pending_trips";
 const HISTORY_KEY = "wt_trip_history";
@@ -31,33 +74,59 @@ const HISTORY_KEY = "wt_trip_history";
 export default function ClientDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
   const [, navigate] = useLocation();
-  const { permission: notifPermission, requestPermission, sendNotification } = usePushNotifications();
-  const { notifications: persistedNotifs, unreadCount, addNotification: addPersistedNotif, markAllRead, clearAll: clearAllNotifs } = useNotificationHistory(user?.role || "client");
-  const [pendingTripBanner, setPendingTripBanner] = useState<string | null>(null);
+  const {
+    permission: notifPermission,
+    requestPermission,
+    sendNotification,
+  } = usePushNotifications();
+  const {
+    notifications: persistedNotifs,
+    unreadCount,
+    addNotification: addPersistedNotif,
+    markAllRead,
+    clearAll: clearAllNotifs,
+  } = useNotificationHistory(user?.role || "client");
+  const [pendingTripBanner, setPendingTripBanner] = useState<string | null>(
+    null
+  );
 
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
-  const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [pickupCoords, setPickupCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [dropoffCoords, setDropoffCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [tripStatus, setTripStatus] = useState<TripStatus>("idle");
   const [currentTrip, setCurrentTrip] = useState<any>(null);
   const [chatOpen, setChatOpen] = useState(false);
-  const [userViewbox, setUserViewbox] = useState<[number, number, number, number] | undefined>(undefined);
-  const [userCountryCode, setUserCountryCode] = useState<string | undefined>(undefined);
+  const [userViewbox, setUserViewbox] = useState<
+    [number, number, number, number] | undefined
+  >(undefined);
+  const [userCountryCode, setUserCountryCode] = useState<string | undefined>(
+    undefined
+  );
   const [showNotifications, setShowNotifications] = useState(false);
   const [estimatedFare, setEstimatedFare] = useState<string | null>(null);
   const [estimatedTime, setEstimatedTime] = useState<string | null>(null);
-  const [estimatedDistance, setEstimatedDistance] = useState<string | null>(null);
+  const [estimatedDistance, setEstimatedDistance] = useState<string | null>(
+    null
+  );
   const [routeDistanceKm, setRouteDistanceKm] = useState<number>(0);
   const [allFares, setAllFares] = useState<Record<string, string>>({});
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
   // Availability counters per vehicle type (derived from spawned markers)
-  const [vehicleAvailability, setVehicleAvailability] = useState<Record<string, { count: number; eta: string }>>({
+  const [vehicleAvailability, setVehicleAvailability] = useState<
+    Record<string, { count: number; eta: string }>
+  >({
     economy: { count: 3, eta: "2 min" },
-    comfort:  { count: 2, eta: "4 min" },
-    premium:  { count: 1, eta: "7 min" },
-    suv:      { count: 2, eta: "5 min" },
+    comfort: { count: 2, eta: "4 min" },
+    premium: { count: 1, eta: "7 min" },
+    suv: { count: 2, eta: "5 min" },
   });
   const [selectedVehicle, setSelectedVehicle] = useState("economy");
   const [loyaltyPoints, setLoyaltyPoints] = useState(120);
@@ -69,12 +138,18 @@ export default function ClientDashboard() {
   const [driverRating, setDriverRating] = useState(0);
   const [driverComment, setDriverComment] = useState("");
   const [tripHistory, setTripHistory] = useState<TripHistory[]>(() => {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch { return []; }
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    } catch {
+      return [];
+    }
   });
   const [showBidMode, setShowBidMode] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
   const [parcelOrders, setParcelOrders] = useState<ParcelOrder[]>([]);
-  const [selectedParcel, setSelectedParcel] = useState<ParcelOrder | null>(null);
+  const [selectedParcel, setSelectedParcel] = useState<ParcelOrder | null>(
+    null
+  );
   const [showParcelTracking, setShowParcelTracking] = useState(false);
   const PARCELS_KEY = "wt_parcel_orders";
 
@@ -92,7 +167,12 @@ export default function ClientDashboard() {
   // Recalculate fare when vehicle type changes (without re-fetching the route)
   useEffect(() => {
     if (routeDistanceKm > 0 && Object.keys(allFares).length > 0) {
-      const rates: Record<string, number> = { economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 };
+      const rates: Record<string, number> = {
+        economy: 1.2,
+        comfort: 1.8,
+        premium: 2.5,
+        suv: 3.0,
+      };
       const computed: Record<string, string> = {};
       Object.entries(rates).forEach(([vid, rate]) => {
         let f = 2.5 + routeDistanceKm * rate;
@@ -103,7 +183,6 @@ export default function ClientDashboard() {
       setEstimatedFare(computed[selectedVehicle] || null);
     }
   }, [selectedVehicle, promoApplied, routeDistanceKm]);
-
 
   // Load pending trip from sessionStorage (set by HeroSection before registration)
   useEffect(() => {
@@ -121,7 +200,12 @@ export default function ClientDashboard() {
         setRouteDistanceKm(km);
         setEstimatedTime(`${pending.estimate.minutes || 0} min`);
         setEstimatedDistance(`${km} km`);
-        const rates: Record<string, number> = { economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 };
+        const rates: Record<string, number> = {
+          economy: 1.2,
+          comfort: 1.8,
+          premium: 2.5,
+          suv: 3.0,
+        };
         const computed: Record<string, string> = {};
         Object.entries(rates).forEach(([vid, rate]) => {
           computed[vid] = `$${(2.5 + km * rate).toFixed(2)}`;
@@ -130,28 +214,52 @@ export default function ClientDashboard() {
         setEstimatedFare(computed[pending.vehicle || "economy"] || null);
       }
       // Mostrar banner en lugar de toast para no bloquear el botón
-      setPendingTripBanner("🚕 ¡Tu viaje está listo! Confirma la solicitud abajo.");
+      setPendingTripBanner(
+        "🚕 ¡Tu viaje está listo! Confirma la solicitud abajo."
+      );
       setTimeout(() => setPendingTripBanner(null), 4000);
     } catch {
       sessionStorage.removeItem("pendingTrip");
     }
   }, [isAuthenticated]);
 
-  useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
+  useEffect(() => {
+    if (!isAuthenticated) navigate("/login");
+  }, [isAuthenticated]);
 
   // Poll for driver acceptance
   useEffect(() => {
     if (tripStatus !== "searching") return;
     const autoAssign = setTimeout(() => {
       const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
-      const myTrip = trips.find((t: any) => t.clientId === user?.id && t.status === "requested");
+      const myTrip = trips.find(
+        (t: any) => t.clientId === user?.id && t.status === "requested"
+      );
       if (myTrip) {
-        const updatedTrip = { ...myTrip, status: "accepted", driver: { name: "Carlos M.", vehicle: "Toyota Corolla", plate: "ABC-123", rating: 4.8, phone: "" }, estimatedTime: "4 min" };
-        const updated = trips.map((t: any) => t.id === myTrip.id ? updatedTrip : t);
+        const updatedTrip = {
+          ...myTrip,
+          status: "accepted",
+          driver: {
+            name: "Carlos M.",
+            vehicle: "Toyota Corolla",
+            plate: "ABC-123",
+            rating: 4.8,
+            phone: "",
+          },
+          estimatedTime: "4 min",
+        };
+        const updated = trips.map((t: any) =>
+          t.id === myTrip.id ? updatedTrip : t
+        );
         localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
         setCurrentTrip(updatedTrip);
         setTripStatus("accepted");
-        addNotification("🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min", "success", "¡Conductor en camino! 🚕", "Carlos M. aceptó tu viaje. Llegará en 4 minutos.");
+        addNotification(
+          "🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min",
+          "success",
+          "¡Conductor en camino! 🚕",
+          "Carlos M. aceptó tu viaje. Llegará en 4 minutos."
+        );
         setLoyaltyPoints(p => p + 10);
         if (pickupCoords) startDriverApproach(pickupCoords);
         else startDriverApproach({ lat: 19.4326, lng: -99.1332 });
@@ -160,86 +268,144 @@ export default function ClientDashboard() {
     return () => clearTimeout(autoAssign);
   }, [tripStatus, user?.id]);
 
-  const addNotification = useCallback((message: string, type: "info" | "success" | "warning" = "info", pushTitle?: string, pushBody?: string) => {
-    const soundMap: Record<string, "new_trip" | "accepted" | "info"> = {
-      success: "accepted",
-      warning: "info",
-      info: "info",
-    };
-    addPersistedNotif(message, { type, sound: soundMap[type] || "info", url: "/client-dashboard" });
-    if (pushTitle) sendNotification(pushTitle, { body: pushBody || message, url: "/client-dashboard", tag: "trip-update" });
-  }, [addPersistedNotif, sendNotification]);
-
-  const calculateRoute = useCallback(async (pickup: { lat: number; lng: number }, dropoff: { lat: number; lng: number }) => {
-    if (!mapRef.current) return;
-    setIsCalculatingRoute(true);
-    mapRef.current.setPickup(pickup.lat, pickup.lng, "Recogida");
-    mapRef.current.setDropoff(dropoff.lat, dropoff.lng, "Destino");
-    const route = await mapRef.current.getRoute();
-    setIsCalculatingRoute(false);
-    if (route) {
-      const distKm = route.distanceKm;
-      setRouteDistanceKm(distKm);
-      setEstimatedDistance(`${distKm.toFixed(1)} km`);
-      setEstimatedTime(`${route.durationMin} min`);
-      const rates: Record<string, number> = { economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 };
-      const computed: Record<string, string> = {};
-      Object.entries(rates).forEach(([vid, rate]) => {
-        let f = 2.5 + distKm * rate;
-        if (promoApplied) f *= 0.85;
-        computed[vid] = `$${f.toFixed(2)}`;
+  const addNotification = useCallback(
+    (
+      message: string,
+      type: "info" | "success" | "warning" = "info",
+      pushTitle?: string,
+      pushBody?: string
+    ) => {
+      const soundMap: Record<string, "new_trip" | "accepted" | "info"> = {
+        success: "accepted",
+        warning: "info",
+        info: "info",
+      };
+      addPersistedNotif(message, {
+        type,
+        sound: soundMap[type] || "info",
+        url: "/client-dashboard",
       });
-      setAllFares(computed);
-      setEstimatedFare(computed[selectedVehicle] || null);
-    }
-  }, [selectedVehicle, promoApplied]);
+      if (pushTitle)
+        sendNotification(pushTitle, {
+          body: pushBody || message,
+          url: "/client-dashboard",
+          tag: "trip-update",
+        });
+    },
+    [addPersistedNotif, sendNotification]
+  );
+
+  const calculateRoute = useCallback(
+    async (
+      pickup: { lat: number; lng: number },
+      dropoff: { lat: number; lng: number }
+    ) => {
+      if (!mapRef.current) return;
+      setIsCalculatingRoute(true);
+      mapRef.current.setPickup(pickup.lat, pickup.lng, "Recogida");
+      mapRef.current.setDropoff(dropoff.lat, dropoff.lng, "Destino");
+      const route = await mapRef.current.getRoute();
+      setIsCalculatingRoute(false);
+      if (route) {
+        const distKm = route.distanceKm;
+        setRouteDistanceKm(distKm);
+        setEstimatedDistance(`${distKm.toFixed(1)} km`);
+        setEstimatedTime(`${route.durationMin} min`);
+        const rates: Record<string, number> = {
+          economy: 1.2,
+          comfort: 1.8,
+          premium: 2.5,
+          suv: 3.0,
+        };
+        const computed: Record<string, string> = {};
+        Object.entries(rates).forEach(([vid, rate]) => {
+          let f = 2.5 + distKm * rate;
+          if (promoApplied) f *= 0.85;
+          computed[vid] = `$${f.toFixed(2)}`;
+        });
+        setAllFares(computed);
+        setEstimatedFare(computed[selectedVehicle] || null);
+      }
+    },
+    [selectedVehicle, promoApplied]
+  );
 
   // Animate driver approaching pickup using Leaflet
-  const startDriverApproach = useCallback((pickup: { lat: number; lng: number }) => {
-    const spread = 0.008;
-    let driverPos = {
-      lat: pickup.lat + (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
-      lng: pickup.lng + (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
-    };
-    let step = 0;
-    const totalSteps = 60;
-    if (driverAnimRef.current) clearInterval(driverAnimRef.current);
-    driverAnimRef.current = setInterval(() => {
-      step++;
-      driverPos = {
-        lat: driverPos.lat + (pickup.lat - driverPos.lat) * 0.06 + (Math.random() - 0.5) * 0.0001,
-        lng: driverPos.lng + (pickup.lng - driverPos.lng) * 0.06 + (Math.random() - 0.5) * 0.0001,
+  const startDriverApproach = useCallback(
+    (pickup: { lat: number; lng: number }) => {
+      const spread = 0.008;
+      let driverPos = {
+        lat:
+          pickup.lat +
+          (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
+        lng:
+          pickup.lng +
+          (Math.random() > 0.5 ? 1 : -1) * (0.003 + Math.random() * spread),
       };
-      mapRef.current?.panTo(driverPos.lat, driverPos.lng);
-      const distLat = Math.abs(pickup.lat - driverPos.lat) * 111000;
-      const distLng = Math.abs(pickup.lng - driverPos.lng) * 111000 * Math.cos(pickup.lat * Math.PI / 180);
-      const distM = Math.sqrt(distLat * distLat + distLng * distLng);
-      const etaMin = Math.ceil(Math.max(0, distM / 8) / 60);
-      setDriverDistance(distM < 1000 ? `${Math.round(distM)} m` : `${(distM / 1000).toFixed(1)} km`);
-      setDriverEta(etaMin <= 1 ? "Menos de 1 min" : `${etaMin} min`);
-      if (distM < 30 || step >= totalSteps) {
-        clearInterval(driverAnimRef.current!);
-        driverAnimRef.current = null;
-        setDriverEta("¡Llegó!");
-        setDriverDistance("0 m");
-        setTripStatus("in_progress");
-      }
-    }, 2000);
-  }, []);
+      let step = 0;
+      const totalSteps = 60;
+      if (driverAnimRef.current) clearInterval(driverAnimRef.current);
+      driverAnimRef.current = setInterval(() => {
+        step++;
+        driverPos = {
+          lat:
+            driverPos.lat +
+            (pickup.lat - driverPos.lat) * 0.06 +
+            (Math.random() - 0.5) * 0.0001,
+          lng:
+            driverPos.lng +
+            (pickup.lng - driverPos.lng) * 0.06 +
+            (Math.random() - 0.5) * 0.0001,
+        };
+        mapRef.current?.panTo(driverPos.lat, driverPos.lng);
+        const distLat = Math.abs(pickup.lat - driverPos.lat) * 111000;
+        const distLng =
+          Math.abs(pickup.lng - driverPos.lng) *
+          111000 *
+          Math.cos((pickup.lat * Math.PI) / 180);
+        const distM = Math.sqrt(distLat * distLat + distLng * distLng);
+        const etaMin = Math.ceil(Math.max(0, distM / 8) / 60);
+        setDriverDistance(
+          distM < 1000
+            ? `${Math.round(distM)} m`
+            : `${(distM / 1000).toFixed(1)} km`
+        );
+        setDriverEta(etaMin <= 1 ? "Menos de 1 min" : `${etaMin} min`);
+        if (distM < 30 || step >= totalSteps) {
+          clearInterval(driverAnimRef.current!);
+          driverAnimRef.current = null;
+          setDriverEta("¡Llegó!");
+          setDriverDistance("0 m");
+          setTripStatus("in_progress");
+        }
+      }, 2000);
+    },
+    []
+  );
 
   const handleMapReady = useCallback((ref: LeafletMapRef) => {
     mapRef.current = ref;
-    navigator.geolocation?.getCurrentPosition(async (pos) => {
+    navigator.geolocation?.getCurrentPosition(async pos => {
       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setPickupCoords(coords);
       // Build a ~30km bounding box around the user's GPS position for destination search bias
       const delta = 0.27; // ~30km
-      setUserViewbox([coords.lng - delta, coords.lat - delta, coords.lng + delta, coords.lat + delta]);
+      setUserViewbox([
+        coords.lng - delta,
+        coords.lat - delta,
+        coords.lng + delta,
+        coords.lat + delta,
+      ]);
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`, { headers: { "Accept-Language": "es" } });
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`,
+          { headers: { "Accept-Language": "es" } }
+        );
         const data = await res.json();
-        if (data.display_name) setPickupLocation(data.display_name.split(",").slice(0, 2).join(","));
-        if (data.address?.country_code) setUserCountryCode(data.address.country_code);
+        if (data.display_name)
+          setPickupLocation(data.display_name.split(",").slice(0, 2).join(","));
+        if (data.address?.country_code)
+          setUserCountryCode(data.address.country_code);
       } catch {}
     });
   }, []);
@@ -261,21 +427,38 @@ export default function ClientDashboard() {
   };
 
   const handleGetMyLocation = () => {
-    if (!navigator.geolocation) { toast.error("Geolocalización no disponible"); return; }
+    if (!navigator.geolocation) {
+      toast.error("Geolocalización no disponible");
+      return;
+    }
     setGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      setPickupCoords(coords);
-      mapRef.current?.setPickup(coords.lat, coords.lng, "Mi ubicación");
-      mapRef.current?.spawnVehicles(coords.lat, coords.lng);
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`, { headers: { "Accept-Language": "es" } });
-        const data = await res.json();
-        setPickupLocation(data.display_name?.split(",").slice(0, 2).join(",") || "Mi ubicación 📍");
-        if (dropoffCoords) calculateRoute(coords, dropoffCoords);
-      } catch { setPickupLocation("Mi ubicación 📍"); }
-      setGettingLocation(false);
-    }, () => { setGettingLocation(false); toast.error("No se pudo obtener tu ubicación"); });
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setPickupCoords(coords);
+        mapRef.current?.setPickup(coords.lat, coords.lng, "Mi ubicación");
+        mapRef.current?.spawnVehicles(coords.lat, coords.lng);
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`,
+            { headers: { "Accept-Language": "es" } }
+          );
+          const data = await res.json();
+          setPickupLocation(
+            data.display_name?.split(",").slice(0, 2).join(",") ||
+              "Mi ubicación 📍"
+          );
+          if (dropoffCoords) calculateRoute(coords, dropoffCoords);
+        } catch {
+          setPickupLocation("Mi ubicación 📍");
+        }
+        setGettingLocation(false);
+      },
+      () => {
+        setGettingLocation(false);
+        toast.error("No se pudo obtener tu ubicación");
+      }
+    );
   };
 
   const handleApplyPromo = () => {
@@ -283,37 +466,63 @@ export default function ClientDashboard() {
     if (validCodes.includes(promoCode.toUpperCase())) {
       setPromoApplied(true);
       toast.success("¡Código aplicado! 15% de descuento");
-      addNotification("🎉 Código promocional aplicado: 15% de descuento", "success");
+      addNotification(
+        "🎉 Código promocional aplicado: 15% de descuento",
+        "success"
+      );
     } else {
       toast.error("Código inválido. Prueba: BIENVENIDO");
     }
   };
 
   const handleRequestTrip = () => {
-    if (!pickupLocation || !dropoffLocation) { toast.error("Completa origen y destino"); return; }
+    if (!pickupLocation || !dropoffLocation) {
+      toast.error("Completa origen y destino");
+      return;
+    }
     mapRef.current?.clearRoute();
-    const fare = showBidMode && bidAmount ? `$${bidAmount}` : (estimatedFare || "$15.00");
+    const fare =
+      showBidMode && bidAmount ? `$${bidAmount}` : estimatedFare || "$15.00";
     const newTrip = {
-      id: Date.now().toString(), clientId: user?.id, clientName: user?.name,
-      pickup: pickupLocation, dropoff: dropoffLocation, fare, status: "requested",
-      requestedAt: new Date().toISOString(), vehicleType: selectedVehicle,
-      scheduledFor: scheduledDate && scheduledTime ? `${scheduledDate} ${scheduledTime}` : null,
-      isBid: showBidMode, driver: null,
+      id: Date.now().toString(),
+      clientId: user?.id,
+      clientName: user?.name,
+      pickup: pickupLocation,
+      dropoff: dropoffLocation,
+      fare,
+      status: "requested",
+      requestedAt: new Date().toISOString(),
+      vehicleType: selectedVehicle,
+      scheduledFor:
+        scheduledDate && scheduledTime
+          ? `${scheduledDate} ${scheduledTime}`
+          : null,
+      isBid: showBidMode,
+      driver: null,
     };
     const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     trips.push(newTrip);
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
     setCurrentTrip(newTrip);
     setTripStatus("searching");
-    addNotification(scheduledDate ? `📅 Viaje programado para ${scheduledDate} ${scheduledTime}` : "🔍 Buscando conductor disponible...", "info");
+    addNotification(
+      scheduledDate
+        ? `📅 Viaje programado para ${scheduledDate} ${scheduledTime}`
+        : "🔍 Buscando conductor disponible...",
+      "info"
+    );
   };
 
   const handleCancelTrip = () => {
     if (currentTrip) {
       const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
-      localStorage.setItem(TRIPS_KEY, JSON.stringify(trips.filter((t: any) => t.id !== currentTrip.id)));
+      localStorage.setItem(
+        TRIPS_KEY,
+        JSON.stringify(trips.filter((t: any) => t.id !== currentTrip.id))
+      );
     }
-    setTripStatus("idle"); setCurrentTrip(null);
+    setTripStatus("idle");
+    setCurrentTrip(null);
     addNotification("Viaje cancelado", "warning");
   };
 
@@ -321,15 +530,21 @@ export default function ClientDashboard() {
     const newEntry: TripHistory = {
       id: currentTrip?.id || Date.now().toString(),
       date: new Date().toLocaleDateString("es"),
-      from: currentTrip?.pickup || "", to: currentTrip?.dropoff || "",
-      fare: currentTrip?.fare || "", driver: currentTrip?.driver?.name || "Conductor", rating: driverRating,
+      from: currentTrip?.pickup || "",
+      to: currentTrip?.dropoff || "",
+      fare: currentTrip?.fare || "",
+      driver: currentTrip?.driver?.name || "Conductor",
+      rating: driverRating,
     };
     const history = [newEntry, ...tripHistory.slice(0, 19)];
     setTripHistory(history);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     setLoyaltyPoints(p => p + 50);
     toast.success("¡Gracias por tu calificación! +50 puntos");
-    setTripStatus("idle"); setCurrentTrip(null); setDriverRating(0); setDriverComment("");
+    setTripStatus("idle");
+    setCurrentTrip(null);
+    setDriverRating(0);
+    setDriverComment("");
   };
 
   const handleCallDriver = () => {
@@ -343,28 +558,58 @@ export default function ClientDashboard() {
 
   const handleSOS = () => {
     const msg = `🚨 EMERGENCIA - Pasajero: ${user?.name} | Viaje: ${currentTrip?.pickup} → ${currentTrip?.dropoff} | Conductor: ${currentTrip?.driver?.name || "N/A"} | Placa: ${currentTrip?.driver?.plate || "N/A"}`;
-    if (navigator.share) { navigator.share({ title: "SOS Emergencia", text: msg }); }
-    else { navigator.clipboard.writeText(msg); toast.error("🚨 Info de emergencia copiada al portapapeles"); }
+    if (navigator.share) {
+      navigator.share({ title: "SOS Emergencia", text: msg });
+    } else {
+      navigator.clipboard.writeText(msg);
+      toast.error("🚨 Info de emergencia copiada al portapapeles");
+    }
     addNotification("🚨 Alerta SOS enviada", "warning");
   };
 
   const handleShareTrip = () => {
     const text = `Estoy en un viaje con WhatsApp Taxi 🚕\nConductor: ${currentTrip?.driver?.name}\nVehículo: ${currentTrip?.driver?.vehicle} (${currentTrip?.driver?.plate})\nDesde: ${currentTrip?.pickup}\nHacia: ${currentTrip?.dropoff}`;
-    if (navigator.share) { navigator.share({ title: "Compartir viaje", text }); }
-    else { navigator.clipboard.writeText(text); toast.success("Información del viaje copiada"); }
+    if (navigator.share) {
+      navigator.share({ title: "Compartir viaje", text });
+    } else {
+      navigator.clipboard.writeText(text);
+      toast.success("Información del viaje copiada");
+    }
   };
 
   const vehicles = [
-    { id: "economy", label: "Económico", icon: "🚗", price: "$1.20/km", time: "3 min" },
-    { id: "comfort", label: "Confort", icon: "🚙", price: "$1.80/km", time: "5 min" },
-    { id: "premium", label: "Premium", icon: "🚘", price: "$2.50/km", time: "8 min" },
+    {
+      id: "economy",
+      label: "Económico",
+      icon: "🚗",
+      price: "$1.20/km",
+      time: "3 min",
+    },
+    {
+      id: "comfort",
+      label: "Confort",
+      icon: "🚙",
+      price: "$1.80/km",
+      time: "5 min",
+    },
+    {
+      id: "premium",
+      label: "Premium",
+      icon: "🚘",
+      price: "$2.50/km",
+      time: "8 min",
+    },
     { id: "suv", label: "SUV", icon: "🚐", price: "$3.00/km", time: "6 min" },
   ];
 
-  const loyaltyLevel = loyaltyPoints < 200 ? { name: "Bronce", color: "text-amber-600", next: 200 } :
-    loyaltyPoints < 500 ? { name: "Plata", color: "text-slate-400", next: 500 } :
-    loyaltyPoints < 1000 ? { name: "Oro", color: "text-yellow-500", next: 1000 } :
-    { name: "Platino", color: "text-purple-500", next: 9999 };
+  const loyaltyLevel =
+    loyaltyPoints < 200
+      ? { name: "Bronce", color: "text-amber-600", next: 200 }
+      : loyaltyPoints < 500
+        ? { name: "Plata", color: "text-slate-400", next: 500 }
+        : loyaltyPoints < 1000
+          ? { name: "Oro", color: "text-yellow-500", next: 1000 }
+          : { name: "Platino", color: "text-purple-500", next: 9999 };
 
   if (!isAuthenticated) return null;
 
@@ -374,55 +619,117 @@ export default function ClientDashboard() {
       <header className="wt-header bg-white shadow-sm border-b border-slate-200 flex-shrink-0 relative">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-sm">{user?.name?.[0] || "C"}</div>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-sm">
+              {user?.name?.[0] || "C"}
+            </div>
             <div>
-              <p className="font-semibold text-slate-900 text-sm">{user?.name}</p>
-              <p className={`text-xs font-medium ${loyaltyLevel.color}`}>⭐ {loyaltyLevel.name} · {loyaltyPoints} pts</p>
+              <p className="font-semibold text-slate-900 text-sm">
+                {user?.name}
+              </p>
+              <p className={`text-xs font-medium ${loyaltyLevel.color}`}>
+                ⭐ {loyaltyLevel.name} · {loyaltyPoints} pts
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <button onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markAllRead(); }} className="relative p-2 rounded-lg hover:bg-slate-100">
+              <button
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  if (!showNotifications) markAllRead();
+                }}
+                className="relative p-2 rounded-lg hover:bg-slate-100"
+              >
                 <Bell size={20} className="text-slate-600" />
-                {unreadCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </button>
               {showNotifications && (
                 <div className="wt-notification-panel absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl">
                   <div className="p-3 border-b border-slate-200 flex justify-between items-center">
                     <div>
-                      <h3 className="font-semibold text-slate-900 text-sm">Notificaciones</h3>
+                      <h3 className="font-semibold text-slate-900 text-sm">
+                        Notificaciones
+                      </h3>
                       <p className="text-xs text-slate-400">Últimas 24 horas</p>
                     </div>
-                    <button onClick={clearAllNotifs} className="text-xs text-slate-500 hover:text-red-500 transition-colors">Limpiar</button>
+                    <button
+                      onClick={clearAllNotifs}
+                      className="text-xs text-slate-500 hover:text-red-500 transition-colors"
+                    >
+                      Limpiar
+                    </button>
                   </div>
                   <div className="max-h-72 overflow-y-auto">
-                    {persistedNotifs.length === 0
-                      ? <div className="p-6 text-center"><Bell size={28} className="mx-auto text-slate-200 mb-2" /><p className="text-sm text-slate-400">Sin notificaciones</p></div>
-                      : persistedNotifs.map(n => (
-                        <div key={n.id} className={`p-3 border-b border-slate-100 flex gap-3 items-start ${!n.read ? "bg-green-50/60" : ""}`}>
-                          <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.type === "success" ? "bg-green-500" : n.type === "warning" ? "bg-yellow-500" : n.type === "error" ? "bg-red-500" : "bg-blue-500"}`} />
+                    {persistedNotifs.length === 0 ? (
+                      <div className="p-6 text-center">
+                        <Bell
+                          size={28}
+                          className="mx-auto text-slate-200 mb-2"
+                        />
+                        <p className="text-sm text-slate-400">
+                          Sin notificaciones
+                        </p>
+                      </div>
+                    ) : (
+                      persistedNotifs.map(n => (
+                        <div
+                          key={n.id}
+                          className={`p-3 border-b border-slate-100 flex gap-3 items-start ${!n.read ? "bg-green-50/60" : ""}`}
+                        >
+                          <div
+                            className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.type === "success" ? "bg-green-500" : n.type === "warning" ? "bg-yellow-500" : n.type === "error" ? "bg-red-500" : "bg-blue-500"}`}
+                          />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-slate-800 leading-snug">{n.message}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{new Date(n.timestamp).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
+                            <p className="text-sm text-slate-800 leading-snug">
+                              {n.message}
+                            </p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {new Date(n.timestamp).toLocaleTimeString("es", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
                           </div>
-                          {!n.read && <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />}
+                          {!n.read && (
+                            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
+                          )}
                         </div>
                       ))
-                    }
+                    )}
                   </div>
                   <div className="p-2 border-t border-slate-100 text-center">
-                    <p className="text-xs text-slate-400">Se reinicia automáticamente cada 24 h</p>
+                    <p className="text-xs text-slate-400">
+                      Se reinicia automáticamente cada 24 h
+                    </p>
                   </div>
                 </div>
               )}
             </div>
             {/* Botón activar notificaciones push */}
             {notifPermission !== "granted" && (
-              <button onClick={requestPermission} title="Activar notificaciones" className="p-2 rounded-lg hover:bg-green-50 text-green-600 border border-green-200 text-xs flex items-center gap-1">
+              <button
+                onClick={requestPermission}
+                title="Activar notificaciones"
+                className="p-2 rounded-lg hover:bg-green-50 text-green-600 border border-green-200 text-xs flex items-center gap-1"
+              >
                 <Bell size={14} /> Push
               </button>
             )}
-            <Button variant="outline" size="sm" onClick={() => { logout(); navigate("/"); }} className="gap-1.5 text-xs"><LogOut size={14} /> Salir</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                logout();
+                navigate("/");
+              }}
+              className="gap-1.5 text-xs"
+            >
+              <LogOut size={14} /> Salir
+            </Button>
           </div>
         </div>
       </header>
@@ -431,14 +738,24 @@ export default function ClientDashboard() {
       {pendingTripBanner && (
         <div className="bg-green-500 text-white text-sm font-semibold px-4 py-2.5 flex items-center justify-between animate-pulse">
           <span>{pendingTripBanner}</span>
-          <button onClick={() => setPendingTripBanner(null)} className="ml-3 text-white/80 hover:text-white">✕</button>
+          <button
+            onClick={() => setPendingTripBanner(null)}
+            className="ml-3 text-white/80 hover:text-white"
+          >
+            ✕
+          </button>
         </div>
       )}
       {/* Main content — fills remaining height */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0" style={{ height: 'calc(100vh - 65px)' }}>
-
+      <div
+        className="flex-1 flex flex-col lg:flex-row min-h-0"
+        style={{ height: "calc(100vh - 65px)" }}
+      >
         {/* MAPA — altura explícita garantizada */}
-        <div className="relative lg:flex-1" style={{ height: '45vw', minHeight: '220px', maxHeight: '320px' }}>
+        <div
+          className="relative lg:flex-1"
+          style={{ height: "45vw", minHeight: "220px", maxHeight: "320px" }}
+        >
           {/* En desktop, ocupa todo el espacio restante */}
           <style>{`@media (min-width: 1024px) { .map-container { height: 100% !important; max-height: none !important; } }`}</style>
           <LeafletMap
@@ -447,50 +764,77 @@ export default function ClientDashboard() {
             className="map-container absolute inset-0 w-full h-full"
           />
           {/* Chat flotante — visible cuando hay viaje activo */}
-          {(tripStatus === "accepted" || tripStatus === "in_progress") && currentTrip && (
-            <div id="trip-chat-anchor">
-            <TripChat
-              tripId={currentTrip.id}
-              userId={user?.id != null ? String(user.id) : "client"}
-              userName={user?.name || "Cliente"}
-              role="client"
-              otherPartyName={currentTrip.driver?.name || "Conductor"}
-              forceOpen={chatOpen}
-              onOpenChange={setChatOpen}
-            />
-            </div>
-          )}
+          {(tripStatus === "accepted" || tripStatus === "in_progress") &&
+            currentTrip && (
+              <div id="trip-chat-anchor">
+                <TripChat
+                  tripId={currentTrip.id}
+                  userId={user?.id != null ? String(user.id) : "client"}
+                  userName={user?.name || "Cliente"}
+                  role="client"
+                  otherPartyName={currentTrip.driver?.name || "Conductor"}
+                  forceOpen={chatOpen}
+                  onOpenChange={setChatOpen}
+                />
+              </div>
+            )}
           {/* Status overlay en el mapa */}
           {tripStatus === "searching" && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white rounded-full px-4 py-2 shadow-lg flex items-center gap-2 z-10">
               <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-medium text-slate-900">Buscando conductor...</span>
+              <span className="text-sm font-medium text-slate-900">
+                Buscando conductor...
+              </span>
             </div>
           )}
-          {(tripStatus === "accepted" || tripStatus === "in_progress") && currentTrip?.driver && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white rounded-full px-4 py-2 shadow-lg flex items-center gap-2 z-10">
-              <Car size={16} />
-              <span className="text-sm font-semibold">{currentTrip.driver.name} · ETA {currentTrip.estimatedTime}</span>
-            </div>
-          )}
+          {(tripStatus === "accepted" || tripStatus === "in_progress") &&
+            currentTrip?.driver && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white rounded-full px-4 py-2 shadow-lg flex items-center gap-2 z-10">
+                <Car size={16} />
+                <span className="text-sm font-semibold">
+                  {currentTrip.driver.name} · ETA {currentTrip.estimatedTime}
+                </span>
+              </div>
+            )}
         </div>
 
         {/* Panel lateral derecho */}
-        <div className="w-full lg:w-[400px] bg-white shadow-xl flex flex-col flex-shrink-0" style={{ flex: '1 1 auto', minHeight: 0, maxHeight: '100%' }}>
-
+        <div
+          className="w-full lg:w-[400px] bg-white shadow-xl flex flex-col flex-shrink-0"
+          style={{ flex: "1 1 auto", minHeight: 0, maxHeight: "100%" }}
+        >
           {/* Tabs — solo en idle */}
           {tripStatus === "idle" && (
             <div className="flex border-b border-slate-200 flex-shrink-0">
               {[
                 { id: "request" as ActivePanel, label: "Viaje", icon: Car },
-                { id: "parcels" as ActivePanel, label: "Paquetes", icon: Briefcase },
-                { id: "scheduled" as ActivePanel, label: "Programar", icon: Calendar },
-                { id: "history" as ActivePanel, label: "Historial", icon: History },
+                {
+                  id: "parcels" as ActivePanel,
+                  label: "Paquetes",
+                  icon: Briefcase,
+                },
+                {
+                  id: "scheduled" as ActivePanel,
+                  label: "Programar",
+                  icon: Calendar,
+                },
+                {
+                  id: "history" as ActivePanel,
+                  label: "Historial",
+                  icon: History,
+                },
                 { id: "promo" as ActivePanel, label: "Promos", icon: Tag },
-                { id: "referrals" as ActivePanel, label: "Referidos", icon: Gift },
+                {
+                  id: "referrals" as ActivePanel,
+                  label: "Referidos",
+                  icon: Gift,
+                },
               ].map(tab => (
-                <button key={tab.id} onClick={() => setActivePanel(tab.id)}
-                  className={`flex-1 flex flex-col items-center py-2.5 text-xs font-medium transition-colors ${activePanel === tab.id ? "text-green-600 border-b-2 border-green-500" : "text-slate-500 hover:text-slate-700"}`}>
+                <button
+                  key={tab.id}
+                  onClick={() => setActivePanel(tab.id)}
+                  className={`flex-1 flex flex-col items-center py-2.5 text-xs font-medium transition-colors ${activePanel === tab.id ? "text-green-600 border-b-2 border-green-500" : "text-slate-500 hover:text-slate-700"}`}
+                >
                   <tab.icon size={16} className="mb-0.5" />
                   {tab.label}
                 </button>
@@ -500,7 +844,6 @@ export default function ClientDashboard() {
 
           {/* Contenido scrollable */}
           <div className="flex-1 overflow-y-auto pb-24 lg:pb-0">
-
             {/* SOLICITAR VIAJE */}
             {/* Broadcast Announcements */}
             <div className="px-4 pt-3">
@@ -510,13 +853,29 @@ export default function ClientDashboard() {
             {/* SOLICITAR VIAJE */}
             {tripStatus === "idle" && activePanel === "request" && (
               <div className="p-4 flex flex-col gap-3">
-                <h2 className="text-lg font-bold text-slate-900">¿A dónde vamos?</h2>
+                <h2 className="text-lg font-bold text-slate-900">
+                  ¿A dónde vamos?
+                </h2>
 
                 {/* Lugares guardados */}
                 <div className="flex gap-2">
-                  {[{ label: "Casa", icon: Home, addr: "Calle Principal 123" }, { label: "Trabajo", icon: Briefcase, addr: "Av. Reforma 456" }].map(p => (
-                    <button key={p.label} onClick={() => setDropoffLocation(p.addr)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-medium text-slate-700 transition-colors">
+                  {[
+                    {
+                      label: "Casa",
+                      icon: Home,
+                      addr: "Lake Nona, Orlando, FL",
+                    },
+                    {
+                      label: "Trabajo",
+                      icon: Briefcase,
+                      addr: "Downtown Orlando, FL",
+                    },
+                  ].map(p => (
+                    <button
+                      key={p.label}
+                      onClick={() => setDropoffLocation(p.addr)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs font-medium text-slate-700 transition-colors"
+                    >
                       <p.icon size={11} /> {p.label}
                     </button>
                   ))}
@@ -530,11 +889,22 @@ export default function ClientDashboard() {
                       onChange={setPickupLocation}
                       onSelect={handlePickupSelect}
                       placeholder="¿Desde dónde te recogemos?"
-                      icon={<span className="w-3 h-3 rounded-full inline-block bg-green-500" />}
+                      icon={
+                        <span className="w-3 h-3 rounded-full inline-block bg-green-500" />
+                      }
                     />
                   </div>
-                  <button onClick={handleGetMyLocation} disabled={gettingLocation} className="px-3 py-3 rounded-xl border border-slate-200 hover:bg-green-50 transition-colors" title="Mi ubicación">
-                    {gettingLocation ? <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" /> : <Navigation size={16} className="text-green-500" />}
+                  <button
+                    onClick={handleGetMyLocation}
+                    disabled={gettingLocation}
+                    className="px-3 py-3 rounded-xl border border-slate-200 hover:bg-green-50 transition-colors"
+                    title="Mi ubicación"
+                  >
+                    {gettingLocation ? (
+                      <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Navigation size={16} className="text-green-500" />
+                    )}
                   </button>
                 </div>
 
@@ -544,16 +914,20 @@ export default function ClientDashboard() {
                   onChange={setDropoffLocation}
                   onSelect={handleDropoffSelect}
                   placeholder="¿A dónde vas?"
-                  icon={<span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />}
+                  icon={
+                    <span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />
+                  }
                   countryCode={userCountryCode}
                   viewbox={userViewbox}
                 />
 
                 {/* Tipo de vehículo */}
                 <div>
-                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Tipo de vehículo</p>
-                 <div className="grid grid-cols-2 gap-2">
-                   {vehicles.map(v => (
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Tipo de vehículo
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {vehicles.map(v => (
                       <button
                         key={v.id}
                         onClick={() => setSelectedVehicle(v.id)}
@@ -562,23 +936,44 @@ export default function ClientDashboard() {
                         {/* Selected indicator */}
                         {selectedVehicle === v.id && (
                           <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                            <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <svg
+                              width="8"
+                              height="8"
+                              viewBox="0 0 8 8"
+                              fill="none"
+                            >
+                              <path
+                                d="M1 4l2 2 4-4"
+                                stroke="white"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
                           </div>
                         )}
                         {/* Icon + label */}
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-xl">{v.icon}</span>
-                          <p className="text-xs font-bold text-slate-900">{v.label}</p>
+                          <p className="text-xs font-bold text-slate-900">
+                            {v.label}
+                          </p>
                         </div>
                         {/* Price — show calculated fare or rate */}
                         {allFares[v.id] ? (
-                          <p className={`text-base font-black ${selectedVehicle === v.id ? "text-green-700" : "text-slate-800"}`}>{allFares[v.id]}</p>
+                          <p
+                            className={`text-base font-black ${selectedVehicle === v.id ? "text-green-700" : "text-slate-800"}`}
+                          >
+                            {allFares[v.id]}
+                          </p>
                         ) : (
                           <p className="text-xs text-slate-500">{v.price}</p>
                         )}
                         {/* ETA + availability */}
                         <div className="flex items-center gap-1 mt-1">
-                          <div className={`w-1.5 h-1.5 rounded-full ${(vehicleAvailability[v.id]?.count ?? 0) > 0 ? "bg-green-500" : "bg-slate-300"}`} />
+                          <div
+                            className={`w-1.5 h-1.5 rounded-full ${(vehicleAvailability[v.id]?.count ?? 0) > 0 ? "bg-green-500" : "bg-slate-300"}`}
+                          />
                           <p className="text-xs text-slate-500">
                             {(vehicleAvailability[v.id]?.count ?? 0) > 0
                               ? `${vehicleAvailability[v.id]?.count} disp · ${vehicleAvailability[v.id]?.eta}`
@@ -586,91 +981,156 @@ export default function ClientDashboard() {
                           </p>
                         </div>
                       </button>
-                   ))}
-                 </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Modo puja */}
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-slate-700">Modo Puja (proponer precio)</label>
-                  <button onClick={() => setShowBidMode(!showBidMode)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${showBidMode ? "bg-green-500" : "bg-slate-300"}`}>
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${showBidMode ? "translate-x-5" : "translate-x-0.5"}`} />
+                  <label className="text-sm font-medium text-slate-700">
+                    Modo Puja (proponer precio)
+                  </label>
+                  <button
+                    onClick={() => setShowBidMode(!showBidMode)}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${showBidMode ? "bg-green-500" : "bg-slate-300"}`}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${showBidMode ? "translate-x-5" : "translate-x-0.5"}`}
+                    />
                   </button>
                 </div>
                 {showBidMode && (
-                  <input type="number" placeholder="Tu oferta en USD ($)" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" />
+                  <input
+                    type="number"
+                    placeholder="Tu oferta en USD ($)"
+                    value={bidAmount}
+                    onChange={e => setBidAmount(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                  />
                 )}
 
-               {/* Estimación */}
-               {isCalculatingRoute && (
-                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2">
-                   <div className="w-4 h-4 rounded-full border-2 border-green-500 border-t-transparent animate-spin flex-shrink-0" />
-                   <span className="text-sm text-slate-500">Calculando ruta y tarifa...</span>
-                 </div>
-               )}
+                {/* Estimación */}
+                {isCalculatingRoute && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full border-2 border-green-500 border-t-transparent animate-spin flex-shrink-0" />
+                    <span className="text-sm text-slate-500">
+                      Calculando ruta y tarifa...
+                    </span>
+                  </div>
+                )}
                 {/* Tarifa estimada — se muestra siempre con valores base o calculados */}
                 {!isCalculatingRoute && (
-                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl overflow-hidden">
-                   <div className="px-4 py-3 flex justify-between items-center border-b border-green-200">
-                     <div className="flex items-center gap-2">
-                       <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                         <Car size={16} className="text-green-600" />
-                       </div>
-                       <div>
-                         <p className="text-xs text-green-700 font-medium">{vehicles.find(v => v.id === selectedVehicle)?.label}</p>
-                          <p className="text-xs text-green-600">{estimatedDistance ? `${estimatedDistance} · ${estimatedTime}` : "Selecciona destino para calcular"}</p>
-                       </div>
-                     </div>
-                     <div className="text-right">
-                       {promoApplied && <span className="text-xs text-green-600 font-medium bg-green-200 px-1.5 py-0.5 rounded-full block mb-0.5">-15% PROMO</span>}
-                        <span className="text-2xl font-black text-green-800">{estimatedFare || "~$8.00"}</span>
-                        {!estimatedFare && <span className="text-xs text-green-600 block">estimado base</span>}
-                     </div>
-                   </div>
-                   <div className="px-4 py-2 space-y-1">
-                     <div className="flex justify-between text-xs text-green-700">
-                       <span>Tarifa base</span><span>$2.50</span>
-                     </div>
-                     <div className="flex justify-between text-xs text-green-700">
-                        <span>Distancia {estimatedDistance ? `(${estimatedDistance})` : "(por calcular)"}</span>
-                        <span>{routeDistanceKm > 0 ? `$${(routeDistanceKm * ({ economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 }[selectedVehicle] || 1.2)).toFixed(2)}` : "—"}</span>
-                     </div>
-                     {promoApplied && (
-                       <div className="flex justify-between text-xs text-green-600 font-medium">
-                         <span>Descuento promocional</span><span>-15%</span>
-                       </div>
-                     )}
-                     <div className="flex justify-between text-xs font-bold text-green-800 pt-1 border-t border-green-200">
-                        <span>Total estimado</span><span>{estimatedFare || "~$8.00"}</span>
-                     </div>
-                   </div>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl overflow-hidden">
+                    <div className="px-4 py-3 flex justify-between items-center border-b border-green-200">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <Car size={16} className="text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-green-700 font-medium">
+                            {
+                              vehicles.find(v => v.id === selectedVehicle)
+                                ?.label
+                            }
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {estimatedDistance
+                              ? `${estimatedDistance} · ${estimatedTime}`
+                              : "Selecciona destino para calcular"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        {promoApplied && (
+                          <span className="text-xs text-green-600 font-medium bg-green-200 px-1.5 py-0.5 rounded-full block mb-0.5">
+                            -15% PROMO
+                          </span>
+                        )}
+                        <span className="text-2xl font-black text-green-800">
+                          {estimatedFare || "~$8.00"}
+                        </span>
+                        {!estimatedFare && (
+                          <span className="text-xs text-green-600 block">
+                            estimado base
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="px-4 py-2 space-y-1">
+                      <div className="flex justify-between text-xs text-green-700">
+                        <span>Tarifa base</span>
+                        <span>$2.50</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-green-700">
+                        <span>
+                          Distancia{" "}
+                          {estimatedDistance
+                            ? `(${estimatedDistance})`
+                            : "(por calcular)"}
+                        </span>
+                        <span>
+                          {routeDistanceKm > 0
+                            ? `$${(routeDistanceKm * ({ economy: 1.2, comfort: 1.8, premium: 2.5, suv: 3.0 }[selectedVehicle] || 1.2)).toFixed(2)}`
+                            : "—"}
+                        </span>
+                      </div>
+                      {promoApplied && (
+                        <div className="flex justify-between text-xs text-green-600 font-medium">
+                          <span>Descuento promocional</span>
+                          <span>-15%</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs font-bold text-green-800 pt-1 border-t border-green-200">
+                        <span>Total estimado</span>
+                        <span>{estimatedFare || "~$8.00"}</span>
+                      </div>
+                    </div>
                     {pickupLocation && dropoffLocation && (
                       <div className="px-4 py-2 bg-green-100/60 flex items-center gap-2">
-                        <MapPin size={12} className="text-green-600 flex-shrink-0" />
-                        <p className="text-xs text-green-700 truncate">{pickupLocation} → {dropoffLocation}</p>
+                        <MapPin
+                          size={12}
+                          className="text-green-600 flex-shrink-0"
+                        />
+                        <p className="text-xs text-green-700 truncate">
+                          {pickupLocation} → {dropoffLocation}
+                        </p>
                       </div>
                     )}
                     {!pickupLocation && (
                       <div className="px-4 py-2 bg-blue-50 flex items-center gap-2">
-                        <Navigation size={12} className="text-blue-500 flex-shrink-0" />
-                        <p className="text-xs text-blue-600">Ingresa origen y destino para ver el precio exacto</p>
+                        <Navigation
+                          size={12}
+                          className="text-blue-500 flex-shrink-0"
+                        />
+                        <p className="text-xs text-blue-600">
+                          Ingresa origen y destino para ver el precio exacto
+                        </p>
                       </div>
                     )}
-                 </div>
-               )}
+                  </div>
+                )}
 
                 {/* Lealtad */}
                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200">
                   <div className="flex justify-between items-center mb-1">
-                    <p className="text-xs font-semibold text-purple-800">Programa de Lealtad</p>
-                    <p className={`text-xs font-bold ${loyaltyLevel.color}`}>{loyaltyLevel.name}</p>
+                    <p className="text-xs font-semibold text-purple-800">
+                      Programa de Lealtad
+                    </p>
+                    <p className={`text-xs font-bold ${loyaltyLevel.color}`}>
+                      {loyaltyLevel.name}
+                    </p>
                   </div>
                   <div className="w-full bg-purple-200 rounded-full h-1.5">
-                    <div className="bg-purple-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((loyaltyPoints / loyaltyLevel.next) * 100, 100)}%` }} />
+                    <div
+                      className="bg-purple-500 h-1.5 rounded-full transition-all"
+                      style={{
+                        width: `${Math.min((loyaltyPoints / loyaltyLevel.next) * 100, 100)}%`,
+                      }}
+                    />
                   </div>
-                  <p className="text-xs text-purple-600 mt-1">{loyaltyPoints} / {loyaltyLevel.next} pts</p>
+                  <p className="text-xs text-purple-600 mt-1">
+                    {loyaltyPoints} / {loyaltyLevel.next} pts
+                  </p>
                 </div>
               </div>
             )}
@@ -678,17 +1138,72 @@ export default function ClientDashboard() {
             {/* PROGRAMAR VIAJE */}
             {tripStatus === "idle" && activePanel === "scheduled" && (
               <div className="p-4 flex flex-col gap-3">
-                <h2 className="text-lg font-bold text-slate-900">Programar Viaje</h2>
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                  <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} min={new Date().toISOString().split("T")[0]}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Hora</label>
-                  <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none" /></div>
-                <NominatimAutocomplete value={pickupLocation} onChange={setPickupLocation} onSelect={handlePickupSelect} placeholder="¿Dónde te recogemos?" icon={<span className="w-3 h-3 rounded-full inline-block bg-green-500" />} />
-                <NominatimAutocomplete value={dropoffLocation} onChange={setDropoffLocation} onSelect={handleDropoffSelect} placeholder="¿A dónde vas?" icon={<span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />} countryCode={userCountryCode} viewbox={userViewbox} />
-                <Button onClick={() => { if (scheduledDate && scheduledTime && pickupLocation && dropoffLocation) { handleRequestTrip(); setActivePanel("request"); } else { toast.error("Completa todos los campos"); } }}
-                  className="w-full py-3 font-bold" style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Programar Viaje
+                </h2>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Fecha
+                  </label>
+                  <input
+                    type="date"
+                    value={scheduledDate}
+                    onChange={e => setScheduledDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Hora
+                  </label>
+                  <input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={e => setScheduledTime(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                  />
+                </div>
+                <NominatimAutocomplete
+                  value={pickupLocation}
+                  onChange={setPickupLocation}
+                  onSelect={handlePickupSelect}
+                  placeholder="¿Dónde te recogemos?"
+                  icon={
+                    <span className="w-3 h-3 rounded-full inline-block bg-green-500" />
+                  }
+                />
+                <NominatimAutocomplete
+                  value={dropoffLocation}
+                  onChange={setDropoffLocation}
+                  onSelect={handleDropoffSelect}
+                  placeholder="¿A dónde vas?"
+                  icon={
+                    <span className="w-3 h-3 rounded-full border-2 border-red-500 inline-block" />
+                  }
+                  countryCode={userCountryCode}
+                  viewbox={userViewbox}
+                />
+                <Button
+                  onClick={() => {
+                    if (
+                      scheduledDate &&
+                      scheduledTime &&
+                      pickupLocation &&
+                      dropoffLocation
+                    ) {
+                      handleRequestTrip();
+                      setActivePanel("request");
+                    } else {
+                      toast.error("Completa todos los campos");
+                    }
+                  }}
+                  className="w-full py-3 font-bold"
+                  style={{
+                    background: "oklch(0.76 0.18 148)",
+                    color: "oklch(0.08 0.02 148)",
+                  }}
+                >
                   <Calendar size={15} className="mr-2" /> Programar Viaje
                 </Button>
               </div>
@@ -697,44 +1212,123 @@ export default function ClientDashboard() {
             {/* HISTORIAL */}
             {tripStatus === "idle" && activePanel === "history" && (
               <div className="p-4 flex flex-col gap-3">
-                <h2 className="text-lg font-bold text-slate-900">Historial de Viajes</h2>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Historial de Viajes
+                </h2>
                 {tripHistory.length === 0 ? (
-                  <div className="text-center py-10"><History size={40} className="mx-auto text-slate-300 mb-3" /><p className="text-slate-500 text-sm">No hay viajes aún</p></div>
-                ) : tripHistory.map(trip => (
-                  <div key={trip.id} className="border border-slate-200 rounded-xl p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div><p className="text-xs text-slate-500">{trip.date}</p><p className="text-sm font-medium text-slate-900 truncate max-w-[180px]">{trip.from} → {trip.to}</p></div>
-                      <div className="text-right"><p className="font-bold text-green-600">{trip.fare}</p>
-                        <div className="flex items-center gap-0.5 justify-end">{[1,2,3,4,5].map(s => <Star key={s} size={10} className={s <= trip.rating ? "text-yellow-500 fill-yellow-500" : "text-slate-300"} />)}</div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500 mb-2">Conductor: {trip.driver}</p>
-                    <Button size="sm" variant="outline" className="w-full text-xs h-7" onClick={() => { setPickupLocation(trip.from); setDropoffLocation(trip.to); setActivePanel("request"); }}>Repetir viaje</Button>
+                  <div className="text-center py-10">
+                    <History
+                      size={40}
+                      className="mx-auto text-slate-300 mb-3"
+                    />
+                    <p className="text-slate-500 text-sm">No hay viajes aún</p>
                   </div>
-                ))}
+                ) : (
+                  tripHistory.map(trip => (
+                    <div
+                      key={trip.id}
+                      className="border border-slate-200 rounded-xl p-3"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="text-xs text-slate-500">{trip.date}</p>
+                          <p className="text-sm font-medium text-slate-900 truncate max-w-[180px]">
+                            {trip.from} → {trip.to}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">
+                            {trip.fare}
+                          </p>
+                          <div className="flex items-center gap-0.5 justify-end">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star
+                                key={s}
+                                size={10}
+                                className={
+                                  s <= trip.rating
+                                    ? "text-yellow-500 fill-yellow-500"
+                                    : "text-slate-300"
+                                }
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mb-2">
+                        Conductor: {trip.driver}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs h-7"
+                        onClick={() => {
+                          setPickupLocation(trip.from);
+                          setDropoffLocation(trip.to);
+                          setActivePanel("request");
+                        }}
+                      >
+                        Repetir viaje
+                      </Button>
+                    </div>
+                  ))
+                )}
               </div>
             )}
 
             {/* PROMOS */}
             {tripStatus === "idle" && activePanel === "promo" && (
               <div className="p-4 flex flex-col gap-3">
-                <h2 className="text-lg font-bold text-slate-900">Códigos Promocionales</h2>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Códigos Promocionales
+                </h2>
                 <div className="flex gap-2">
-                  <input type="text" placeholder="Ingresa tu código" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none uppercase" />
-                  <Button onClick={handleApplyPromo} className="bg-green-500 hover:bg-green-600 text-white">Aplicar</Button>
+                  <input
+                    type="text"
+                    placeholder="Ingresa tu código"
+                    value={promoCode}
+                    onChange={e => setPromoCode(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none uppercase"
+                  />
+                  <Button
+                    onClick={handleApplyPromo}
+                    className="bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    Aplicar
+                  </Button>
                 </div>
                 {promoApplied && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
                     <CheckCircle size={16} className="text-green-600" />
-                    <p className="text-sm text-green-800 font-medium">¡Código aplicado! 15% de descuento</p>
+                    <p className="text-sm text-green-800 font-medium">
+                      ¡Código aplicado! 15% de descuento
+                    </p>
                   </div>
                 )}
                 <div className="space-y-2">
-                  {[{ code: "BIENVENIDO", desc: "15% para nuevos usuarios" }, { code: "TAXI10", desc: "10% en viajes al aeropuerto" }, { code: "PROMO20", desc: "20% en tu primer viaje Premium" }].map(c => (
-                    <div key={c.code} className="border border-slate-200 rounded-xl p-3 flex justify-between items-center">
-                      <div><p className="font-mono font-bold text-slate-900 text-sm">{c.code}</p><p className="text-xs text-slate-500">{c.desc}</p></div>
-                      <Button size="sm" variant="outline" className="text-xs" onClick={() => setPromoCode(c.code)}>Usar</Button>
+                  {[
+                    { code: "BIENVENIDO", desc: "15% para nuevos usuarios" },
+                    { code: "TAXI10", desc: "10% en viajes al aeropuerto" },
+                    { code: "PROMO20", desc: "20% en tu primer viaje Premium" },
+                  ].map(c => (
+                    <div
+                      key={c.code}
+                      className="border border-slate-200 rounded-xl p-3 flex justify-between items-center"
+                    >
+                      <div>
+                        <p className="font-mono font-bold text-slate-900 text-sm">
+                          {c.code}
+                        </p>
+                        <p className="text-xs text-slate-500">{c.desc}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => setPromoCode(c.code)}
+                      >
+                        Usar
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -749,8 +1343,12 @@ export default function ClientDashboard() {
                     <Gift size={16} className="text-purple-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">Programa de Referidos</h2>
-                    <p className="text-xs text-slate-500">Invita amigos y gana recompensas</p>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Programa de Referidos
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Invita amigos y gana recompensas
+                    </p>
                   </div>
                 </div>
                 <ReferralPanel
@@ -763,71 +1361,108 @@ export default function ClientDashboard() {
 
             {/* BUSCANDO */}
 
-                        {/* PAQUETES */}
-            {tripStatus === "idle" && activePanel === "parcels" && !showParcelTracking && (
-              <div className="p-4 flex flex-col gap-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <Briefcase size={16} className="text-blue-600" />
+            {/* PAQUETES */}
+            {tripStatus === "idle" &&
+              activePanel === "parcels" &&
+              !showParcelTracking && (
+                <div className="p-4 flex flex-col gap-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <Briefcase size={16} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900">
+                        Envío de Paquetes
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Entrega rápida y segura en minutos
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900">Envío de Paquetes</h2>
-                    <p className="text-xs text-slate-500">Entrega rápida y segura en minutos</p>
-                  </div>
+
+                  {parcelOrders.length === 0 ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                      <p className="text-sm text-blue-800 font-medium">
+                        📦 No hay paquetes activos
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Crea un nuevo envío desde el formulario en el Hero
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {parcelOrders.map(order => (
+                        <Card
+                          key={order.id}
+                          className="p-3 cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => {
+                            setSelectedParcel(order);
+                            setShowParcelTracking(true);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-slate-900">
+                                Código: {order.trackingCode}
+                              </p>
+                              <p className="text-xs text-slate-500 truncate">
+                                {order.pickupAddress}
+                              </p>
+                              <p className="text-xs text-slate-500 truncate">
+                                → {order.dropoffAddress}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span
+                                className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                  order.status === "pending"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : order.status === "accepted"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : order.status === "in_transit"
+                                        ? "bg-orange-100 text-orange-800"
+                                        : order.status === "delivered"
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {order.status === "pending"
+                                  ? "⏳"
+                                  : order.status === "accepted"
+                                    ? "🚗"
+                                    : order.status === "in_transit"
+                                      ? "📦"
+                                      : order.status === "delivered"
+                                        ? "✅"
+                                        : "❌"}
+                              </span>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                
-                {parcelOrders.length === 0 ? (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-                    <p className="text-sm text-blue-800 font-medium">📦 No hay paquetes activos</p>
-                    <p className="text-xs text-blue-600 mt-1">Crea un nuevo envío desde el formulario en el Hero</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {parcelOrders.map(order => (
-                      <Card key={order.id} className="p-3 cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setSelectedParcel(order); setShowParcelTracking(true); }}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm font-bold text-slate-900">Código: {order.trackingCode}</p>
-                            <p className="text-xs text-slate-500 truncate">{order.pickupAddress}</p>
-                            <p className="text-xs text-slate-500 truncate">→ {order.dropoffAddress}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                              order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                              order.status === "accepted" ? "bg-blue-100 text-blue-800" :
-                              order.status === "in_transit" ? "bg-orange-100 text-orange-800" :
-                              order.status === "delivered" ? "bg-green-100 text-green-800" :
-                              "bg-red-100 text-red-800"
-                            }`}>
-                              {order.status === "pending" ? "⏳" :
-                               order.status === "accepted" ? "🚗" :
-                               order.status === "in_transit" ? "📦" :
-                               order.status === "delivered" ? "✅" : "❌"}
-                            </span>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+              )}
 
             {/* PARCEL TRACKING */}
-            {tripStatus === "idle" && activePanel === "parcels" && showParcelTracking && selectedParcel && (
-              <div className="p-4 flex flex-col gap-4">
-                <button
-                  onClick={() => setShowParcelTracking(false)}
-                  className="text-xs text-slate-400 hover:text-slate-600 mb-2 flex items-center gap-1"
-                >
-                  ← Volver
-                </button>
-                <ParcelTracking
-                  order={selectedParcel}
-                  onClose={() => setShowParcelTracking(false)}
-                />
-              </div>
-            )}
+            {tripStatus === "idle" &&
+              activePanel === "parcels" &&
+              showParcelTracking &&
+              selectedParcel && (
+                <div className="p-4 flex flex-col gap-4">
+                  <button
+                    onClick={() => setShowParcelTracking(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 mb-2 flex items-center gap-1"
+                  >
+                    ← Volver
+                  </button>
+                  <ParcelTracking
+                    order={selectedParcel}
+                    onClose={() => setShowParcelTracking(false)}
+                  />
+                </div>
+              )}
             {/* BUSCANDO */}
 
             {/* PAQUETES - HISTORIAL */}
@@ -838,8 +1473,12 @@ export default function ClientDashboard() {
                     <Briefcase size={16} className="text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">Historial de Paquetes</h2>
-                    <p className="text-xs text-slate-500">Tus entregas recientes</p>
+                    <h2 className="text-lg font-bold text-slate-900">
+                      Historial de Paquetes
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Tus entregas recientes
+                    </p>
                   </div>
                 </div>
                 <ParcelHistory />
@@ -850,85 +1489,228 @@ export default function ClientDashboard() {
                 <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
                   <Car size={36} className="text-green-600 animate-bounce" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">Buscando conductor...</h3>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Buscando conductor...
+                </h3>
                 <div className="bg-slate-50 rounded-xl p-4 w-full text-sm space-y-2">
-                  <div className="flex justify-between"><span className="text-slate-500">Recogida</span><span className="font-medium text-slate-900 text-right max-w-[60%] truncate">{currentTrip?.pickup}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Destino</span><span className="font-medium text-slate-900 text-right max-w-[60%] truncate">{currentTrip?.dropoff}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Tarifa</span><span className="font-bold text-green-600">{currentTrip?.fare}</span></div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Recogida</span>
+                    <span className="font-medium text-slate-900 text-right max-w-[60%] truncate">
+                      {currentTrip?.pickup}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Destino</span>
+                    <span className="font-medium text-slate-900 text-right max-w-[60%] truncate">
+                      {currentTrip?.dropoff}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Tarifa</span>
+                    <span className="font-bold text-green-600">
+                      {currentTrip?.fare}
+                    </span>
+                  </div>
                 </div>
-                <Button variant="outline" onClick={handleCancelTrip} className="w-full text-red-500 border-red-200 hover:bg-red-50"><X size={16} className="mr-2" /> Cancelar</Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelTrip}
+                  className="w-full text-red-500 border-red-200 hover:bg-red-50"
+                >
+                  <X size={16} className="mr-2" /> Cancelar
+                </Button>
               </div>
             )}
 
             {/* CONDUCTOR ACEPTÓ */}
-            {(tripStatus === "accepted" || tripStatus === "in_progress") && currentTrip?.driver && (
-              <div className="p-4 flex flex-col gap-3">
-                <div className={`flex items-center gap-2 rounded-xl p-3 ${tripStatus === "accepted" ? "bg-green-50 border border-green-200" : "bg-blue-50 border border-blue-200"}`}>
-                  <CheckCircle size={18} className={tripStatus === "accepted" ? "text-green-600" : "text-blue-600"} />
-                  <p className={`text-sm font-semibold ${tripStatus === "accepted" ? "text-green-800" : "text-blue-800"}`}>
-                    {tripStatus === "accepted" ? "¡Conductor en camino!" : "Viaje en progreso"}
-                  </p>
-                </div>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <div className="p-4 bg-slate-50 flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-lg font-bold">{currentTrip.driver.name[0]}</div>
-                    <div className="flex-1">
-                      <p className="font-bold text-slate-900">{currentTrip.driver.name}</p>
-                      <p className="text-sm text-slate-500">{currentTrip.driver.vehicle}</p>
-                      <p className="text-xs font-mono text-slate-400">Placa: {currentTrip.driver.plate}</p>
+            {(tripStatus === "accepted" || tripStatus === "in_progress") &&
+              currentTrip?.driver && (
+                <div className="p-4 flex flex-col gap-3">
+                  <div
+                    className={`flex items-center gap-2 rounded-xl p-3 ${tripStatus === "accepted" ? "bg-green-50 border border-green-200" : "bg-blue-50 border border-blue-200"}`}
+                  >
+                    <CheckCircle
+                      size={18}
+                      className={
+                        tripStatus === "accepted"
+                          ? "text-green-600"
+                          : "text-blue-600"
+                      }
+                    />
+                    <p
+                      className={`text-sm font-semibold ${tripStatus === "accepted" ? "text-green-800" : "text-blue-800"}`}
+                    >
+                      {tripStatus === "accepted"
+                        ? "¡Conductor en camino!"
+                        : "Viaje en progreso"}
+                    </p>
+                  </div>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="p-4 bg-slate-50 flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-lg font-bold">
+                        {currentTrip.driver.name[0]}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-900">
+                          {currentTrip.driver.name}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {currentTrip.driver.vehicle}
+                        </p>
+                        <p className="text-xs font-mono text-slate-400">
+                          Placa: {currentTrip.driver.plate}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full">
+                        <Star
+                          size={13}
+                          className="text-yellow-500 fill-yellow-500"
+                        />
+                        <span className="text-sm font-bold text-yellow-700">
+                          {currentTrip.driver.rating}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full">
-                      <Star size={13} className="text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-bold text-yellow-700">{currentTrip.driver.rating}</span>
+                    <div className="p-3 grid grid-cols-2 gap-3 border-t border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <Clock size={15} className="text-slate-400" />
+                        <div>
+                          <p className="text-xs text-slate-500">
+                            ETA en tiempo real
+                          </p>
+                          <p className="font-bold text-slate-900 text-sm">
+                            {driverEta || currentTrip.estimatedTime}
+                          </p>
+                        </div>
+                      </div>
+                      {driverDistance && (
+                        <div className="flex items-center gap-2">
+                          <Navigation size={15} className="text-blue-400" />
+                          <div>
+                            <p className="text-xs text-slate-500">Distancia</p>
+                            <p className="font-bold text-blue-600 text-sm">
+                              {driverDistance}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {!driverDistance && (
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={15} className="text-slate-400" />
+                          <div>
+                            <p className="text-xs text-slate-500">Tarifa</p>
+                            <p className="font-bold text-green-600 text-sm">
+                              {currentTrip.fare}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="p-3 grid grid-cols-2 gap-3 border-t border-slate-200">
-                    <div className="flex items-center gap-2"><Clock size={15} className="text-slate-400" /><div><p className="text-xs text-slate-500">ETA en tiempo real</p><p className="font-bold text-slate-900 text-sm">{driverEta || currentTrip.estimatedTime}</p></div></div>
-                    {driverDistance && (
-                    <div className="flex items-center gap-2"><Navigation size={15} className="text-blue-400" /><div><p className="text-xs text-slate-500">Distancia</p><p className="font-bold text-blue-600 text-sm">{driverDistance}</p></div></div>
-                    )}
-                    {!driverDistance && (
-                    <div className="flex items-center gap-2"><DollarSign size={15} className="text-slate-400" /><div><p className="text-xs text-slate-500">Tarifa</p><p className="font-bold text-green-600 text-sm">{currentTrip.fare}</p></div></div>
-                    )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      onClick={handleMessageDriver}
+                      className="bg-green-600 hover:bg-green-700 text-white gap-2 text-sm"
+                    >
+                      <MessageCircle size={15} /> Chat Seguro
+                    </Button>
+                    <Button
+                      onClick={handleSOS}
+                      variant="outline"
+                      className="gap-2 text-sm text-red-500 border-red-200"
+                    >
+                      <AlertTriangle size={15} /> SOS
+                    </Button>
                   </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleShareTrip}
+                      className="gap-1 text-xs"
+                    >
+                      <Share2 size={12} /> Compartir
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSOS}
+                      className="gap-1 text-xs text-red-500 border-red-200"
+                    >
+                      <AlertTriangle size={12} /> SOS
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelTrip}
+                      className="gap-1 text-xs text-slate-500"
+                    >
+                      <X size={12} /> Cancelar
+                    </Button>
+                  </div>
+                  {tripStatus === "in_progress" && (
+                    <Button
+                      onClick={() => setTripStatus("rating")}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                    >
+                      <CheckCircle size={16} /> Finalizar Viaje
+                    </Button>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button onClick={handleMessageDriver} className="bg-green-600 hover:bg-green-700 text-white gap-2 text-sm"><MessageCircle size={15} /> Chat Seguro</Button>
-                  <Button onClick={handleSOS} variant="outline" className="gap-2 text-sm text-red-500 border-red-200"><AlertTriangle size={15} /> SOS</Button>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button variant="outline" size="sm" onClick={handleShareTrip} className="gap-1 text-xs"><Share2 size={12} /> Compartir</Button>
-                  <Button variant="outline" size="sm" onClick={handleSOS} className="gap-1 text-xs text-red-500 border-red-200"><AlertTriangle size={12} /> SOS</Button>
-                  <Button variant="outline" size="sm" onClick={handleCancelTrip} className="gap-1 text-xs text-slate-500"><X size={12} /> Cancelar</Button>
-                </div>
-                {tripStatus === "in_progress" && (
-                  <Button onClick={() => setTripStatus("rating")} className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    <CheckCircle size={16} /> Finalizar Viaje
-                  </Button>
-                )}
-              </div>
-            )}
+              )}
 
             {/* CALIFICACIÓN */}
             {tripStatus === "rating" && (
               <div className="p-5 flex flex-col gap-4">
-                <h2 className="text-xl font-bold text-slate-900">Califica tu viaje</h2>
-                <p className="text-sm text-slate-500">¿Cómo fue tu experiencia con {currentTrip?.driver?.name}?</p>
+                <h2 className="text-xl font-bold text-slate-900">
+                  Califica tu viaje
+                </h2>
+                <p className="text-sm text-slate-500">
+                  ¿Cómo fue tu experiencia con {currentTrip?.driver?.name}?
+                </p>
                 <div className="flex justify-center gap-3 py-2">
-                  {[1,2,3,4,5].map(s => (
+                  {[1, 2, 3, 4, 5].map(s => (
                     <button key={s} onClick={() => setDriverRating(s)}>
-                      <Star size={38} className={`transition-all ${s <= driverRating ? "text-yellow-500 fill-yellow-500 scale-110" : "text-slate-300 hover:text-yellow-400"}`} />
+                      <Star
+                        size={38}
+                        className={`transition-all ${s <= driverRating ? "text-yellow-500 fill-yellow-500 scale-110" : "text-slate-300 hover:text-yellow-400"}`}
+                      />
                     </button>
                   ))}
                 </div>
-                <textarea placeholder="Comentario opcional..." value={driverComment} onChange={(e) => setDriverComment(e.target.value)} rows={3}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none" />
+                <textarea
+                  placeholder="Comentario opcional..."
+                  value={driverComment}
+                  onChange={e => setDriverComment(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none"
+                />
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 text-center">
-                  <p className="text-sm text-purple-800 font-medium">+50 puntos de lealtad al calificar</p>
+                  <p className="text-sm text-purple-800 font-medium">
+                    +50 puntos de lealtad al calificar
+                  </p>
                 </div>
-                <Button onClick={handleSubmitRating} disabled={driverRating === 0} className="w-full py-3 font-bold"
-                  style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>Enviar Calificación</Button>
-                <Button variant="outline" onClick={() => { setTripStatus("idle"); setCurrentTrip(null); }} className="w-full text-slate-500">Omitir</Button>
+                <Button
+                  onClick={handleSubmitRating}
+                  disabled={driverRating === 0}
+                  className="w-full py-3 font-bold"
+                  style={{
+                    background: "oklch(0.76 0.18 148)",
+                    color: "oklch(0.08 0.02 148)",
+                  }}
+                >
+                  Enviar Calificación
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setTripStatus("idle");
+                    setCurrentTrip(null);
+                  }}
+                  className="w-full text-slate-500"
+                >
+                  Omitir
+                </Button>
               </div>
             )}
           </div>
@@ -937,9 +1719,16 @@ export default function ClientDashboard() {
       {/* Botón fijo en la parte inferior — solo visible en móvil cuando el panel de solicitud está activo */}
       {tripStatus === "idle" && activePanel === "request" && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 p-4 shadow-2xl">
-          <Button onClick={handleRequestTrip} className="w-full py-4 font-bold text-base rounded-xl shadow-lg"
-            style={{ background: "oklch(0.76 0.18 148)", color: "oklch(0.08 0.02 148)" }}>
-            {showBidMode ? "Enviar Oferta" : "🚕 Solicitar Viaje"} <ChevronRight size={18} className="ml-1" />
+          <Button
+            onClick={handleRequestTrip}
+            className="w-full py-4 font-bold text-base rounded-xl shadow-lg"
+            style={{
+              background: "oklch(0.76 0.18 148)",
+              color: "oklch(0.08 0.02 148)",
+            }}
+          >
+            {showBidMode ? "Enviar Oferta" : "🚕 Solicitar Viaje"}{" "}
+            <ChevronRight size={18} className="ml-1" />
           </Button>
         </div>
       )}

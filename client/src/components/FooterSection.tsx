@@ -29,10 +29,21 @@ export default function FooterSection() {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/saytaxi-brand.svg" alt="SayTaxi Mobility Platform" className="h-10 w-auto max-w-[180px] rounded-xl" />
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400 font-black text-[#071016]">
+                P
+              </span>
+              <span>
+                <b className="block text-sm font-extrabold text-white">
+                  UnPasajero.Com
+                </b>
+                <small className="block text-[9px] font-semibold tracking-[.16em] text-white/40">
+                  ORLANDO MOBILITY
+                </small>
+              </span>
             </div>
             <p className="text-white/40 text-sm leading-relaxed mb-5">
-              Viajes, conductores y flotillas en una plataforma clara, segura y preparada para crecer.
+              Viajes, conductores y flotillas en una plataforma clara, segura y
+              preparada para crecer.
             </p>
             <div className="flex gap-3">
               {[Twitter, Github, Linkedin].map((Icon, i) => (
@@ -57,11 +68,30 @@ export default function FooterSection() {
                 {category}
               </h4>
               <ul className="flex flex-col gap-2.5">
-                {links.map((link) => (
+                {links.map(link => (
                   <li key={link}>
                     <a
-                      href={link === "FAQ" ? "#faq" : link === "Características" ? "#features" : link === "Precios" ? "#pricing" : link === "Soporte" ? "#contact" : "#"}
-                      onClick={link === "FAQ" ? (e) => { e.preventDefault(); document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" }); } : undefined}
+                      href={
+                        link === "FAQ"
+                          ? "#faq"
+                          : link === "Características"
+                            ? "#features"
+                            : link === "Precios"
+                              ? "#pricing"
+                              : link === "Soporte"
+                                ? "#contact"
+                                : "#"
+                      }
+                      onClick={
+                        link === "FAQ"
+                          ? e => {
+                              e.preventDefault();
+                              document
+                                .getElementById("faq")
+                                ?.scrollIntoView({ behavior: "smooth" });
+                            }
+                          : undefined
+                      }
                       className="text-white/40 hover:text-white/80 text-sm transition-colors text-left cursor-pointer"
                     >
                       {link}
@@ -81,10 +111,11 @@ export default function FooterSection() {
           style={{ borderColor: "oklch(1 0 0 / 0.08)" }}
         >
           <p className="text-white/30 text-xs">
-            © 2026 SayTaxi Mobility Platform. Todos los derechos reservados.
+            © 2026 UnPasajero.Com. Todos los derechos reservados.
           </p>
           <p className="text-white/30 text-xs flex items-center gap-1.5">
-            Hecho con <Heart size={11} className="text-red-400 fill-red-400" /> para empresas de taxi en Latinoamérica
+            Hecho con <Heart size={11} className="text-red-400 fill-red-400" />{" "}
+            para movilidad en Orlando, Florida
           </p>
         </div>
       </div>

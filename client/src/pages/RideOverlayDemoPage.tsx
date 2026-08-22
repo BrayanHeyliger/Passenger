@@ -137,9 +137,9 @@ function MapScene() {
           <circle cx="14" cy="13" r="5" fill="#0d171a" />
         </g>
       </svg>
-      <b className="ride-overlay-label ride-overlay-label--one">JUÁREZ</b>
-      <b className="ride-overlay-label ride-overlay-label--two">ROMA NORTE</b>
-      <b className="ride-overlay-label ride-overlay-label--three">DOCTORES</b>
+      <b className="ride-overlay-label ride-overlay-label--one">DOWNTOWN</b>
+      <b className="ride-overlay-label ride-overlay-label--two">LAKE EOLA</b>
+      <b className="ride-overlay-label ride-overlay-label--three">MILLS 50</b>
     </div>
   );
 }
@@ -152,17 +152,17 @@ export default function RideOverlayDemoPage({
   const [, navigate] = useLocation();
   const [stage, setStage] = useState<Stage>("ready");
   const [selected, setSelected] = useState<RideId>("standard");
-  const [pickup, setPickup] = useState("Av. Reforma 222, Juárez");
+  const [pickup, setPickup] = useState("Lake Eola Park, Orlando, FL");
   const [destination, setDestination] = useState(
-    "Aeropuerto Internacional (AICM)"
+    "Orlando International Airport (MCO)"
   );
   const [pickupCoords, setPickupCoords] = useState({
-    lat: 19.427,
-    lng: -99.1677,
+    lat: 28.543,
+    lng: -81.3737,
   });
   const [destinationCoords, setDestinationCoords] = useState({
-    lat: 19.4363,
-    lng: -99.0719,
+    lat: 28.4312,
+    lng: -81.3081,
   });
   const ride = rides.find(item => item.id === selected)!;
   const close = () => setStage("ready");
@@ -190,24 +190,28 @@ export default function RideOverlayDemoPage({
     toast.success("Solicitud preparada. La página no cambió de posición.");
   };
   return (
-    <main className="ride-overlay-page">
+    <main
+      className={`ride-overlay-page${integrated ? " ride-overlay-page--integrated" : ""}`}
+    >
       <MapScene />
-      <header className="ride-overlay-nav">
-        <a href="/" className="ride-overlay-brand">
-          <i>P</i>
-          <span>
-            <b>UnPasajero.Com</b>
-            <small>MOVILIDAD EN UN SOLO LUGAR</small>
-          </span>
-        </a>
-        <nav>
-          <a href="#clientes">Clientes</a>
-          <a href="#conductores">Conductores</a>
-          <a href="#flotillas">Flotillas</a>
-          <a href="#precios">Precios</a>
-        </nav>
-        <button>Mi cuenta</button>
-      </header>
+      {!integrated && (
+        <header className="ride-overlay-nav">
+          <a href="/" className="ride-overlay-brand">
+            <i>P</i>
+            <span>
+              <b>UnPasajero.Com</b>
+              <small>MOVILIDAD EN UN SOLO LUGAR</small>
+            </span>
+          </a>
+          <nav>
+            <a href="#clientes">Clientes</a>
+            <a href="#conductores">Conductores</a>
+            <a href="#flotillas">Flotillas</a>
+            <a href="#precios">Precios</a>
+          </nav>
+          <button>Mi cuenta</button>
+        </header>
+      )}
       <section className="ride-overlay-intro">
         <p>
           <i /> CONDUCTORES DISPONIBLES AHORA
