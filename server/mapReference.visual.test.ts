@@ -110,6 +110,10 @@ const serviceWorkerSource = readFileSync(
   resolve(projectRoot, "client/public/sw.js"),
   "utf8"
 );
+const trustBadgesSource = readFileSync(
+  resolve(projectRoot, "client/src/components/TrustBadges.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -325,5 +329,19 @@ describe("mapa dark premium de referencia", () => {
     expect(tripChatSource).toContain("lastNotifiedMessageRef");
     expect(serviceWorkerSource).toContain('"UnPasajero.Com"');
     expect(serviceWorkerSource).toContain("notificationclick");
+  });
+
+  it("mantiene pago directo al conductor, selección manual y Autobúsqueda", () => {
+    expect(clientDashboardSource).toContain("direct_to_driver");
+    expect(clientDashboardSource).toContain("NEARBY_DRIVERS");
+    expect(clientDashboardSource).toContain("Elige tu conductor");
+    expect(clientDashboardSource).toContain("Autobúsqueda");
+    expect(clientDashboardSource).toContain("driver_declined");
+    expect(clientDashboardSource).toContain("UnPasajero.Com no recibe ni procesa el pago del viaje");
+    expect(driverDashboardSource).toContain("DIRECT_PAYMENT_OPTIONS");
+    expect(driverDashboardSource).toContain("Cobro directo al pasajero");
+    expect(driverDashboardSource).toContain("unpasajero_driver_payment_methods");
+    expect(trustBadgesSource).toContain("El conductor puede aceptar");
+    expect(trustBadgesSource).toContain("Cash App");
   });
 });

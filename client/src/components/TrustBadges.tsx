@@ -6,12 +6,12 @@ type TrustBadgesProps = {
 };
 
 const assurances = [
-  { label: "Pago Seguro", icon: ShieldCheck, tone: "emerald" },
+  { label: "Pago directo claro", icon: ShieldCheck, tone: "emerald" },
   { label: "SSL Encriptado", icon: LockKeyhole, tone: "cyan" },
   { label: "Conductores Verificados", icon: BadgeCheck, tone: "violet" },
 ] as const;
 
-const payments = ["VISA", "Mastercard", "AMEX", "Zelle", "PayPal"];
+const payments = ["Efectivo", "Zelle", "Cash App", "PayPal", "Transferencia"];
 
 export function TrustBadges({ variant = "footer", showPayments = true }: TrustBadgesProps) {
   const compact = variant === "checkout";
@@ -27,7 +27,7 @@ export function TrustBadges({ variant = "footer", showPayments = true }: TrustBa
       </div>
       {showPayments && (
         <div className="saytaxi-payment-methods" aria-label="Métodos de pago aceptados">
-          <span className="saytaxi-payment-methods__label">Aceptamos</span>
+          <span className="saytaxi-payment-methods__label">El conductor puede aceptar</span>
           <div className="saytaxi-payment-methods__logos">
             {payments.map(method => <span key={method} className={`saytaxi-payment-logo saytaxi-payment-logo--${method.toLowerCase()}`}>{method}</span>)}
           </div>

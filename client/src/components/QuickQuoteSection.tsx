@@ -88,10 +88,10 @@ export default function QuickQuoteSection() {
             {/* Payment methods */}
             <div className="mt-8 p-4 rounded-2xl" style={{ background: "oklch(0.97 0.005 148 / 0.5)", border: "1px solid oklch(0.90 0.005 100)" }}>
               <p className="text-[oklch(0.55_0.01_80)] text-xs font-semibold uppercase tracking-wider mb-3">
-                💳 Métodos de pago aceptados
+                💳 Pago directo al conductor
               </p>
               <div className="flex flex-wrap gap-2">
-                {["💵 Efectivo", "💳 Tarjeta", "📱 Zelle", "🏦 Transferencia", "📲 Pago Móvil"].map((method) => (
+                {["💵 Efectivo", "📱 Zelle", "💲 Cash App", "🅿️ PayPal", "🏦 Transferencia"].map((method) => (
                   <span
                     key={method}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-[oklch(0.35_0.01_250)]"
@@ -101,6 +101,7 @@ export default function QuickQuoteSection() {
                   </span>
                 ))}
               </div>
+              <p className="mt-3 text-xs text-[oklch(0.45_0.01_80)]">El conductor confirma los métodos disponibles; UnPasajero.Com no cobra ni retiene el pago del viaje.</p>
             </div>
           </div>
 

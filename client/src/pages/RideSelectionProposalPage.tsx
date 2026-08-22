@@ -255,7 +255,7 @@ export default function RideSelectionProposalPage() {
           </button>
         </div>
         <div className="ride-payment-note">
-          <CreditCard size={15} /> Método de pago: Visa terminada en 4821{" "}
+          <CreditCard size={15} /> Pago directo: método confirmado con el conductor{" "}
           <BriefcaseBusiness size={15} /> Viaje de trabajo
         </div>
       </section>

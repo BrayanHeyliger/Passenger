@@ -37,7 +37,7 @@ const stages = [
   {
     title: "Llegaste con seguridad",
     eyebrow: "04 · LLEGADA",
-    caption: "Confirma el total y selecciona el método de pago.",
+    caption: "Confirma el total y paga directamente al conductor.",
   },
   {
     title: "Califica tu experiencia",
@@ -272,14 +272,14 @@ function StageContent({ step }: { step: FlowStep }) {
         </div>
         <div className="flow-payment-method">
           <WalletCards size={20} />
-          <span>Visa terminada en 4821</span>
+          <span>Pago directo al conductor · Efectivo</span>
           <Check size={18} />
         </div>
         <button
-          onClick={() => toast.success("Pago procesado correctamente")}
+          onClick={() => toast.success("Pago directo confirmado con el conductor")}
           className="flow-primary"
         >
-          Pagar $115.00
+          Confirmar pago directo $115.00
         </button>
       </div>
     );

@@ -555,7 +555,7 @@ export default function RideOverlayDemoPage({
                 >
                   <span>
                     Confirmar solicitud
-                    <small>Seguimiento y pago seguro incluidos</small>
+                    <small>Seguimiento y pago directo al conductor</small>
                   </span>
                   <b>
                     <ArrowRight size={19} />

@@ -253,8 +253,8 @@ export default function LandingRideProposalPage() {
             </b>
           </button>
           <p className="landing-selector-foot">
-            <ShieldCheck size={15} /> Seguimiento de viaje y pago seguro
-            incluidos.
+            <ShieldCheck size={15} /> Seguimiento de viaje y pago directo al
+            conductor.
           </p>
         </section>
       </section>

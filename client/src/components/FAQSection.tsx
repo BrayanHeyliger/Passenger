@@ -52,7 +52,7 @@ const faqCategories = [
     questions: [
       {
         q: "¿Cuáles son los métodos de pago aceptados?",
-        a: "Aceptamos: efectivo, tarjeta de crédito/débito (Visa, Mastercard), Zelle, transferencia bancaria y pago móvil. El conductor siempre confirmará el método antes de iniciar el viaje.",
+        a: "El pasajero paga directamente al conductor. Cada conductor habilita los métodos que acepta: efectivo, Zelle, Cash App, PayPal o transferencia. UnPasajero.Com no recibe ni procesa el dinero del viaje.",
       },
       {
         q: "¿Cómo se calcula la tarifa?",

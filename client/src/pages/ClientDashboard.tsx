@@ -24,6 +24,7 @@ import {
   MapPin,
   Navigation,
   Gift,
+  Zap,
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -42,6 +43,8 @@ import { ParcelHistory } from "@/components/ParcelHistory";
 
 type TripStatus =
   | "idle"
+  | "choosing_driver"
+  | "awaiting_driver"
   | "searching"
   | "accepted"
   | "in_progress"
@@ -71,8 +74,23 @@ interface TripHistory {
   rating: number;
 }
 
+interface NearbyDriver {
+  id: string;
+  name: string;
+  vehicle: string;
+  plate: string;
+  distanceMiles: number;
+  eta: string;
+  paymentMethods: string[];
+}
+
 const TRIPS_KEY = "wt_pending_trips";
 const HISTORY_KEY = "wt_trip_history";
+const NEARBY_DRIVERS: NearbyDriver[] = [
+  { id: "driver-demo", name: "Demo Driver", vehicle: "Toyota Corolla", plate: "DEM-204", distanceMiles: 0.8, eta: "3 min", paymentMethods: ["Efectivo", "Zelle", "Cash App"] },
+  { id: "driver-luis", name: "Luis R.", vehicle: "Honda Civic", plate: "ORL-456", distanceMiles: 1.4, eta: "5 min", paymentMethods: ["Efectivo", "Zelle", "Transferencia"] },
+  { id: "driver-ana", name: "Ana G.", vehicle: "Nissan Versa", plate: "FLA-789", distanceMiles: 2.1, eta: "7 min", paymentMethods: ["Efectivo", "Cash App", "PayPal"] },
+];
 
 export default function ClientDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
@@ -150,6 +168,8 @@ export default function ClientDashboard() {
   });
   const [showBidMode, setShowBidMode] = useState(false);
   const [bidAmount, setBidAmount] = useState("");
+  const [selectedNearbyDriver, setSelectedNearbyDriver] = useState<NearbyDriver | null>(null);
+  const [driverSelectionIssue, setDriverSelectionIssue] = useState<"no_response" | "declined" | null>(null);
   const [parcelOrders, setParcelOrders] = useState<ParcelOrder[]>([]);
   const [selectedParcel, setSelectedParcel] = useState<ParcelOrder | null>(
     null
@@ -306,26 +326,26 @@ export default function ClientDashboard() {
     if (!isAuthenticated) navigate("/login");
   }, [isAuthenticated]);
 
-  // Poll for driver acceptance
+  // En QA se conserva una aceptación simulada explícita; producción espera al conductor elegido.
   useEffect(() => {
     if (tripStatus !== "searching") return;
+    const qaSimulation = import.meta.env.DEV && new URLSearchParams(window.location.search).has("qa");
+    if (!qaSimulation) return;
     const autoAssign = setTimeout(() => {
       const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
       const myTrip = trips.find(
         (t: any) => t.clientId === user?.id && t.status === "requested"
       );
       if (myTrip) {
+        const chosenDriver = myTrip.driver || NEARBY_DRIVERS[0];
         const updatedTrip = {
           ...myTrip,
           status: "accepted",
           driver: {
-            name: "Carlos M.",
-            vehicle: "Toyota Corolla",
-            plate: "ABC-123",
-            rating: 4.8,
+            ...chosenDriver,
             phone: "",
           },
-          estimatedTime: "4 min",
+          estimatedTime: chosenDriver.eta || "4 min",
         };
         const updated = trips.map((t: any) =>
           t.id === myTrip.id ? updatedTrip : t
@@ -335,15 +355,14 @@ export default function ClientDashboard() {
         setTripStatus("accepted");
         playTripAccepted();
         addNotification(
-          "🚕 ¡Carlos M. aceptó tu viaje! ETA: 4 min",
+          `🚕 ¡${chosenDriver.name} aceptó tu viaje! ETA: ${chosenDriver.eta || "4 min"}`,
           "success",
           "¡Conductor en camino! 🚕",
-          "Carlos M. aceptó tu viaje. Llegará en 4 minutos."
+          `${chosenDriver.name} aceptó tu viaje. Llegará en ${chosenDriver.eta || "4 min"}.`
         );
         setLoyaltyPoints(p => p + 10);
         liveDriverGpsRef.current = false;
         if (gpsFallbackTimerRef.current) clearTimeout(gpsFallbackTimerRef.current);
-        const qaSimulation = import.meta.env.DEV && new URLSearchParams(window.location.search).has("qa");
         if (qaSimulation) {
           gpsFallbackTimerRef.current = setTimeout(() => {
             if (!liveDriverGpsRef.current) {
@@ -358,6 +377,28 @@ export default function ClientDashboard() {
     }, 6000);
     return () => clearTimeout(autoAssign);
   }, [tripStatus, user?.id, pickupCoords, playTripAccepted]);
+
+  useEffect(() => {
+    if (!currentTrip?.id || !(tripStatus === "awaiting_driver" || tripStatus === "searching")) return;
+    const syncDriverResponse = () => {
+      const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+      const persistedTrip = trips.find((trip: any) => trip.id === currentTrip.id);
+      if (persistedTrip?.status !== "accepted") return;
+      setCurrentTrip(persistedTrip);
+      setTripStatus("accepted");
+      playTripAccepted();
+      addNotification(
+        `🚕 ¡${persistedTrip.driver?.name || "Tu conductor"} aceptó tu viaje! ETA: ${persistedTrip.estimatedTime || "por confirmar"}`,
+        "success",
+        "¡Conductor en camino! 🚕",
+        `${persistedTrip.driver?.name || "Tu conductor"} aceptó tu viaje.`
+      );
+      setLoyaltyPoints(points => points + 10);
+    };
+    syncDriverResponse();
+    const interval = setInterval(syncDriverResponse, 1500);
+    return () => clearInterval(interval);
+  }, [currentTrip?.id, tripStatus, playTripAccepted]);
 
   useEffect(() => {
     if (!driverLocation || !currentTrip || !(tripStatus === "accepted" || tripStatus === "in_progress")) return;
@@ -595,7 +636,7 @@ export default function ClientDashboard() {
       pickup: pickupLocation,
       dropoff: dropoffLocation,
       fare,
-      status: "requested",
+      status: "awaiting_driver_choice",
       requestedAt: new Date().toISOString(),
       vehicleType: selectedVehicle,
       scheduledFor:
@@ -609,15 +650,70 @@ export default function ClientDashboard() {
     trips.push(newTrip);
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
     setCurrentTrip(newTrip);
-    setTripStatus("searching");
+    setSelectedNearbyDriver(null);
+    setDriverSelectionIssue(null);
+    setTripStatus("choosing_driver");
     playReservationConfirmed();
     addNotification(
       scheduledDate
         ? `📅 Viaje programado para ${scheduledDate} ${scheduledTime}`
-        : "🔍 Buscando conductor disponible...",
+        : "👤 Elige un conductor disponible cerca de ti.",
       "info"
     );
   };
+
+  const persistDriverSelection = (driver: NearbyDriver, assignmentMode: "manual" | "auto") => {
+    if (!currentTrip) return null;
+    const updatedTrip = {
+      ...currentTrip,
+      status: "requested",
+      selectedDriverId: driver.id,
+      assignmentMode,
+      driver: { ...driver, paymentModel: "direct_to_driver" },
+    };
+    const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(trips.map((trip: any) => trip.id === updatedTrip.id ? updatedTrip : trip)));
+    setCurrentTrip(updatedTrip);
+    setSelectedNearbyDriver(driver);
+    return updatedTrip;
+  };
+
+  const handleSelectNearbyDriver = (driver: NearbyDriver) => {
+    if (!persistDriverSelection(driver, "manual")) return;
+    setDriverSelectionIssue(null);
+    setTripStatus("awaiting_driver");
+    addNotification(`Solicitud enviada a ${driver.name}. Esperando su respuesta…`, "info");
+  };
+
+  const handleAutoSearch = () => {
+    const recommended = NEARBY_DRIVERS.find(driver => driver.id !== selectedNearbyDriver?.id) || NEARBY_DRIVERS[0];
+    if (!persistDriverSelection(recommended, "auto")) return;
+    setDriverSelectionIssue(null);
+    setTripStatus("searching");
+    addNotification(`⚡ Autobúsqueda recomendó a ${recommended.name}, a ${recommended.distanceMiles.toFixed(1)} mi.`, "success");
+  };
+
+  useEffect(() => {
+    if (tripStatus !== "awaiting_driver" || !currentTrip?.id) return;
+    const timeout = setTimeout(() => {
+      setDriverSelectionIssue("no_response");
+      addNotification("El conductor seleccionado no ha respondido. Puedes intentar Autobúsqueda.", "warning");
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, [tripStatus, currentTrip?.id, addNotification]);
+
+  useEffect(() => {
+    if (tripStatus !== "awaiting_driver" || !currentTrip?.id) return;
+    const interval = setInterval(() => {
+      const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+      const persistedTrip = trips.find((trip: any) => trip.id === currentTrip.id);
+      if (persistedTrip?.status === "driver_declined") {
+        setDriverSelectionIssue("declined");
+        addNotification(`${persistedTrip.driver?.name || "El conductor"} no pudo aceptar. Puedes usar Autobúsqueda.`, "warning");
+      }
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [tripStatus, currentTrip?.id, addNotification]);
 
   const handleCancelTrip = () => {
     if (currentTrip) {
@@ -1267,6 +1363,48 @@ export default function ClientDashboard() {
               </div>
             )}
 
+            {(tripStatus === "choosing_driver" || tripStatus === "awaiting_driver" || tripStatus === "searching") && currentTrip && (
+              <div className="p-4 space-y-4">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-emerald-600 uppercase">Pago directo</p>
+                  <h2 className="text-lg font-bold text-slate-900 mt-1">{tripStatus === "choosing_driver" ? "Elige tu conductor" : "Solicitud en curso"}</h2>
+                  <p className="text-sm text-slate-500 mt-1">El pasajero paga directamente al conductor. UnPasajero.Com no recibe ni procesa el pago del viaje.</p>
+                </div>
+
+                {tripStatus === "choosing_driver" && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-slate-500">Conductores disponibles cerca de tu punto de recogida</p>
+                    {NEARBY_DRIVERS.map(driver => (
+                      <button key={driver.id} type="button" onClick={() => handleSelectNearbyDriver(driver)} className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50/40">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0"><div className="h-10 w-10 shrink-0 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold">{driver.name[0]}</div><div className="min-w-0"><p className="font-semibold text-slate-900">{driver.name} <span className="text-emerald-600 text-xs">Verificado</span></p><p className="text-xs text-slate-500 truncate">{driver.vehicle} · {driver.distanceMiles.toFixed(1)} mi · {driver.eta}</p></div></div>
+                          <ChevronRight size={18} className="text-emerald-600 mt-2" />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">{driver.paymentMethods.map(method => <span key={method} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">{method}</span>)}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {(tripStatus === "awaiting_driver" || tripStatus === "searching") && selectedNearbyDriver && (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex justify-between gap-3"><div><p className="text-xs font-semibold text-slate-500 uppercase">{tripStatus === "searching" ? "Autobúsqueda activa" : "Conductor elegido"}</p><p className="font-bold text-slate-900 mt-1">{selectedNearbyDriver.name}</p><p className="text-xs text-slate-500">{selectedNearbyDriver.vehicle} · {selectedNearbyDriver.distanceMiles.toFixed(1)} mi</p></div><span className="rounded-full bg-emerald-100 px-2 py-1 h-fit text-xs font-semibold text-emerald-700">{tripStatus === "searching" ? "Buscando respuesta" : "Solicitud enviada"}</span></div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">{selectedNearbyDriver.paymentMethods.map(method => <span key={method} className="rounded-full bg-white border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600">{method}</span>)}</div>
+                  </div>
+                )}
+
+                {driverSelectionIssue && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-semibold text-amber-900">{driverSelectionIssue === "declined" ? "El conductor no pudo aceptar este viaje." : "El conductor no ha respondido todavía."}</p><p className="mt-1 text-xs text-amber-800">Prueba Autobúsqueda para recibir una recomendación de otro conductor cercano.</p></div>
+                )}
+
+                {(driverSelectionIssue || tripStatus === "choosing_driver") && (
+                  <button type="button" onClick={handleAutoSearch} className="w-full rounded-xl bg-amber-400 px-4 py-3 font-bold text-slate-950 shadow-sm transition hover:bg-amber-300 flex items-center justify-center gap-2"><Zap size={18} fill="currentColor" /> Autobúsqueda</button>
+                )}
+
+                <button type="button" onClick={handleCancelTrip} className="w-full text-sm font-medium text-slate-500 hover:text-red-600">Cancelar solicitud</button>
+              </div>
+            )}
+
             {/* PROGRAMAR VIAJE */}
             {tripStatus === "idle" && activePanel === "scheduled" && (
               <div className="p-4 flex flex-col gap-3">
@@ -1665,7 +1803,7 @@ export default function ClientDashboard() {
                 <ParcelHistory />
               </div>
             )}
-            {tripStatus === "searching" && (
+            {tripStatus === "searching" && !selectedNearbyDriver && (
               <div className="p-5 flex flex-col items-center gap-4 justify-center h-full">
                 <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
                   <Car size={36} className="text-green-600 animate-bounce" />

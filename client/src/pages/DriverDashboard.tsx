@@ -22,12 +22,23 @@ import { DriverParcelPanel } from "@/components/DriverParcelPanel";
 import { DriverActivityTimeline } from "@/components/DriverActivityTimeline";
 const TRIPS_KEY = "wt_pending_trips";
 const DRIVER_HISTORY_KEY = "wt_driver_history";
+const DRIVER_PAYMENT_KEY = "unpasajero_driver_payment_methods";
+
+type DirectPaymentMethod = "cash" | "zelle" | "cash_app" | "paypal" | "transfer";
+
+const DIRECT_PAYMENT_OPTIONS: Array<{ id: DirectPaymentMethod; label: string; description: string }> = [
+  { id: "cash", label: "Efectivo", description: "Pago al terminar el viaje" },
+  { id: "zelle", label: "Zelle", description: "Transferencia directa" },
+  { id: "cash_app", label: "Cash App", description: "Pago directo" },
+  { id: "paypal", label: "PayPal", description: "Pago entre usuarios" },
+  { id: "transfer", label: "Transferencia", description: "Banco o transferencia local" },
+];
 
 interface PendingTrip {
   id: string; clientId: number; clientName: string;
   pickup: string; dropoff: string; fare: string;
   status: string; requestedAt: string; driver?: any;
-  estimatedTime?: string; isBid?: boolean;
+  estimatedTime?: string; isBid?: boolean; selectedDriverId?: string;
 }
 
 interface EarningsEntry { date: string; trips: number; earnings: number; }
@@ -51,6 +62,13 @@ export default function DriverDashboard() {
   const [driverChatOpen, setDriverChatOpen] = useState(false);
   const [showNavigationApps, setShowNavigationApps] = useState(false);
   const [activeTab, setActiveTab] = useState<"trips" | "earnings" | "referrals" | "profile" | "docs" | "parcels">("trips");
+  const [directPaymentMethods, setDirectPaymentMethods] = useState<Record<DirectPaymentMethod, boolean>>(() => {
+    try {
+      return { cash: true, zelle: false, cash_app: false, paypal: false, transfer: false, ...JSON.parse(localStorage.getItem(DRIVER_PAYMENT_KEY) || "{}") };
+    } catch {
+      return { cash: true, zelle: false, cash_app: false, paypal: false, transfer: false };
+    }
+  });
   const driverMapRef = useRef<import("@/components/LeafletMap").LeafletMapRef | null>(null);
   const gpsRoomId = currentTrip ? `trip-${currentTrip.id}` : null;
   const { sendDriverLocation } = useSocket({
@@ -75,10 +93,21 @@ export default function DriverDashboard() {
 
   useEffect(() => { if (!isAuthenticated) navigate("/login"); }, [isAuthenticated]);
 
+  const toggleDirectPaymentMethod = (method: DirectPaymentMethod) => {
+    setDirectPaymentMethods(current => {
+      const updated = { ...current, [method]: !current[method] };
+      localStorage.setItem(DRIVER_PAYMENT_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const checkTrips = useCallback(() => {
     if (!isOnline || tripPhase !== "idle") return;
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
-    const available = trips.filter(t => t.status === "requested");
+    const available = trips.filter(t =>
+      t.status === "requested" &&
+      (!t.selectedDriverId || t.selectedDriverId === "driver-demo" || t.selectedDriverId === String(user?.id))
+    );
     if (available.length > pendingTrips.length) {
       const newest = available[available.length - 1];
       setNewTripAlert(true);
@@ -97,7 +126,7 @@ export default function DriverDashboard() {
       });
     }
     setPendingTrips(available);
-  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif, startIncomingTripAlert]);
+  }, [isOnline, tripPhase, pendingTrips.length, sendNotification, addPersistedNotif, startIncomingTripAlert, user?.id]);
 
   useEffect(() => {
     const interval = setInterval(checkTrips, 2000);
@@ -108,7 +137,16 @@ export default function DriverDashboard() {
     const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const updated = trips.map(t => t.id === trip.id ? {
       ...t, status: "accepted",
-      driver: { id: user?.id, name: user?.name, phone: user?.phone || "+15550000", vehicle: "Mi Vehículo", plate: "XXX-000", rating: 4.8 },
+      driver: {
+        id: user?.id,
+        name: user?.name,
+        phone: user?.phone || "+15550000",
+        vehicle: "Mi Vehículo",
+        plate: "XXX-000",
+        rating: 4.8,
+        paymentMethods: DIRECT_PAYMENT_OPTIONS.filter(option => directPaymentMethods[option.id]).map(option => option.label),
+        paymentModel: "direct_to_driver",
+      },
       estimatedTime: "5 min",
     } : t);
     localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
@@ -198,8 +236,11 @@ export default function DriverDashboard() {
   };
 
   const handleRejectTrip = (tripId: string) => {
+    const trips: PendingTrip[] = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(trips.map(trip => trip.id === tripId ? { ...trip, status: "driver_declined" } : trip)));
     setPendingTrips(prev => prev.filter(t => t.id !== tripId));
     stopIncomingTripAlert();
+    toast.info("Solicitud rechazada. El pasajero podrá usar Autobúsqueda.");
   };
 
   const handleCallPassenger = () => {
@@ -696,6 +737,29 @@ export default function DriverDashboard() {
                   </div>
                 ))}
               </div>
+            </Card>
+            <Card className="p-5 border-emerald-200 bg-emerald-50/40">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><DollarSign size={20} /></div>
+                <div>
+                  <h2 className="font-bold text-slate-900">Cobro directo al pasajero</h2>
+                  <p className="text-xs text-slate-600 mt-1">UnPasajero.Com no recibe ni procesa el dinero del viaje. El pasajero verá únicamente los métodos que habilites.</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {DIRECT_PAYMENT_OPTIONS.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => toggleDirectPaymentMethod(option.id)}
+                    className={`w-full flex items-center justify-between rounded-xl border px-3 py-2.5 text-left transition-colors ${directPaymentMethods[option.id] ? "border-emerald-400 bg-white" : "border-slate-200 bg-slate-50 opacity-70"}`}
+                  >
+                    <span><strong className="block text-sm text-slate-900">{option.label}</strong><small className="text-xs text-slate-500">{option.description}</small></span>
+                    <span className={`relative h-5 w-10 rounded-full transition-colors ${directPaymentMethods[option.id] ? "bg-emerald-500" : "bg-slate-300"}`}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${directPaymentMethods[option.id] ? "translate-x-5" : "translate-x-0.5"}`} /></span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-emerald-800">El pasajero paga directamente al conductor. Confirma el método elegido antes de iniciar el viaje.</p>
             </Card>
           </div>
         )}
