@@ -1397,7 +1397,7 @@ export default function ClientDashboard() {
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-semibold text-amber-900">{driverSelectionIssue === "declined" ? "El conductor no pudo aceptar este viaje." : "El conductor no ha respondido todavía."}</p><p className="mt-1 text-xs text-amber-800">Prueba Autobúsqueda para recibir una recomendación de otro conductor cercano.</p></div>
                 )}
 
-                {(driverSelectionIssue || tripStatus === "choosing_driver") && (
+                {driverSelectionIssue && (
                   <button type="button" onClick={handleAutoSearch} className="w-full rounded-xl bg-amber-400 px-4 py-3 font-bold text-slate-950 shadow-sm transition hover:bg-amber-300 flex items-center justify-center gap-2"><Zap size={18} fill="currentColor" /> Autobúsqueda</button>
                 )}
 
