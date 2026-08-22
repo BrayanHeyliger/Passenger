@@ -14,6 +14,7 @@ import {
   Eye, Send, User, XCircle, Activity
 } from "lucide-react";
 import { useLocalAuth } from "@/contexts/LocalAuthContext";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { trpc } from "@/lib/trpc";
 import LeafletMap from "@/components/LeafletMap";
 import { toast } from "sonner";
@@ -36,17 +37,19 @@ const TRIPS_KEY = "wt_pending_trips";
 interface MockDriver {
   id: string; name: string; vehicle: string; plate: string;
   status: "available" | "busy" | "offline"; lat: number; lng: number; trips: number;
+  rating: number; identityStatus: "approved" | "pending_review"; profilePhotoUrl: string; paymentMethods: string[];
 }
 
 const MOCK_DRIVERS: MockDriver[] = [
-  { id: "d1", name: "Carlos M.", vehicle: "Toyota Corolla", plate: "ABC-123", status: "available", lat: 28.5436, lng: -81.3733, trips: 8 },
-  { id: "d2", name: "Luis R.", vehicle: "Honda Civic", plate: "XYZ-456", status: "available", lat: 28.5381, lng: -81.3794, trips: 5 },
-  { id: "d3", name: "Ana G.", vehicle: "Nissan Versa", plate: "DEF-789", status: "busy", lat: 28.5534, lng: -81.3648, trips: 12 },
-  { id: "d4", name: "Pedro S.", vehicle: "VW Jetta", plate: "GHI-012", status: "offline", lat: 28.5292, lng: -81.3691, trips: 3 },
+  { id: "driver-demo", name: "Demo Driver", vehicle: "Toyota Corolla", plate: "ABC-123", status: "available", lat: 28.5436, lng: -81.3733, trips: 8, rating: 4.9, identityStatus: "approved", profilePhotoUrl: "/manus-storage/demo-driver-profile_5f16f288.jpg", paymentMethods: ["Efectivo", "Zelle", "Cash App"] },
+  { id: "driver-luis", name: "Luis R.", vehicle: "Honda Civic", plate: "XYZ-456", status: "available", lat: 28.5381, lng: -81.3794, trips: 5, rating: 4.8, identityStatus: "approved", profilePhotoUrl: "/manus-storage/luis-driver-profile_c6f23eac.jpg", paymentMethods: ["Efectivo", "Zelle", "Transferencia"] },
+  { id: "driver-ana", name: "Ana G.", vehicle: "Nissan Versa", plate: "DEF-789", status: "busy", lat: 28.5534, lng: -81.3648, trips: 12, rating: 4.7, identityStatus: "approved", profilePhotoUrl: "/manus-storage/ana-driver-profile_12c06a6f.jpg", paymentMethods: ["Efectivo", "Cash App", "PayPal"] },
+  { id: "driver-pedro", name: "Pedro S.", vehicle: "VW Jetta", plate: "GHI-012", status: "offline", lat: 28.5292, lng: -81.3691, trips: 3, rating: 4.3, identityStatus: "pending_review", profilePhotoUrl: "", paymentMethods: ["Efectivo"] },
 ];
 
 export default function DispatcherDashboard() {
   const { user, isAuthenticated, logout } = useLocalAuth();
+  const { config } = useSiteConfig();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"queue" | "map" | "drivers" | "history">("queue");
   const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS);
@@ -62,7 +65,7 @@ export default function DispatcherDashboard() {
   useEffect(() => {
     const load = () => {
       const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
-      setPendingTrips(trips.filter((t: any) => t.status === "requested"));
+      setPendingTrips(trips.filter((t: any) => t.status === "requested" || t.status === "driver_declined"));
     };
     load();
     const interval = setInterval(load, 3000);
@@ -77,11 +80,20 @@ export default function DispatcherDashboard() {
     if (!selectedTrip || !selectedDriver) { toast.error("Selecciona un conductor"); return; }
     const driver = MOCK_DRIVERS.find(d => d.id === selectedDriver);
     if (!driver) return;
+    const selectionLocked = selectedTrip.assignmentMode === "manual" && selectedTrip.selectedDriverId && selectedTrip.status !== "driver_declined";
+    if (selectionLocked && selectedDriver !== selectedTrip.selectedDriverId) {
+      toast.error("Debes respetar la elección del pasajero hasta que el conductor rechace o venza su respuesta.");
+      return;
+    }
+    if (driver.identityStatus !== "approved") {
+      toast.error("Este conductor no tiene identidad aprobada y no puede recibir viajes.");
+      return;
+    }
 
     const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
     const updated = trips.map((t: any) =>
       t.id === selectedTrip.id
-        ? { ...t, status: "accepted", driver: { name: driver.name, vehicle: driver.vehicle, plate: driver.plate, rating: 4.8, phone: "" }, estimatedTime: "5 min" }
+        ? { ...t, status: "accepted", driver: { id: driver.id, name: driver.name, vehicle: driver.vehicle, plate: driver.plate, rating: driver.rating, profilePhotoUrl: driver.profilePhotoUrl, paymentMethods: driver.paymentMethods, paymentModel: "direct_to_driver", phone: "" }, estimatedTime: "5 min", dispatcherAssignedAt: new Date().toISOString() }
         : t
     );
     localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
@@ -92,6 +104,18 @@ export default function DispatcherDashboard() {
     setSelectedDriver("");
   };
 
+  const handleAutoSearch = (trip: any) => {
+    if (!config.autoSearchEnabled) { toast.error("Autobúsqueda está desactivada por administración."); return; }
+    if (trip.status !== "driver_declined") { toast.error("Autobúsqueda se habilita solo cuando el conductor elegido rechaza el viaje."); return; }
+    const alternate = availableDrivers.find(driver => driver.id !== trip.selectedDriverId);
+    if (!alternate) { toast.error("No hay conductores verificados disponibles para Autobúsqueda."); return; }
+    const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
+    const updated = trips.map((item: any) => item.id === trip.id ? { ...item, status: "requested", assignmentMode: "auto", selectedDriverId: alternate.id, autoSearchStartedAt: new Date().toISOString() } : item);
+    localStorage.setItem(TRIPS_KEY, JSON.stringify(updated));
+    logActivity(`Autobúsqueda recomendó a ${alternate.name} después del rechazo del conductor elegido.`);
+    toast.success(`Autobúsqueda recomendó a ${alternate.name}. Confirma la asignación con transparencia.`);
+  };
+
   const handleCancelTrip = (tripId: string) => {
     if (!permissions.cancelTrips) { toast.error("No tienes permiso para cancelar viajes"); return; }
     const trips = JSON.parse(localStorage.getItem(TRIPS_KEY) || "[]");
@@ -100,7 +124,7 @@ export default function DispatcherDashboard() {
     toast.success("Viaje cancelado");
   };
 
-  const availableDrivers = MOCK_DRIVERS.filter(d => d.status === "available");
+  const availableDrivers = MOCK_DRIVERS.filter(d => d.status === "available" && (!config.verifiedDriversOnly || d.identityStatus === "approved") && d.rating >= Number(config.minimumDriverRating || 0));
   const busyDrivers = MOCK_DRIVERS.filter(d => d.status === "busy");
 
   if (!isAuthenticated) return null;
@@ -193,7 +217,10 @@ export default function DispatcherDashboard() {
                         <p className="font-semibold text-slate-900 text-sm">{trip.clientName || "Cliente"}</p>
                         <p className="text-xs text-slate-500">{new Date(trip.requestedAt).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}</p>
                       </div>
-                      <span className="text-lg font-bold text-green-600">{trip.fare}</span>
+                      <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">Pago directo</span>
+                    </div>
+                    <div className={`mb-3 rounded-xl border p-2.5 text-xs ${trip.status === "driver_declined" ? "border-amber-200 bg-amber-50 text-amber-900" : trip.assignmentMode === "manual" ? "border-blue-200 bg-blue-50 text-blue-900" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                      {trip.status === "driver_declined" ? "El conductor elegido rechazó. Puedes activar Autobúsqueda para recomendar una alternativa." : trip.assignmentMode === "manual" ? "Elección manual protegida: no reasignes hasta rechazo o vencimiento informado." : "Autobúsqueda: conductor recomendado con transparencia para el pasajero."}
                     </div>
                     <div className="space-y-1.5 mb-3">
                       <div className="flex items-start gap-2">
@@ -205,11 +232,17 @@ export default function DispatcherDashboard() {
                         <p className="text-xs text-slate-700 leading-snug">{trip.dropoff}</p>
                       </div>
                     </div>
+                    {trip.driver?.paymentMethods?.length > 0 && <p className="mb-3 text-[11px] text-slate-500">Métodos del conductor: <strong className="text-slate-700">{trip.driver.paymentMethods.join(" · ")}</strong></p>}
                     <div className="flex gap-2">
                       {permissions.assignTrips && (
                         <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1"
                           onClick={() => { setSelectedTrip(trip); setShowAssignModal(true); }}>
-                          <Send size={12} /> Asignar
+                          <Send size={12} /> {trip.assignmentMode === "manual" && trip.status !== "driver_declined" ? "Ver elección" : "Asignar"}
+                        </Button>
+                      )}
+                      {trip.status === "driver_declined" && config.autoSearchEnabled && (
+                        <Button size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-50 text-xs" onClick={() => handleAutoSearch(trip)}>
+                          Autobúsqueda
                         </Button>
                       )}
                       {permissions.cancelTrips && (
@@ -255,8 +288,8 @@ export default function DispatcherDashboard() {
               {MOCK_DRIVERS.map(driver => (
                 <Card key={driver.id} className="p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${driver.status === "available" ? "bg-green-500" : driver.status === "busy" ? "bg-blue-500" : "bg-slate-400"}`}>
-                      {driver.name[0]}
+                    <div className={`h-10 w-10 overflow-hidden rounded-full flex items-center justify-center font-bold text-white ${driver.status === "available" ? "bg-green-500" : driver.status === "busy" ? "bg-blue-500" : "bg-slate-400"}`}>
+                      {driver.profilePhotoUrl ? <img src={driver.profilePhotoUrl} alt={`Foto demostrativa de ${driver.name}`} className="h-full w-full object-cover" /> : driver.name[0]}
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-slate-900">{driver.name}</p>
@@ -268,7 +301,9 @@ export default function DispatcherDashboard() {
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
                     <span>Viajes hoy: <strong className="text-slate-800">{driver.trips}</strong></span>
+                    <span className={driver.identityStatus === "approved" ? "text-emerald-700" : "text-amber-700"}>{driver.identityStatus === "approved" ? "Identidad aprobada" : "Identidad pendiente"}</span>
                   </div>
+                  <p className="mb-3 text-[11px] text-slate-500">Cobro directo: {driver.paymentMethods.join(" · ")}</p>
                  {permissions.contactUsers && (
                    <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs"
@@ -317,18 +352,18 @@ export default function DispatcherDashboard() {
             </div>
             <div className="space-y-2 mb-4">
               <p className="text-sm font-medium text-slate-700">Seleccionar conductor disponible:</p>
-              {availableDrivers.map(driver => (
+              {availableDrivers.filter(driver => !selectedTrip?.selectedDriverId || selectedTrip.status === "driver_declined" || selectedTrip.assignmentMode !== "manual" || driver.id === selectedTrip.selectedDriverId).map(driver => (
                 <button
                   key={driver.id}
                   onClick={() => setSelectedDriver(driver.id)}
                   className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${selectedDriver === driver.id ? "border-blue-500 bg-blue-50" : "border-slate-200 hover:border-slate-300"}`}
                 >
-                  <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
-                    {driver.name[0]}
+                  <div className="h-8 w-8 overflow-hidden rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {driver.profilePhotoUrl ? <img src={driver.profilePhotoUrl} alt={`Foto demostrativa de ${driver.name}`} className="h-full w-full object-cover" /> : driver.name[0]}
                   </div>
                   <div>
                     <p className="font-semibold text-sm text-slate-900">{driver.name}</p>
-                    <p className="text-xs text-slate-500">{driver.vehicle} · {driver.trips} viajes hoy</p>
+                    <p className="text-xs text-slate-500">{driver.vehicle} · ★ {driver.rating.toFixed(1)} · {driver.trips} viajes hoy</p>
                   </div>
                   {selectedDriver === driver.id && <CheckCircle size={18} className="text-blue-500 ml-auto" />}
                 </button>

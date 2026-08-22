@@ -135,6 +135,10 @@ const driverIdentityQueueSource = readFileSync(
   "utf8"
 );
 const schemaSource = readFileSync(resolve(projectRoot, "drizzle/schema.ts"), "utf8");
+const dispatcherDashboardSource = readFileSync(
+  resolve(projectRoot, "client/src/pages/DispatcherDashboard.tsx"),
+  "utf8"
+);
 
 describe("mapa dark premium de referencia", () => {
   it("mantiene el mapa urbano dark, la ruta y los marcadores funcionales", () => {
@@ -410,5 +414,15 @@ describe("mapa dark premium de referencia", () => {
     expect(driverDashboardSource).toContain("verificación de identidad antes de conectarte");
     expect(adminDashboardSource).toContain("DriverIdentityReviewQueue");
     expect(driverIdentityQueueSource).toContain("No existe aprobación biométrica automática");
+  });
+
+  it("mantiene al dispatcher dentro de las reglas de selección manual, identidad y cobro directo", () => {
+    expect(dispatcherDashboardSource).toContain("Elección manual protegida");
+    expect(dispatcherDashboardSource).toContain("handleAutoSearch");
+    expect(dispatcherDashboardSource).toContain("driver_declined");
+    expect(dispatcherDashboardSource).toContain("identityStatus !== \"approved\"");
+    expect(dispatcherDashboardSource).toContain("Pago directo");
+    expect(dispatcherDashboardSource).toContain("profilePhotoUrl");
+    expect(dispatcherDashboardSource).toContain("config.autoSearchEnabled");
   });
 });
